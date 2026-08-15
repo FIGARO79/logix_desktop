@@ -431,9 +431,9 @@ const PickingAudit = () => {
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
                     body: JSON.stringify(payload)
-                });
+                }).catch(() => null);
 
-                if (res.ok) {
+                if (res && res.ok) {
                     handleReset();
                     setShowConfirmModal(false);
                     setShowAssignmentModal(false);
@@ -442,21 +442,38 @@ const PickingAudit = () => {
                 }
             }
 
-            // Guardar offline si falla o no hay conexión
+            // Guardar localmente en IndexedDB (offline)
             await savePendingSync('picking', payload);
-            alert("Guardado localmente (Offline). Se sincronizará al recuperar conexión.");
+
+            // Actualizar estado de la orden en el tracking local (is_audited: true)
+            const db = await getDB();
+            const tx = db.transaction('picking_tracking', 'readwrite');
+            const trackingStore = tx.objectStore('picking_tracking');
+            const existingTrack = await trackingStore.get(orderNumber);
+            if (existingTrack) {
+                existingTrack.is_audited = true;
+                existingTrack.status = payload.status;
+                await trackingStore.put(existingTrack);
+            }
+            await tx.done;
+
+            alert("Auditoría guardada exitosamente en la base de datos local.");
             handleReset();
             setShowConfirmModal(false);
             setShowAssignmentModal(false);
             setPackagesCount('1');
 
         } catch (e) {
-            console.error(e);
-            // Reintento offline forzado
-            await savePendingSync('picking', payload);
+            console.error("Error al guardar auditoría de picking:", e);
+            try {
+                await savePendingSync('picking', payload);
+            } catch (err) {
+                console.error("Error en respaldo offline:", err);
+            }
             handleReset();
             setShowConfirmModal(false);
             setShowAssignmentModal(false);
+            setPackagesCount('1');
         }
     };
 
