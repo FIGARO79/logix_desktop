@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { getDB } from '../utils/offlineDb';
 
 const PickingAuditHistory = () => {
     const { setTitle } = useOutletContext();
@@ -34,13 +35,56 @@ const PickingAuditHistory = () => {
     }, []);
 
     const fetchAudits = async () => {
+        setLoading(true);
+        setError(null);
         try {
-            const response = await fetch('/api/views/view_picking_audits', { credentials: 'include' });
-            if (!response.ok) throw new Error('Error al cargar auditorías');
-            const data = await response.json();
-            setAudits(data);
+            let serverAudits = [];
+            const response = await fetch('/api/views/view_picking_audits', { credentials: 'include' }).catch(() => null);
+            if (response && response.ok) {
+                serverAudits = await response.json().catch(() => []);
+            }
+
+            // Leer auditorías locales de IndexedDB
+            const db = await getDB();
+            const pendingList = await db.getAll('pending_sync') || [];
+            const localAudits = pendingList
+                .filter(item => item.collection === 'picking' && item.payload)
+                .map((item, idx) => ({
+                    id: item.id || `local_${idx}`,
+                    order_number: item.payload?.order_number || 'N/A',
+                    despatch_number: item.payload?.despatch_number || '00',
+                    customer_code: item.payload?.customer_code || '',
+                    customer_name: item.payload?.customer_name || 'Cliente General',
+                    username: item.payload?.username || 'Local',
+                    timestamp: item.timestamp || new Date().toISOString(),
+                    status: item.payload?.status || 'Completo',
+                    packages: item.payload?.packages || 1,
+                    packages_assignment: item.payload?.packages_assignment || {},
+                    items: (item.payload?.items || []).map(it => ({
+                        id: it.id || null,
+                        item_code: it.code || it.item_code || '',
+                        code: it.code || it.item_code || '',
+                        description: it.description || '',
+                        order_line: it.order_line || '',
+                        qty_req: parseInt(it.qty_req || 0),
+                        qty_scan: parseInt(it.qty_scan || 0),
+                        difference: (parseInt(it.qty_scan || 0)) - (parseInt(it.qty_req || 0))
+                    }))
+                }));
+
+            const combined = [...localAudits];
+            if (Array.isArray(serverAudits)) {
+                serverAudits.forEach(sa => {
+                    if (!combined.some(ca => ca.order_number === sa.order_number && ca.despatch_number === sa.despatch_number)) {
+                        combined.push(sa);
+                    }
+                });
+            }
+
+            setAudits(combined);
         } catch (err) {
-            setError(err.message);
+            console.error("Error al cargar auditorías de picking:", err);
+            setError("Error al cargar las auditorías de alistamiento.");
         } finally {
             setLoading(false);
         }
@@ -50,30 +94,50 @@ const PickingAuditHistory = () => {
 
     const normalizeDate = (dateString) => {
         if (!dateString) return null;
+        if (typeof dateString !== 'string') {
+            try {
+                return new Date(dateString).toISOString();
+            } catch (e) {
+                return null;
+            }
+        }
         let normalized = dateString.trim().replace(' ', 'T');
-        if (normalized.length === 10 && normalized.match(/^\d{4}-\d{2}-\d{2}$/)) return `${normalized}T00:00:00`;
-        const hasTimeZone = normalized.includes('Z') || normalized.match(/[+-]\d{2}:\d{2}$/) || (normalized.includes('-') && normalized.split('T')[1]?.includes('-'));
-        if (!hasTimeZone) normalized = `${normalized}Z`;
+        if (normalized.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+            return `${normalized}T00:00:00Z`;
+        }
+        const hasTimeZone = normalized.includes('Z') || /[+-]\d{2}:\d{2}$/.test(normalized);
+        if (!hasTimeZone && normalized.includes('T')) {
+            normalized = `${normalized}Z`;
+        }
         return normalized;
     };
 
     const isToday = (dateString) => {
-        const normalized = normalizeDate(dateString);
-        if (!normalized) return false;
-        const date = new Date(normalized);
-        const today = new Date();
-        return date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+        try {
+            const normalized = normalizeDate(dateString);
+            if (!normalized) return false;
+            const date = new Date(normalized);
+            if (isNaN(date.getTime())) return false;
+            const today = new Date();
+            return date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+        } catch (e) {
+            return false;
+        }
     };
 
     const formatDate = (dateString) => {
-        const normalized = normalizeDate(dateString);
-        if (!normalized) return '';
-        const date = new Date(normalized);
-        if (isNaN(date.getTime())) return 'Fecha Inválida';
-        return date.toLocaleString(undefined, {
-            day: '2-digit', month: '2-digit', year: 'numeric',
-            hour: '2-digit', minute: '2-digit', hour12: false
-        });
+        if (!dateString) return 'N/A';
+        try {
+            const normalized = normalizeDate(dateString);
+            const date = normalized ? new Date(normalized) : new Date(dateString);
+            if (isNaN(date.getTime())) return String(dateString);
+            return date.toLocaleString(undefined, {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit', hour12: false
+            });
+        } catch (e) {
+            return String(dateString);
+        }
     };
 
     const handleEditClick = (audit) => {

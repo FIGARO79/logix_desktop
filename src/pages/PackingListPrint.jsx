@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
+import { getDB } from '../utils/offlineDb';
+
 const PackingListPrint = ({ setTitle, id: propId }) => {
     const { id: paramId } = useParams();
     const navigate = useNavigate();
@@ -18,12 +20,54 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
 
     useEffect(() => {
         if (!id || id === 'undefined') return;
-        // 1. Fetch Data
         const fetchData = async () => {
             try {
-                const res = await fetch(`/api/picking/packing_list/${id}`, { credentials: 'include' });
-                if (!res.ok) throw new Error("Error loading data");
-                const json = await res.json();
+                let json = null;
+                const res = await fetch(`/api/picking/packing_list/${id}`, { credentials: 'include' }).catch(() => null);
+                if (res && res.ok) {
+                    json = await res.json().catch(() => null);
+                }
+
+                if (!json) {
+                    const db = await getDB();
+                    const pendingList = await db.getAll('pending_sync') || [];
+                    const found = pendingList.find(item => item.id === id || item.payload?.order_number === id);
+                    if (found && found.payload) {
+                        const p = found.payload;
+                        const pkgs = {};
+                        if (p.packages_assignment) {
+                            Object.entries(p.packages_assignment).forEach(([itemKey, pkgMap]) => {
+                                const [itemCode, line] = itemKey.split(':');
+                                Object.entries(pkgMap).forEach(([pkgNum, qty]) => {
+                                    const q = parseInt(qty) || 0;
+                                    if (q > 0) {
+                                        if (!pkgs[pkgNum]) pkgs[pkgNum] = [];
+                                        const matchingItem = (p.items || []).find(it => (it.code || it.item_code) === itemCode);
+                                        pkgs[pkgNum].push({
+                                            item_code: itemCode,
+                                            description: matchingItem ? matchingItem.description : '',
+                                            order_line: line,
+                                            qty: q
+                                        });
+                                    }
+                                });
+                            });
+                        }
+
+                        json = {
+                            order_number: p.order_number,
+                            despatch_number: p.despatch_number,
+                            customer_code: p.customer_code,
+                            customer_name: p.customer_name,
+                            status: p.status,
+                            total_packages: p.packages || 1,
+                            timestamp: found.timestamp ? new Date(found.timestamp).toLocaleString() : new Date().toLocaleString(),
+                            packages: pkgs
+                        };
+                    }
+                }
+
+                if (!json) throw new Error("No se encontraron datos para este Packing List.");
                 setData(json);
             } catch (err) {
                 setError(err.message);
