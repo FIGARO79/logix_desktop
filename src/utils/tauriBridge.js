@@ -105,8 +105,17 @@ export const processLocalCSVUpload = async (file) => {
                 const isPickingFile = fileName.includes('240') || fileName.includes('picking') || fileName.includes('salida') ||
                     rawHeaders.some(h => ['despatch', 'order_number', 'order number', 'despatch_number', 'despatch number', 'customer_code', 'customer code'].includes(h));
 
+                const isGrnFile = fileName.includes('280') || fileName.includes('grn') || fileName.includes('entradas') ||
+                    (rawHeaders.some(h => ['grn', 'grn_number', 'import_ref', 'import_reference', 'referencia_importacion'].includes(h)) && !isPickingFile);
+
+                const isXdockFile = fileName.includes('0006') || fileName.includes('xdock') || fileName.includes('crossdock') || fileName.includes('reservas') ||
+                    rawHeaders.some(h => ['reserved_qty', 'xdock', 'crossdock'].includes(h));
+
+                const isPoLookupFile = fileName.includes('po_extractor') || fileName.includes('purchase order') || fileName.includes('extractor') ||
+                    (rawHeaders.includes('waybill') && (rawHeaders.includes('import_ref') || rawHeaders.includes('import_reference')));
+
+                // 1. ARCHIVO 240 (Salidas Picking)
                 if (isPickingFile) {
-                    // Procesar como alistamiento de picking (240)
                     const ordersMap = {}; // { 'order_despatch': { order_number, despatch_number, customer_code, customer_name, print_date, items: [] } }
 
                     const hasHeader = rawHeaders.some(h =>
@@ -135,7 +144,6 @@ export const processLocalCSVUpload = async (file) => {
                         let qty = parseInt(row['qty'] || row['quantity'] || row['cantidad'] || row['cant'] || row['qty_req'] || values[7] || '0', 10) || 0;
                         let rawDate = row['print_date'] || row['print date'] || row['fecha_impresion'] || row['fecha'] || values[8] || new Date().toISOString().split('T')[0];
 
-                        // Normalizar fecha a YYYY-MM-DD
                         let print_date = rawDate.split(' ')[0] || rawDate.split('T')[0];
                         if (print_date.includes('/')) {
                             const dateParts = print_date.split('/');
@@ -221,7 +229,159 @@ export const processLocalCSVUpload = async (file) => {
                     return;
                 }
 
-                // Si no es 240, procesar como maestro de inventario (250 / General)
+                // 2. ARCHIVO 280 (Entradas GRN)
+                if (isGrnFile) {
+                    const grnMap = {};
+                    const hasHeader = rawHeaders.some(h => ['item', 'codigo', 'código', 'material', 'sku', 'grn', 'pedido', 'cantidad'].includes(h));
+                    const startIdx = hasHeader ? 1 : 0;
+
+                    for (let i = startIdx; i < lines.length; i++) {
+                        const values = lines[i].split(delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
+                        if (values.length === 0 || (values.length === 1 && values[0] === '')) continue;
+
+                        const row = {};
+                        if (hasHeader) {
+                            rawHeaders.forEach((h, idx) => { row[h] = values[idx] || ''; });
+                        }
+
+                        let item_code = row['item_code'] || row['item'] || row['codigo'] || row['código'] || row['sku'] || row['material'] || values[0] || '';
+                        let grn_number = row['grn'] || row['grn_number'] || row['pedido'] || row['po_number'] || row['referencia'] || values[1] || 'GRN_LOCAL';
+                        let qty = parseFloat((row['total_expected'] || row['expected_qty'] || row['qty'] || row['cantidad'] || row['cant_esperada'] || values[2] || '0').toString().replace(',', '.')) || 0;
+                        let import_ref = row['import_ref'] || row['import_reference'] || row['referencia_importacion'] || row['referencia'] || values[3] || '';
+
+                        if (!item_code) continue;
+                        const cleanCode = item_code.toUpperCase().trim();
+                        const cleanGrn = grn_number.trim().toUpperCase();
+
+                        if (!grnMap[cleanCode]) {
+                            grnMap[cleanCode] = { Item_Code: cleanCode, grns: {}, total_expected: 0, Import_Reference: import_ref };
+                        }
+
+                        grnMap[cleanCode].grns[cleanGrn] = (grnMap[cleanCode].grns[cleanGrn] || 0) + qty;
+                        grnMap[cleanCode].total_expected += qty;
+                        if (import_ref && !grnMap[cleanCode].Import_Reference) {
+                            grnMap[cleanCode].Import_Reference = import_ref;
+                        }
+                    }
+
+                    const db = await getDB();
+                    const tx = db.transaction('grn_pending', 'readwrite');
+                    const store = tx.objectStore('grn_pending');
+                    let totalItems = 0;
+                    for (const [code, data] of Object.entries(grnMap)) {
+                        await store.put(data);
+                        totalItems++;
+                    }
+                    await tx.done;
+
+                    const txMeta = db.transaction('sync_metadata', 'readwrite');
+                    await txMeta.objectStore('sync_metadata').put({ key: 'grn_pending', value: Math.floor(Date.now() / 1000) });
+                    await txMeta.done;
+
+                    resolve(`Se cargaron ${totalItems} registros de Entradas GRN (280) en la base de datos local.`);
+                    return;
+                }
+
+                // 3. ARCHIVO 0006 (Reservas Xdock)
+                if (isXdockFile) {
+                    const xdockMap = {};
+                    const hasHeader = rawHeaders.some(h => ['item', 'codigo', 'código', 'material', 'sku', 'reserved_qty', 'cantidad', 'cliente'].includes(h));
+                    const startIdx = hasHeader ? 1 : 0;
+
+                    for (let i = startIdx; i < lines.length; i++) {
+                        const values = lines[i].split(delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
+                        if (values.length === 0 || (values.length === 1 && values[0] === '')) continue;
+
+                        const row = {};
+                        if (hasHeader) {
+                            rawHeaders.forEach((h, idx) => { row[h] = values[idx] || ''; });
+                        }
+
+                        let item_code = row['item_code'] || row['item'] || row['codigo'] || row['código'] || row['sku'] || row['material'] || values[0] || '';
+                        let qty = parseFloat((row['reserved_qty'] || row['total'] || row['qty'] || row['cantidad'] || values[1] || '0').toString().replace(',', '.')) || 0;
+                        let customer = row['customer_name'] || row['customer'] || row['cliente'] || row['nombre_cliente'] || values[2] || 'Cliente General';
+                        let po_number = row['po_number'] || row['po_date'] || row['po'] || values[3] || '';
+
+                        if (!item_code) continue;
+                        const cleanCode = item_code.toUpperCase().trim();
+
+                        if (!xdockMap[cleanCode]) {
+                            xdockMap[cleanCode] = { Item_Code: cleanCode, total: 0, reserved_qty: 0, customers: new Set(), po_number };
+                        }
+
+                        xdockMap[cleanCode].total += qty;
+                        xdockMap[cleanCode].reserved_qty += qty;
+                        if (customer) xdockMap[cleanCode].customers.add(customer.trim());
+                    }
+
+                    const db = await getDB();
+                    const tx = db.transaction('xdock_reservations', 'readwrite');
+                    const store = tx.objectStore('xdock_reservations');
+                    let totalItems = 0;
+                    for (const [code, data] of Object.entries(xdockMap)) {
+                        const custArr = Array.from(data.customers);
+                        await store.put({
+                            Item_Code: code,
+                            total: data.total,
+                            reserved_qty: data.reserved_qty,
+                            customers: custArr,
+                            customer_name: custArr.join(' / '),
+                            po_number: data.po_number
+                        });
+                        totalItems++;
+                    }
+                    await tx.done;
+
+                    const txMeta = db.transaction('sync_metadata', 'readwrite');
+                    await txMeta.objectStore('sync_metadata').put({ key: 'xdock_reservations', value: Math.floor(Date.now() / 1000) });
+                    await txMeta.done;
+
+                    resolve(`Se cargaron ${totalItems} registros de Reservas Xdock (0006) en la base de datos local.`);
+                    return;
+                }
+
+                // 4. PO Extractor / PO Lookup
+                if (isPoLookupFile) {
+                    const hasHeader = rawHeaders.some(h => ['waybill', 'import_ref', 'import_reference', 'item'].includes(h));
+                    const startIdx = hasHeader ? 1 : 0;
+
+                    const db = await getDB();
+                    const tx = db.transaction('po_lookup', 'readwrite');
+                    const store = tx.objectStore('po_lookup');
+
+                    let count = 0;
+                    for (let i = startIdx; i < lines.length; i++) {
+                        const values = lines[i].split(delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
+                        if (values.length === 0 || (values.length === 1 && values[0] === '')) continue;
+
+                        const row = {};
+                        if (hasHeader) {
+                            rawHeaders.forEach((h, idx) => { row[h] = values[idx] || ''; });
+                        }
+
+                        let waybill = (row['waybill'] || values[0] || '').trim().toUpperCase();
+                        let import_ref = (row['import_ref'] || row['import_reference'] || values[1] || '').trim().toUpperCase();
+
+                        if (waybill) {
+                            await store.put({ id: `wb_${waybill}`, type: 'wb', value: waybill, import_ref });
+                            count++;
+                        }
+                        if (import_ref) {
+                            await store.put({ id: `ir_${import_ref}`, type: 'ir', value: import_ref, waybill });
+                            count++;
+                        }
+                    }
+                    await tx.done;
+
+                    const txMeta = db.transaction('sync_metadata', 'readwrite');
+                    await txMeta.objectStore('sync_metadata').put({ key: 'po_extractor', value: Math.floor(Date.now() / 1000) });
+                    await txMeta.done;
+
+                    resolve(`Se cargaron ${count} relaciones de PO Extractor / Lookup en la base de datos local.`);
+                    return;
+                }
+
+                // 5. ARCHIVO 250 (Maestro de Ítems / General)
                 const itemsToInsert = [];
                 const hasHeader = rawHeaders.some(h =>
                     ['item', 'codigo', 'código', 'material', 'sku', 'descripcion', 'descripción', 'bin', 'ubicacion', 'ubicación', 'cantidad'].includes(h)
@@ -251,7 +411,6 @@ export const processLocalCSVUpload = async (file) => {
 
                     if (item_code && item_code.trim() !== '') {
                         const cleanCode = item_code.toUpperCase().trim();
-                        // Descartar palabras clave de encabezado repetidas
                         if (!['ITEM', 'CODIGO', 'CÓDIGO', 'MATERIAL', 'SKU', 'ITEM_CODE'].includes(cleanCode)) {
                             itemsToInsert.push({
                                 item_code: cleanCode,
@@ -267,12 +426,32 @@ export const processLocalCSVUpload = async (file) => {
                 }
 
                 if (itemsToInsert.length > 0) {
+                    let resMsg = '';
                     if (isTauri()) {
-                        const resMsg = await invoke('add_inventory_items_bulk', { items: itemsToInsert });
-                        resolve(resMsg || `Se cargaron ${itemsToInsert.length} registros en SQLite local`);
-                    } else {
-                        resolve(`Se procesaron ${itemsToInsert.length} registros localmente`);
+                        resMsg = await invoke('add_inventory_items_bulk', { items: itemsToInsert });
                     }
+
+                    const db = await getDB();
+                    const txMaster = db.transaction('master_items', 'readwrite');
+                    const masterStore = txMaster.objectStore('master_items');
+                    for (const item of itemsToInsert) {
+                        await masterStore.put({
+                            Item_Code: item.item_code,
+                            Item_Description: item.description,
+                            Bin_Location: item.bin_location,
+                            System_Qty: item.system_qty,
+                            Unit_Cost: item.unit_cost,
+                            Weight_Per_Unit: item.weight_per_unit,
+                            SIC_Code: item.sic_code
+                        });
+                    }
+                    await txMaster.done;
+
+                    const txMeta = db.transaction('sync_metadata', 'readwrite');
+                    await txMeta.objectStore('sync_metadata').put({ key: 'master_items', value: Math.floor(Date.now() / 1000) });
+                    await txMeta.done;
+
+                    resolve(resMsg || `Se cargaron ${itemsToInsert.length} registros en el Maestro de Ítems (250) local`);
                 } else {
                     resolve("No se encontraron registros de inventario procesables en el archivo");
                 }
