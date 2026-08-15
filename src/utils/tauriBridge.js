@@ -103,7 +103,7 @@ export const processLocalCSVUpload = async (file) => {
 
                 const fileName = file.name.toLowerCase();
                 const isPickingFile = fileName.includes('240') || fileName.includes('picking') || fileName.includes('salida') ||
-                    rawHeaders.some(h => ['despatch', 'order_number', 'order number', 'despatch_number', 'despatch number', 'customer_code', 'customer code'].includes(h));
+                    rawHeaders.some(h => ['despatch', 'despatch_', 'order', 'order_', 'order_number', 'order number', 'despatch_number', 'despatch number', 'customer_code', 'customer code', 'customer'].includes(h));
 
                 const isGrnFile = fileName.includes('280') || fileName.includes('grn') || fileName.includes('entradas') ||
                     (rawHeaders.some(h => ['grn', 'grn_number', 'import_ref', 'import_reference', 'referencia_importacion'].includes(h)) && !isPickingFile);
@@ -119,7 +119,7 @@ export const processLocalCSVUpload = async (file) => {
                     const ordersMap = {}; // { 'order_despatch': { order_number, despatch_number, customer_code, customer_name, print_date, items: [] } }
 
                     const hasHeader = rawHeaders.some(h =>
-                        ['order', 'pedido', 'despatch', 'despacho', 'item', 'codigo', 'código', 'material', 'sku', 'cliente', 'customer'].includes(h)
+                        ['order_', 'order', 'pedido', 'despatch_', 'despatch', 'despacho', 'item', 'codigo', 'código', 'material', 'sku', 'cliente', 'customer', 'customer_name'].includes(h)
                     );
                     const startIdx = hasHeader ? 1 : 0;
 
@@ -134,15 +134,45 @@ export const processLocalCSVUpload = async (file) => {
                             });
                         }
 
-                        let order_number = row['order_number'] || row['order number'] || row['order'] || row['pedido'] || row['numero_pedido'] || row['no_pedido'] || row['documento'] || values[0] || '';
-                        let despatch_number = row['despatch_number'] || row['despatch number'] || row['despatch'] || row['despacho'] || row['nota_entrega'] || row['entrega'] || values[1] || '00';
-                        let customer_code = row['customer_code'] || row['customer code'] || row['cliente'] || row['codigo_cliente'] || row['código_cliente'] || row['cod_cliente'] || (values[2] || 'N/A');
-                        let customer_name = row['customer_name'] || row['customer name'] || row['nombre_cliente'] || row['cliente_nombre'] || row['nombre'] || (values[3] || 'Cliente General');
-                        let item_code = row['item_code'] || row['item code'] || row['item'] || row['codigo'] || row['código'] || row['material'] || row['sku'] || (values[4] || '');
-                        let description = row['item_description'] || row['item description'] || row['description'] || row['descripcion'] || row['descripción'] || row['texto breve'] || (values[5] || '');
-                        let order_line = row['order_line'] || row['order line'] || row['linea'] || row['línea'] || row['posicion'] || (values[6] || (i - startIdx + 1).toString());
-                        let qty = parseInt(row['qty'] || row['quantity'] || row['cantidad'] || row['cant'] || row['qty_req'] || values[7] || '0', 10) || 0;
-                        let rawDate = row['print_date'] || row['print date'] || row['fecha_impresion'] || row['fecha'] || values[8] || new Date().toISOString().split('T')[0];
+                        let order_number = hasHeader
+                            ? (row['order_'] || row['order_number'] || row['order number'] || row['order'] || row['pedido'] || row['numero_pedido'] || row['no_pedido'] || row['documento'] || '')
+                            : (values[4] || values[0] || '');
+
+                        let despatch_number = hasHeader
+                            ? (row['despatch_'] || row['despatch_number'] || row['despatch number'] || row['despatch'] || row['despacho'] || row['nota_entrega'] || row['entrega'] || '')
+                            : (values[5] || values[1] || '00');
+
+                        let customer_code = hasHeader
+                            ? (row['customer'] || row['customer_code'] || row['customer code'] || row['cliente'] || row['codigo_cliente'] || row['código_cliente'] || row['cod_cliente'] || '')
+                            : (values[0] || 'N/A');
+
+                        let customer_name = hasHeader
+                            ? (row['customer_name'] || row['customer name'] || row['nombre_cliente'] || row['cliente_nombre'] || row['nombre'] || row['end_user_name'] || '')
+                            : (values[2] || 'Cliente General');
+
+                        let item_code = hasHeader
+                            ? (row['item'] || row['item_code'] || row['item code'] || row['codigo'] || row['código'] || row['material'] || row['sku'] || '')
+                            : (values[7] || values[3] || '');
+
+                        let description = hasHeader
+                            ? (row['description'] || row['item_description'] || row['item description'] || row['descripcion'] || row['descripción'] || row['texto breve'] || '')
+                            : (values[8] || values[4] || '');
+
+                        let order_line = hasHeader
+                            ? (row['order_line'] || row['order line'] || row['linea'] || row['línea'] || row['posicion'] || '')
+                            : (values[6] || (i - startIdx + 1).toString());
+
+                        let qty = parseInt((hasHeader
+                            ? (row['qty'] || row['quantity'] || row['cantidad'] || row['cant'] || row['qty_req'] || '0')
+                            : (values[9] || '0')).toString().replace(',', '.'), 10) || 0;
+
+                        let rawDate = hasHeader
+                            ? (row['pick_list_printed_time'] || row['creation_time'] || row['requested_date'] || row['print_date'] || row['print date'] || row['fecha_impresion'] || row['fecha'] || row['rp_status_time'] || '')
+                            : '';
+
+                        if (!rawDate) {
+                            rawDate = new Date().toISOString().split('T')[0];
+                        }
 
                         let print_date = rawDate.split(' ')[0] || rawDate.split('T')[0];
                         if (print_date.includes('/')) {
