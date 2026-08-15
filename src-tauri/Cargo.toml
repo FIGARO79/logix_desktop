@@ -1,0 +1,21 @@
+[package]
+name = "logix_desktop_portable"
+version = "1.0.0"
+description = "Logix Desktop Portable - Solución standalone de gestión de inventario"
+authors = ["Fabio"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "1.5", features = [] }
+
+[dependencies]
+tauri = { version = "1.8", features = ["linux-protocol-headers", "shell-open", "dialog-all", "fs-all", "path-all"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+csv = "1.4"
+tokio = { version = "1.35", features = ["full"] }
+rusqlite = { version = "0.31", features = ["bundled"] }
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]

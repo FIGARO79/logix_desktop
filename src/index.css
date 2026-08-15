@@ -1,0 +1,130 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --sap-font-family: 'Segoe UI', 'Segoe', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    --sap-font-heading: 'Segoe UI', 'Segoe', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    --sap-primary: #354a5f;
+    --sap-shell-bg: #354a5f;
+    --sap-bg: #f5f7fa;
+    --sap-text: #000000;
+    --sap-text-header: #000000;
+}
+
+body, button, input, select, textarea, table, h1, h2, h3, h4, h5, h6, div, p, span, a, label {
+    font-family: 'Segoe UI', 'Segoe', -apple-system, BlinkMacSystemFont, Roboto, sans-serif !important;
+}
+
+body {
+    color: var(--sap-text);
+    line-height: 1.6;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.header-title {
+    font-family: var(--sap-font-family);
+    font-size: 1rem;
+    font-weight: 400;
+    margin: 0;
+    color: #fff;
+}
+
+/* Ocultar flechas (spinners) en inputs tipo number */
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.no-spinner[type=number] {
+    -moz-appearance: textfield;
+}
+
+/* Animación de giro para el botón de sincronización */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Reset de impresión global */
+@media print {
+    html, body, #root {
+        height: auto !important;
+        min-height: auto !important;
+        overflow: visible !important;
+        display: block !important;
+        visibility: visible !important;
+        position: static !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}
+
+/* Ocultar barras de desplazamiento manteniendo funcionalidad */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Force white text on table headers with dark backgrounds */
+thead.bg-slate-700 th,
+thead.bg-slate-800 th,
+thead.bg-slate-900 th,
+thead.bg-zinc-800 th,
+thead.bg-zinc-900 th,
+thead.bg-black th,
+thead[class*="bg-sap-primary"] th,
+tr[style*="background: #111827"] th,
+tr[style*="background: #354a5f"] th,
+tr.text-white th,
+thead.text-white th {
+    color: #ffffff !important;
+}
+
+/* Force all dark/medium/light gray/zinc/slate/neutral/stone text colors to black globally */
+.text-gray-300, .text-gray-400, .text-gray-500, .text-gray-600, .text-gray-700, .text-gray-800, .text-gray-850, .text-gray-900, .text-gray-950,
+.text-zinc-300, .text-zinc-400, .text-zinc-500, .text-zinc-600, .text-zinc-700, .text-zinc-800, .text-zinc-900, .text-zinc-950,
+.text-slate-300, .text-slate-400, .text-slate-500, .text-slate-600, .text-slate-700, .text-slate-800, .text-slate-900, .text-slate-950,
+.text-neutral-300, .text-neutral-400, .text-neutral-500, .text-neutral-600, .text-neutral-700, .text-neutral-800, .text-neutral-900, .text-neutral-950,
+.text-stone-300, .text-stone-400, .text-stone-500, .text-stone-600, .text-stone-700, .text-stone-800, .text-stone-900, .text-stone-950,
+.text-zinc-500\/60, .text-gray-500\/60, .text-black\/60 {
+    color: #000000 !important;
+}
+
+/* Exclude the sidebar section titles from the global black color rule and set them to white */
+.fixed.left-0.w-64 nav > div > div {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Ensure all elements in the sidebar menu use normal weight */
+.fixed.left-0.w-64,
+.fixed.left-0.w-64 * {
+    font-weight: 400 !important;
+}
+.fixed.left-0.w-64 nav > div > div,
+.fixed.left-0.w-64 .font-medium,
+.fixed.left-0.w-64 [class*="font-semibold"],
+.fixed.left-0.w-64 [class*="font-bold"] {
+    font-weight: 500 !important;
+}
+
+/* Ensure the logout button in the sidebar is colored in warning red */
+.fixed.left-0.w-64 button.text-red-500,
+.fixed.left-0.w-64 button.text-red-400 {
+    color: #ef4444 !important;
+}

@@ -1,0 +1,438 @@
+/* src/styles/Global.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+
+/* ===== System Font Stack (Replacing SAP '72') ===== */
+/* Using native system fonts for better performance and no external dependencies */
+
+/* ===== SAP Fiori Inspired Theme (Quartz Light / Belize) ===== */
+:root {
+    /* Colors */
+    --logix-primary: #285f94;
+    /* Belize Blue update */
+    --logix-primary-dark: #1e4a74;
+    --logix-accent: #eebf22;
+    /* Gold/Yellow */
+    --logix-bg: #f7f7f7;
+    /* Quartz Light Background */
+    --logix-surface: #ffffff;
+    --logix-text: #000000;
+    --logix-text-light: #000000;
+    --logix-border: #d9d9d9;
+    --logix-input-border: #707880;
+
+    /* Semantic Colors */
+    --logix-success: #107e3e;
+    --logix-warning: #e9730c;
+    --logix-error: #bb0000;
+    --logix-critical: #e9730c;
+    --logix-negative: #bb0000;
+    --logix-positive: #107e3e;
+    --logix-informative: #285f94;
+    --logix-neutral: #595c5f;
+
+    /* Shell / Header */
+    --logix-shell-bg: #354a5f;
+    --logix-shell-text: #ffffff;
+
+    /* Tables */
+    --logix-table-header-bg: #f2f2f2;
+    --logix-table-border: #e5e5e5;
+    --logix-list-hover: #f5f5f5;
+
+    /* Fonts - Modern System Font Stack */
+    --logix-font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    --logix-font-size: 0.875rem;
+    /* 14px */
+}
+
+body {
+    margin: 0;
+    font-family: var(--logix-font-family);
+    font-size: var(--logix-font-size);
+    background-color: var(--logix-bg);
+    color: var(--logix-text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.4;
+}
+
+/* Layout General */
+.container-wrapper {
+    width: 100%;
+    max-width: 1400px;
+    /* Matched from templates */
+    margin-left: auto;
+    margin-right: auto;
+    padding: 1.5rem;
+}
+
+/* ===== Typography ===== */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-weight: normal;
+    color: var(--logix-text);
+}
+
+/* ===== SAP Fiori Shell Bar (Header) ===== */
+.logix-shell-bar,
+.top-header {
+    background-color: var(--logix-shell-bg);
+    color: var(--logix-shell-text);
+    height: 48px;
+    /* Fixed height from templates */
+    display: flex;
+    align-items: center;
+    padding: 0 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+}
+
+.logix-shell-title {
+    font-size: 1.125rem;
+    font-weight: 400;
+    letter-spacing: 0;
+    margin: 0;
+    color: var(--logix-shell-text);
+}
+
+.header-title {
+    font-size: 1rem;
+    font-weight: 400;
+    margin: 0;
+    color: #fff;
+}
+
+/* ===== Cards / Tiles ===== */
+.logix-tile,
+.logix-card,
+.bg-white.shadow {
+    background-color: var(--logix-surface);
+    border-radius: 0.25rem;
+    /* 4px */
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid transparent;
+    /* Consistent border box */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.logix-tile:hover {
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.1), 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.logix-login-card {
+    background-color: var(--logix-surface);
+    border-radius: 0.25rem;
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.1);
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 400px;
+    border-top: 4px solid var(--logix-primary);
+}
+
+/* ===== Forms & Inputs ===== */
+.logix-label,
+.form-label {
+    display: block;
+    font-size: 0.75rem;
+    /* 12px */
+    color: var(--logix-text-light);
+    margin-bottom: 0.25rem;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0;
+}
+
+.logix-input,
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="email"],
+select {
+    width: 100%;
+    border: 1px solid var(--logix-input-border);
+    padding: 0.25rem;
+    /* 8px 12px */
+    border-radius: 0.25rem;
+    background-color: transparent;
+    font-family: inherit;
+    font-size: 0.875rem;
+    color: var(--logix-text);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+    height: 30px;
+    /* Consistent height */
+}
+
+.logix-input:focus,
+input:focus,
+select:focus {
+    border-color: var(--logix-primary);
+    box-shadow: 0 0 0 2px rgba(40, 95, 148, 0.1);
+}
+
+/* Underlined input style variant found in login */
+.logix-input-underlined {
+    border: none;
+    border-bottom: 1px solid var(--logix-input-border);
+    border-radius: 0;
+    padding: 0.5rem 0;
+}
+
+.logix-input-underlined:focus {
+    border-bottom: 2px solid var(--logix-primary);
+    box-shadow: none;
+}
+
+.data-field {
+    background-color: #f8f9fa;
+    /* Light gray for read-only */
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.25rem;
+    min-height: 36px;
+    border: 1px solid var(--logix-border);
+    color: var(--logix-text);
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+}
+
+/* ===== Buttons ===== */
+.logix-button,
+.btn-logix,
+button {
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 400;
+    padding: 0 1rem;
+    height: 30px;
+    /* Standard button height */
+    border-radius: 0.25rem;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+/* Primary Button */
+.logix-button-primary,
+.btn-primary,
+.btn-logix.btn-primary {
+    background-color: var(--logix-primary);
+    color: white;
+    border-color: var(--logix-primary);
+}
+
+.logix-button-primary:hover:not(:disabled),
+.btn-primary:hover:not(:disabled) {
+    background-color: var(--logix-primary-dark);
+    border-color: var(--logix-primary-dark);
+}
+
+/* Secondary / Ghost Button */
+.logix-button-secondary,
+.btn-secondary,
+.btn-sap.btn-secondary {
+    background-color: transparent;
+    color: var(--sap-primary);
+    border-color: var(--sap-primary);
+}
+
+.logix-button-secondary:hover:not(:disabled),
+.btn-secondary:hover:not(:disabled) {
+    background-color: rgba(10, 110, 209, 0.05);
+}
+
+/* Negative / Danger Button */
+.logix-button-negative,
+.btn-danger {
+    background-color: transparent;
+    color: var(--sap-error);
+    border-color: var(--sap-error);
+}
+
+.logix-button-negative:hover:not(:disabled),
+.btn-danger:hover:not(:disabled) {
+    background-color: rgba(187, 0, 0, 0.05);
+}
+
+/* Success Button */
+.logix-button-success,
+.btn-success {
+    background-color: var(--sap-success);
+    color: white;
+    border-color: var(--sap-success);
+}
+
+.logix-button-success:hover:not(:disabled) {
+    background-color: #0d6b34;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #e5e5e5;
+    color: #999;
+    border-color: #d9d9d9;
+}
+
+/* ===== Tables ===== */
+.logix-table,
+.sap-table,
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.logix-table th,
+.sap-table th,
+table th {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    background: linear-gradient(180deg, #4a5f7f 0%, #3d5068 100%);
+    /* Original Dark Gradient */
+    color: #ffffff;
+    /* White text for contrast */
+    font-weight: 400;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--sap-table-border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.logix-table td,
+.sap-table td,
+table td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--sap-table-border);
+    color: var(--sap-text);
+    vertical-align: middle;
+}
+
+.logix-table tr:hover,
+.sap-table tr:hover,
+table tbody tr:hover {
+    background-color: var(--sap-list-hover);
+}
+
+/* ===== Alerts / Message Strips ===== */
+.logix-message-strip,
+.alert,
+.message-strip {
+    padding: 0.75rem 1rem;
+    border-radius: 0.25rem;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    border-left: 0.25rem solid;
+    background-color: var(--sap-surface);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.alert-success,
+.message-strip.success {
+    border-left-color: var(--sap-success);
+    background-color: #f1fdf6;
+    color: #0d6b34;
+}
+
+.alert-error,
+.message-strip.error {
+    border-left-color: var(--sap-error);
+    background-color: #fef6f6;
+    color: #bb0000;
+}
+
+.alert-info,
+.message-strip.information {
+    border-left-color: var(--sap-informative);
+    background-color: #f0f7fe;
+    color: #085ca9;
+}
+
+.alert-warning,
+.message-strip.warning {
+    border-left-color: var(--sap-warning);
+    background-color: #fef9f0;
+    color: #aa5300;
+}
+
+/* ===== Utilities ===== */
+.text-sap-primary {
+    color: var(--sap-primary);
+}
+
+.text-sap-text {
+    color: var(--sap-text);
+}
+
+.text-sap-text-light {
+    color: var(--sap-text-light);
+}
+.text-logix-primary {
+    color: var(--logix-primary);
+}
+
+.text-logix-text {
+    color: var(--logix-text);
+}
+
+.text-logix-text-light {
+    color: var(--logix-text-light);
+}
+
+/* Animation Utils */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Responsive Overrides */
+@media (max-width: 640px) {
+    .container-wrapper {
+        padding: 1rem;
+    }
+
+    .logix-shell-bar {
+        padding: 0 0.5rem;
+    }
+}
+
+/* ===== Bordes de los contenedores en color azul #1679E0 ===== */
+div.bg-white.border,
+div.bg-white.border-2,
+div[class*="bg-white"][class*="border-"],
+.sap-card,
+.logix-tile {
+    border-color: #1679E0 !important;
+    border-style: solid !important;
+}
