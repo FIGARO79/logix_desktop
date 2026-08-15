@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/tauri';
+import { getDB } from './offlineDb';
 
 export const isTauri = () => {
     return typeof window !== 'undefined' && window.__TAURI__ !== undefined;
@@ -72,7 +73,7 @@ export const tauriResetPasswordAdmin = async (userId, newPassword) => {
 };
 
 /**
- * Parsea un archivo CSV/TSV/TXT local e inserta los datos masivamente en SQLite local.
+ * Parsea un archivo CSV/TSV/TXT local e inserta los datos masivamente en SQLite local / IndexedDB.
  */
 export const processLocalCSVUpload = async (file) => {
     return new Promise((resolve, reject) => {
@@ -99,9 +100,129 @@ export const processLocalCSVUpload = async (file) => {
                 else if (firstLine.includes('|')) delimiter = '|';
 
                 const rawHeaders = firstLine.split(delimiter).map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
-                const itemsToInsert = [];
 
-                // Si la primera línea ya contiene datos en vez de encabezados
+                const fileName = file.name.toLowerCase();
+                const isPickingFile = fileName.includes('240') || fileName.includes('picking') || fileName.includes('salida') ||
+                    rawHeaders.some(h => ['despatch', 'order_number', 'order number', 'despatch_number', 'despatch number', 'customer_code', 'customer code'].includes(h));
+
+                if (isPickingFile) {
+                    // Procesar como alistamiento de picking (240)
+                    const ordersMap = {}; // { 'order_despatch': { order_number, despatch_number, customer_code, customer_name, print_date, items: [] } }
+
+                    const hasHeader = rawHeaders.some(h =>
+                        ['order', 'pedido', 'despatch', 'despacho', 'item', 'codigo', 'código', 'material', 'sku', 'cliente', 'customer'].includes(h)
+                    );
+                    const startIdx = hasHeader ? 1 : 0;
+
+                    for (let i = startIdx; i < lines.length; i++) {
+                        const values = lines[i].split(delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
+                        if (values.length === 0 || (values.length === 1 && values[0] === '')) continue;
+
+                        const row = {};
+                        if (hasHeader) {
+                            rawHeaders.forEach((h, idx) => {
+                                row[h] = values[idx] || '';
+                            });
+                        }
+
+                        let order_number = row['order_number'] || row['order number'] || row['order'] || row['pedido'] || row['numero_pedido'] || row['no_pedido'] || row['documento'] || values[0] || '';
+                        let despatch_number = row['despatch_number'] || row['despatch number'] || row['despatch'] || row['despacho'] || row['nota_entrega'] || row['entrega'] || values[1] || '00';
+                        let customer_code = row['customer_code'] || row['customer code'] || row['cliente'] || row['codigo_cliente'] || row['código_cliente'] || row['cod_cliente'] || (values[2] || 'N/A');
+                        let customer_name = row['customer_name'] || row['customer name'] || row['nombre_cliente'] || row['cliente_nombre'] || row['nombre'] || (values[3] || 'Cliente General');
+                        let item_code = row['item_code'] || row['item code'] || row['item'] || row['codigo'] || row['código'] || row['material'] || row['sku'] || (values[4] || '');
+                        let description = row['item_description'] || row['item description'] || row['description'] || row['descripcion'] || row['descripción'] || row['texto breve'] || (values[5] || '');
+                        let order_line = row['order_line'] || row['order line'] || row['linea'] || row['línea'] || row['posicion'] || (values[6] || (i - startIdx + 1).toString());
+                        let qty = parseInt(row['qty'] || row['quantity'] || row['cantidad'] || row['cant'] || row['qty_req'] || values[7] || '0', 10) || 0;
+                        let rawDate = row['print_date'] || row['print date'] || row['fecha_impresion'] || row['fecha'] || values[8] || new Date().toISOString().split('T')[0];
+
+                        // Normalizar fecha a YYYY-MM-DD
+                        let print_date = rawDate.split(' ')[0] || rawDate.split('T')[0];
+                        if (print_date.includes('/')) {
+                            const dateParts = print_date.split('/');
+                            if (dateParts.length === 3) {
+                                if (dateParts[0].length === 4) {
+                                    print_date = `${dateParts[0]}-${dateParts[1].padStart(2, '0')}-${dateParts[2].padStart(2, '0')}`;
+                                } else {
+                                    print_date = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`;
+                                }
+                            }
+                        }
+
+                        if (!order_number || !item_code) continue;
+
+                        const cleanOrder = order_number.trim();
+                        const cleanDespatch = despatch_number.trim();
+                        const key = `${cleanOrder}_${cleanDespatch}`;
+
+                        if (!ordersMap[key]) {
+                            ordersMap[key] = {
+                                order_number: cleanOrder,
+                                despatch_number: cleanDespatch,
+                                customer_code: customer_code.trim(),
+                                customer_name: customer_name.trim(),
+                                print_date: print_date,
+                                items: []
+                            };
+                        }
+
+                        ordersMap[key].items.push({
+                            'Customer Code': customer_code.trim(),
+                            'Customer Name': customer_name.trim(),
+                            'Item Code': item_code.toUpperCase().trim(),
+                            'Item Description': description.trim(),
+                            'Order Line': order_line.toString().trim(),
+                            'Qty': qty
+                        });
+                    }
+
+                    const keys = Object.keys(ordersMap);
+                    if (keys.length === 0) {
+                        resolve("No se encontraron pedidos de picking válidos en el archivo 240.");
+                        return;
+                    }
+
+                    const db = await getDB();
+                    const txTracking = db.transaction('picking_tracking', 'readwrite');
+                    const trackingStore = txTracking.objectStore('picking_tracking');
+                    let totalLines = 0;
+                    for (const key of keys) {
+                        const orderData = ordersMap[key];
+                        totalLines += orderData.items.length;
+                        await trackingStore.put({
+                            order_number: orderData.order_number,
+                            despatch_number: orderData.despatch_number,
+                            customer_code: orderData.customer_code,
+                            customer_name: orderData.customer_name,
+                            total_lines: orderData.items.length,
+                            print_date: orderData.print_date,
+                            is_audited: false
+                        });
+                    }
+                    await txTracking.done;
+
+                    const txOrders = db.transaction('picking_orders', 'readwrite');
+                    const ordersStore = txOrders.objectStore('picking_orders');
+                    for (const key of keys) {
+                        const orderData = ordersMap[key];
+                        await ordersStore.put({
+                            id: key,
+                            order: orderData.order_number,
+                            despatch: orderData.despatch_number,
+                            data: orderData.items
+                        });
+                    }
+                    await txOrders.done;
+
+                    const txMeta = db.transaction('sync_metadata', 'readwrite');
+                    await txMeta.objectStore('sync_metadata').put({ key: 'picking', value: Math.floor(Date.now() / 1000) });
+                    await txMeta.done;
+
+                    resolve(`Se cargaron ${keys.length} pedidos de picking (${totalLines} líneas) en la base de datos local.`);
+                    return;
+                }
+
+                // Si no es 240, procesar como maestro de inventario (250 / General)
+                const itemsToInsert = [];
                 const hasHeader = rawHeaders.some(h =>
                     ['item', 'codigo', 'código', 'material', 'sku', 'descripcion', 'descripción', 'bin', 'ubicacion', 'ubicación', 'cantidad'].includes(h)
                 );
@@ -157,7 +278,7 @@ export const processLocalCSVUpload = async (file) => {
                 }
             } catch (err) {
                 console.error("Error al procesar archivo local:", err);
-                resolve("Archivo procesado localmente");
+                resolve("Error al procesar el archivo localmente");
             }
         };
         reader.onerror = () => reject("Error al leer el archivo");

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { isTauri, processLocalCSVUpload, previewLocalGRNFile } from '../utils/tauriBridge';
+import { getDB } from '../utils/offlineDb';
 
 const Update = () => {
     const { setTitle } = useOutletContext();
@@ -28,11 +29,21 @@ const Update = () => {
 
     const fetchSyncStatus = async () => {
         try {
-            const res = await fetch('/api/sync/status');
-            if (res.ok) {
+            const res = await fetch('/api/sync/status').catch(() => null);
+            if (res && res.ok) {
                 const data = await res.json();
                 setSyncStatus(data);
+                return;
             }
+            const db = await getDB();
+            const allMeta = await db.getAll('sync_metadata');
+            const statusMap = {};
+            allMeta.forEach(m => {
+                if (m.key && m.value) {
+                    statusMap[m.key] = typeof m.value === 'number' && m.value > 10000000000 ? Math.floor(m.value / 1000) : m.value;
+                }
+            });
+            setSyncStatus(statusMap);
         } catch (err) {
             console.error("Error fetching sync status:", err);
         }
