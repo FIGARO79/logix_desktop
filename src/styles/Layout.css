@@ -145,7 +145,7 @@
     height: 34px;
     padding: 0 10px 0 14px;
     border-radius: 8px 8px 0 0;
-    cursor: grab;
+    cursor: pointer;
     transition: background-color 0.1s, opacity 0.15s, border-color 0.15s;
     position: relative;
     user-select: none;
@@ -155,14 +155,14 @@
 }
 
 .tab-item:active {
-    cursor: grabbing;
+    cursor: pointer;
 }
 
 /* Estado de Arrastre */
 .tab-item.dragging {
     opacity: 0.35;
     background-color: rgba(255, 255, 255, 0.08);
-    cursor: grabbing;
+    cursor: pointer;
 }
 
 /* Indicadores visuales de punto de inserción (soltado) */
