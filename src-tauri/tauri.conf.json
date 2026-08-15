@@ -44,7 +44,7 @@
     },
     "windows": [
       {
-        "title": "Logix Desktop Portable",
+        "title": "Logix Desktop",
         "width": 1280,
         "height": 800,
         "resizable": true,

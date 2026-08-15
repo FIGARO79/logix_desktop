@@ -30,10 +30,14 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
 
                 if (!json) {
                     const db = await getDB();
+                    const directAudits = await db.getAll('picking_audits') || [];
                     const pendingList = await db.getAll('pending_sync') || [];
-                    const found = pendingList.find(item => item.id === id || item.payload?.order_number === id);
-                    if (found && found.payload) {
-                        const p = found.payload;
+                    
+                    const foundDirect = directAudits.find(item => item.id === id || item.order_number === id);
+                    const foundPending = pendingList.find(item => item.id === id || item.payload?.order_number === id);
+                    const p = foundDirect || (foundPending ? foundPending.payload : null);
+
+                    if (p) {
                         const pkgs = {};
                         if (p.packages_assignment) {
                             Object.entries(p.packages_assignment).forEach(([itemKey, pkgMap]) => {
@@ -61,7 +65,7 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                             customer_name: p.customer_name,
                             status: p.status,
                             total_packages: p.packages || 1,
-                            timestamp: found.timestamp ? new Date(found.timestamp).toLocaleString() : new Date().toLocaleString(),
+                            timestamp: p.timestamp ? new Date(p.timestamp).toLocaleString() : new Date().toLocaleString(),
                             packages: pkgs
                         };
                     }

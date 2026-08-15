@@ -44,10 +44,12 @@ const PickingAuditHistory = () => {
                 serverAudits = await response.json().catch(() => []);
             }
 
-            // Leer auditorías locales de IndexedDB
+            // Leer auditorías locales de IndexedDB (picking_audits y pending_sync para retrocompatibilidad)
             const db = await getDB();
+            const directAudits = await db.getAll('picking_audits') || [];
             const pendingList = await db.getAll('pending_sync') || [];
-            const localAudits = pendingList
+            
+            const legacyLocalAudits = pendingList
                 .filter(item => item.collection === 'picking' && item.payload)
                 .map((item, idx) => ({
                     id: item.id || `local_${idx}`,
@@ -72,16 +74,20 @@ const PickingAuditHistory = () => {
                     }))
                 }));
 
-            const combined = [...localAudits];
+            const combinedMap = new Map();
+            directAudits.forEach(a => combinedMap.set(`${a.order_number}_${a.despatch_number}`, a));
+            legacyLocalAudits.forEach(a => {
+                const key = `${a.order_number}_${a.despatch_number}`;
+                if (!combinedMap.has(key)) combinedMap.set(key, a);
+            });
             if (Array.isArray(serverAudits)) {
                 serverAudits.forEach(sa => {
-                    if (!combined.some(ca => ca.order_number === sa.order_number && ca.despatch_number === sa.despatch_number)) {
-                        combined.push(sa);
-                    }
+                    const key = `${sa.order_number}_${sa.despatch_number}`;
+                    if (!combinedMap.has(key)) combinedMap.set(key, sa);
                 });
             }
 
-            setAudits(combined);
+            setAudits(Array.from(combinedMap.values()));
         } catch (err) {
             console.error("Error al cargar auditorías de picking:", err);
             setError("Error al cargar las auditorías de alistamiento.");

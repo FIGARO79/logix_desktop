@@ -63,24 +63,27 @@ const InboundHistory = () => {
                 serverData = await getCachedData('last_inbound_logs') || [];
             }
 
-            // --- Cargar registros pendientes de IndexedDB ---
-            let pendingLogs = [];
-            if (!version) { // Solo mostrar pendientes en la versión actual
+            // --- Cargar registros locales directos de IndexedDB ---
+            let localLogs = [];
+            if (!version) {
                 try {
                     const db = await getDB();
+                    const directInbound = await db.getAll('local_inbound') || [];
                     const allPending = await db.getAll('pending_sync') || [];
-                    pendingLogs = allPending
+                    const legacyPending = allPending
                         .filter(p => p.collection === 'inbound')
                         .map(p => ({
                             id: p.id,
                             ...p.payload,
-                            username: 'TÚ (Pendiente Local)',
-                            is_pending: true
+                            username: 'Local',
+                            timestamp: p.timestamp || new Date().toISOString()
                         }));
-                } catch (e) { console.error("Error loading pending logs", e); }
+
+                    localLogs = [...directInbound, ...legacyPending];
+                } catch (e) { console.error("Error loading local inbound logs", e); }
             }
 
-            const combinedData = [...pendingLogs, ...serverData];
+            const combinedData = [...localLogs, ...serverData];
 
             // Ordenar por fecha (más reciente primero)
             const sortedData = combinedData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));

@@ -190,40 +190,26 @@ const SpotCheck = () => {
 
         setIsSaving(true);
         try {
-            if (isOnline) {
-                const res = await fetch('/api/spot_check/save', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (res.ok) {
-                    toast.success("Hallazgo registrado");
-                    clearForm();
-                    fetchRecentChecks();
-                    return;
-                }
-            }
-
-            // Guardar Offline
-            await savePendingSync('spot_check', payload);
-            toast.info("Registrado localmente (Offline)");
-            clearForm();
-            // Actualizar vista local
-            setRecentChecks(prev => [{
-                id: `local_${Date.now()}`,
+            const db = await getDB();
+            const record = {
+                id: crypto.randomUUID(),
                 ...payload,
-                username: 'TÚ (Offline)',
-                is_pending: true
-            }, ...prev]);
+                username: 'Local',
+                timestamp: new Date().toISOString()
+            };
 
-        } catch (e) { 
-            console.error(e);
-            await savePendingSync('spot_check', payload);
-            toast.info("Registrado localmente (Offline)");
+            await db.put('local_spot_check', record);
+            toast.success("Hallazgo registrado en la base de datos local");
             clearForm();
+            setRecentChecks(prev => [record, ...prev]);
+
+        } catch (e) {
+            console.error("Error al guardar spot check local:", e);
+            toast.error("Error al guardar hallazgo");
+            clearForm();
+        } finally {
+            setIsSaving(false);
         }
-        finally { setIsSaving(false); }
     };
 
     const handleClearTable = async () => {

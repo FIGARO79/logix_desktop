@@ -425,28 +425,19 @@ const PickingAudit = () => {
         };
 
         try {
-            if (isOnline) {
-                const res = await fetch('/api/save_picking_audit', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify(payload)
-                }).catch(() => null);
+            const db = await getDB();
+            const auditId = `${orderNumber}_${despatchNumber}`;
+            const auditRecord = {
+                id: auditId,
+                ...payload,
+                username: 'Local',
+                timestamp: new Date().toISOString()
+            };
 
-                if (res && res.ok) {
-                    handleReset();
-                    setShowConfirmModal(false);
-                    setShowAssignmentModal(false);
-                    setPackagesCount('1');
-                    return;
-                }
-            }
-
-            // Guardar localmente en IndexedDB (offline)
-            await savePendingSync('picking', payload);
+            // Guardar directamente en la tabla local picking_audits
+            await db.put('picking_audits', auditRecord);
 
             // Actualizar estado de la orden en el tracking local (is_audited: true)
-            const db = await getDB();
             const tx = db.transaction('picking_tracking', 'readwrite');
             const trackingStore = tx.objectStore('picking_tracking');
             const existingTrack = await trackingStore.get(orderNumber);
@@ -457,19 +448,14 @@ const PickingAudit = () => {
             }
             await tx.done;
 
-            alert("Auditoría guardada exitosamente en la base de datos local.");
+            alert("Auditoría de picking guardada exitosamente en la base de datos local.");
             handleReset();
             setShowConfirmModal(false);
             setShowAssignmentModal(false);
             setPackagesCount('1');
-
         } catch (e) {
-            console.error("Error al guardar auditoría de picking:", e);
-            try {
-                await savePendingSync('picking', payload);
-            } catch (err) {
-                console.error("Error en respaldo offline:", err);
-            }
+            console.error("Error al guardar auditoría de picking local:", e);
+            alert("Ocurrió un error al guardar la auditoría.");
             handleReset();
             setShowConfirmModal(false);
             setShowAssignmentModal(false);

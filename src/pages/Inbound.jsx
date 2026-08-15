@@ -988,52 +988,16 @@ const Inbound = () => {
         });
 
         try {
-            if (navigator.onLine) {
-                try {
-                    let res;
-                    if (editId) {
-                        if (typeof editId === 'string' && editId.includes('-')) {
-                            await savePendingSync('inbound', payload, editId);
-                            loadLogs(); resetForm(); return;
-                        }
-                        res = await fetch(`/api/update_log/${editId}`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include',
-                            body: JSON.stringify({
-                                importReference: payload.importReference,
-                                waybill: payload.waybill,
-                                qtyReceived: payload.quantity,
-                                relocatedBin: payload.relocatedBin
-                            })
-                        });
-                    } else {
-                        res = await fetch(`/api/add_log`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include',
-                            body: JSON.stringify(payload)
-                        });
-                    }
-                    if (res.ok) {
-                        queryClient.invalidateQueries({ queryKey: ['inbound_logs'] });
-                        queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
-                        queryClient.invalidateQueries({ queryKey: ['ir_reconciliations'] });
-                        if (typeof BroadcastChannel !== 'undefined') {
-                            const bc = new BroadcastChannel('logix_events');
-                            bc.postMessage({ type: 'INBOUND_MUTATED' });
-                            bc.close();
-                        }
-                        resetForm(); return;
-                    }
-                } catch (e) { console.error("Connection error, falling back to offline save", e); }
-            }
+            const db = await getDB();
+            const logRecord = {
+                id: editId || crypto.randomUUID(),
+                ...payload,
+                username: 'Local',
+                timestamp: new Date().toISOString()
+            };
 
-            // Guardar offline
-            await savePendingSync('inbound', payload, typeof editId === 'number' ? editId : null);
-            if (navigator.onLine) {
-                syncPendingData(); // Intentar sincronizar de nuevo en segundo plano
-            }
+            await db.put('local_inbound', logRecord);
+
             queryClient.invalidateQueries({ queryKey: ['inbound_logs'] });
             queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
             queryClient.invalidateQueries({ queryKey: ['ir_reconciliations'] });
@@ -1042,19 +1006,14 @@ const Inbound = () => {
                 bc.postMessage({ type: 'INBOUND_MUTATED' });
                 bc.close();
             }
-            if (!hasWarnedOffline) {
-                if (!navigator.onLine) {
-                    alert("Guardado localmente (Offline).");
-                } else {
-                    console.log("Logix: Requerimiento encolado localmente por fallo temporal de red.");
-                }
-                setHasWarnedOffline(true);
-            }
+            toast.success("Registro de inbound guardado en la base de datos local");
             resetForm();
         } catch (e) {
-            alert("Error al guardar");
+            console.error("Error al guardar log de inbound local:", e);
+            toast.error("Error al guardar registro");
+            resetForm();
         } finally {
-            setIsSaving(false); // Siempre liberar el bloqueo
+            setIsSaving(false);
         }
     };
 

@@ -63,29 +63,26 @@ const CycleCountHistory = () => {
                     }
                 }
 
-                if (!data || data.length === 0) {
-                    const cached = await getCachedData('cycle_count_recordings');
-                    if (cached) {
-                        data = cached;
-                    } else {
-                        const db = await getDB();
-                        const pending = await db.getAll('pending_sync') || [];
-                        data = pending
-                            .filter(p => p.collection === 'cycle_count' || p.collection === 'counts')
-                            .map((p, idx) => ({
-                                id: p.id || idx,
-                                item_code: p.payload?.item_code || 'N/A',
-                                description: p.payload?.description || 'N/A',
-                                bin_location: p.payload?.bin_location || 'N/A',
-                                system_qty: p.payload?.system_qty || 0,
-                                physical_qty: p.payload?.counted_qty || 0,
-                                difference: (p.payload?.counted_qty || 0) - (p.payload?.system_qty || 0),
-                                username: 'Local',
-                                executed_date: p.timestamp || new Date().toISOString()
-                            }));
-                    }
-                }
-                setRecordings(data);
+                const db = await getDB();
+                const directCounts = await db.getAll('local_counts') || [];
+                const cached = await getCachedData('cycle_count_recordings') || [];
+                const pending = await db.getAll('pending_sync') || [];
+                const legacyPendingCounts = pending
+                    .filter(p => p.collection === 'cycle_count' || p.collection === 'counts')
+                    .map((p, idx) => ({
+                        id: p.id || idx,
+                        item_code: p.payload?.item_code || 'N/A',
+                        description: p.payload?.description || 'N/A',
+                        bin_location: p.payload?.bin_location || 'N/A',
+                        system_qty: p.payload?.system_qty || 0,
+                        physical_qty: p.payload?.counted_qty || 0,
+                        difference: (p.payload?.counted_qty || 0) - (p.payload?.system_qty || 0),
+                        username: 'Local',
+                        executed_date: p.timestamp || new Date().toISOString()
+                    }));
+
+                const combined = [...directCounts, ...cached, ...legacyPendingCounts];
+                setRecordings(combined);
             } catch (err) {
                 console.error("Error al cargar grabaciones de conteo:", err);
                 setError(err.message);

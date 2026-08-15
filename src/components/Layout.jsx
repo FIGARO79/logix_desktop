@@ -456,16 +456,6 @@ const Layout = () => {
                 </div>
 
                 <div className="header-actions flex items-center gap-3">
-                    {pendingCount > 0 && (
-                        <button
-                            onClick={() => setShowPendingModal(true)}
-                            className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 rounded-md text-[11px] font-semibold cursor-pointer transition-all shadow-sm"
-                            title="Ver registros guardados localmente"
-                        >
-                            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                            <span>{pendingCount} {pendingCount === 1 ? 'PENDIENTE' : 'PENDIENTES'}</span>
-                        </button>
-                    )}
                     <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-medium text-white tracking-tight uppercase border border-emerald-500/30 bg-emerald-500/20">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                         <span>MODO LOCAL</span>
@@ -473,102 +463,6 @@ const Layout = () => {
                     <Link to="/admin/login" className="text-[11px] font-medium text-white uppercase tracking-tight px-3 py-1 border border-white/20 rounded hover:bg-white/10 transition-all opacity-0 hover:opacity-100 duration-200">Admin</Link>
                 </div>
             </header>
-
-            {/* Modal de Registros Pendientes */}
-            {showPendingModal && (
-                <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[85vh] flex flex-col text-gray-800">
-                        <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
-                            <div className="flex items-center gap-2">
-                                <span className="text-amber-500 text-xl">⏳</span>
-                                <div>
-                                    <h3 className="font-bold text-gray-800 text-base">Registros Pendientes ({pendingList.length})</h3>
-                                    <p className="text-xs text-gray-500">Guardados localmente en la memoria del equipo</p>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => setShowPendingModal(false)}
-                                className="text-gray-400 hover:text-gray-600 font-bold text-xl px-2 cursor-pointer"
-                            >
-                                &times;
-                            </button>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                            {pendingList.length === 0 ? (
-                                <div className="text-center py-8 text-gray-500 text-sm">
-                                    No hay registros pendientes de sincronización.
-                                </div>
-                            ) : (
-                                pendingList.map((item) => {
-                                    let label = item.collection;
-                                    let desc = item.id;
-                                    if (item.collection === 'picking') {
-                                        label = '📋 Auditoría de Picking';
-                                        desc = `Pedido: ${item.payload?.order_number || 'N/A'} (Cliente: ${item.payload?.customer_name || 'General'})`;
-                                    } else if (item.collection === 'inbound') {
-                                        label = '📥 Log de Inbound';
-                                        desc = `Item: ${item.payload?.item_code || 'N/A'} - Cant: ${item.payload?.qty || 0}`;
-                                    } else if (item.collection === 'counts' || item.collection === 'cycle_count' || item.collection === 'w2w') {
-                                        label = '📊 Conteo de Inventario';
-                                        desc = `Item: ${item.payload?.item_code || 'N/A'} - Ubic: ${item.payload?.bin_location || 'N/A'}`;
-                                    } else if (item.collection === 'spot_check') {
-                                        label = '🔍 Chequeo Spot';
-                                        desc = `Item: ${item.payload?.item_code || 'N/A'}`;
-                                    }
-
-                                    return (
-                                        <div key={item.id} className="p-3 border border-gray-200 rounded-lg bg-gray-50 flex justify-between items-center gap-3">
-                                            <div className="min-w-0 flex-1">
-                                                <div className="font-semibold text-xs text-gray-800 flex items-center gap-2">
-                                                    <span>{label}</span>
-                                                    <span className="text-[10px] text-gray-400 font-mono">
-                                                        {item.timestamp ? new Date(item.timestamp).toLocaleTimeString() : ''}
-                                                    </span>
-                                                </div>
-                                                <div className="text-xs text-gray-600 truncate mt-0.5">{desc}</div>
-                                            </div>
-                                            <button
-                                                onClick={() => handleClearPendingRecord(item.id)}
-                                                className="text-red-500 hover:text-red-700 text-xs px-2.5 py-1 border border-red-200 rounded hover:bg-red-50 transition-colors cursor-pointer font-medium"
-                                                title="Descartar de la cola local"
-                                            >
-                                                Eliminar
-                                            </button>
-                                        </div>
-                                    );
-                                })
-                            )}
-                        </div>
-
-                        <div className="p-4 border-t border-gray-100 flex justify-between items-center bg-gray-50 rounded-b-xl gap-2">
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => setShowPendingModal(false)}
-                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md text-xs font-medium hover:bg-gray-100 cursor-pointer"
-                                >
-                                    Cerrar
-                                </button>
-                                {pendingList.length > 0 && (
-                                    <button
-                                        onClick={handleClearAllPending}
-                                        className="px-3 py-2 border border-red-200 text-red-600 rounded-md text-xs font-medium hover:bg-red-50 cursor-pointer"
-                                    >
-                                        Vaciar Cola
-                                    </button>
-                                )}
-                            </div>
-                            <button
-                                onClick={handleManualSync}
-                                className="px-4 py-2 bg-[#285f94] text-white rounded-md text-xs font-semibold hover:bg-[#1e476f] transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
-                            >
-                                <span>🔄</span>
-                                <span>Sincronizar Servidor</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Sidebar Menu Sincronizado a 48px */}
             <div

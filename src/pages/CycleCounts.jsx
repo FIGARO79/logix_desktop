@@ -351,44 +351,32 @@ const CycleCounts = () => {
         };
 
         try {
-            if (isOnline) {
-                const res = await fetch('/api/w2w/save_count', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
+            const db = await getDB();
+            const countRecord = {
+                id: crypto.randomUUID(),
+                item_code: payload.item_code,
+                description: payload.description,
+                bin_location: payload.counted_location || payload.bin_location_system || 'N/A',
+                system_qty: payload.system_qty || 0,
+                physical_qty: payload.counted_qty || 0,
+                difference: (payload.counted_qty || 0) - (payload.system_qty || 0),
+                username: payload.username || 'Local',
+                executed_date: new Date().toISOString()
+            };
 
-                if (res.ok) {
-                    if (typeof BroadcastChannel !== 'undefined') {
-                        const bc = new BroadcastChannel('logix_events');
-                        bc.postMessage({ type: 'CYCLE_COUNT_MUTATED' });
-                        bc.close();
-                    }
-                    toast.success("Conteo guardado");
-                    clearFormAfterSave();
-                    return;
-                }
-            }
+            await db.put('local_counts', countRecord);
 
-            // Guardar offline si falla o no hay conexión
-            await savePendingSync('counts', payload);
             if (typeof BroadcastChannel !== 'undefined') {
                 const bc = new BroadcastChannel('logix_events');
                 bc.postMessage({ type: 'CYCLE_COUNT_MUTATED' });
                 bc.close();
             }
-            toast.info("Guardado localmente (Offline)");
+            toast.success("Conteo guardado exitosamente en la base de datos local");
             clearFormAfterSave();
 
         } catch (e) {
-            console.error(e);
-            await savePendingSync('counts', payload);
-            if (typeof BroadcastChannel !== 'undefined') {
-                const bc = new BroadcastChannel('logix_events');
-                bc.postMessage({ type: 'CYCLE_COUNT_MUTATED' });
-                bc.close();
-            }
-            toast.info("Guardado localmente (Offline)");
+            console.error("Error al guardar conteo local:", e);
+            toast.error("Error al guardar conteo");
             clearFormAfterSave();
         }
     };

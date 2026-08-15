@@ -1,61 +1,66 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'LogixOfflineDB';
-const DB_VERSION = 9;
+const DB_VERSION = 10;
 
 const initDB = async () => {
     return openDB(DB_NAME, DB_VERSION, {
         upgrade(db, _oldVersion) {
-            // Tabla para registros de Inbound que aún no se han subido
             if (!db.objectStoreNames.contains('pending_sync')) {
                 db.createObjectStore('pending_sync', { keyPath: 'id' });
             }
 
-            // Tabla para caché de datos de consulta genérica
             if (!db.objectStoreNames.contains('data_cache')) {
                 db.createObjectStore('data_cache', { keyPath: 'key' });
             }
 
-            // Tabla para el maestro de items (Caché local)
             if (!db.objectStoreNames.contains('master_items')) {
                 const itemStore = db.createObjectStore('master_items', { keyPath: 'Item_Code' });
                 itemStore.createIndex('by-description', 'Item_Description');
             }
 
-            // Tabla para metadatos de sincronización
             if (!db.objectStoreNames.contains('sync_metadata')) {
                 db.createObjectStore('sync_metadata', { keyPath: 'key' });
             }
 
-            // Tabla para PO Lookup (Matches de Waybill / Import Ref)
             if (!db.objectStoreNames.contains('po_lookup')) {
                 db.createObjectStore('po_lookup', { keyPath: 'id' });
             }
 
-            // Tabla para GRN Pending
             if (!db.objectStoreNames.contains('grn_pending')) {
                 db.createObjectStore('grn_pending', { keyPath: 'Item_Code' });
             }
 
-            // Tabla para Xdock
             if (!db.objectStoreNames.contains('xdock_reservations')) {
                 db.createObjectStore('xdock_reservations', { keyPath: 'Item_Code' });
             }
 
-            // --- Nuevas tablas Versión 3 ---
             if (!db.objectStoreNames.contains('planner_daily_items')) {
-                db.createObjectStore('planner_daily_items', { keyPath: 'id' }); // id será date_itemcode
+                db.createObjectStore('planner_daily_items', { keyPath: 'id' });
             }
 
-            // --- Nuevas tablas Versión 4 (Picking & Counts) ---
             if (!db.objectStoreNames.contains('picking_tracking')) {
                 db.createObjectStore('picking_tracking', { keyPath: 'order_number' });
             }
             if (!db.objectStoreNames.contains('picking_orders')) {
-                db.createObjectStore('picking_orders', { keyPath: 'id' }); // id será order_despatch
+                db.createObjectStore('picking_orders', { keyPath: 'id' });
             }
             if (!db.objectStoreNames.contains('active_sessions')) {
-                db.createObjectStore('active_sessions', { keyPath: 'type' }); // type: 'cycle_count'
+                db.createObjectStore('active_sessions', { keyPath: 'type' });
+            }
+
+            // --- Tablas directas para operacion local permanente (Versión 10) ---
+            if (!db.objectStoreNames.contains('picking_audits')) {
+                db.createObjectStore('picking_audits', { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains('local_counts')) {
+                db.createObjectStore('local_counts', { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains('local_inbound')) {
+                db.createObjectStore('local_inbound', { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains('local_spot_check')) {
+                db.createObjectStore('local_spot_check', { keyPath: 'id' });
             }
         },
     });
