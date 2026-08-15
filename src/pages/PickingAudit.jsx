@@ -783,123 +783,142 @@ const PickingAudit = () => {
                 {/* Assignment Modal */}
                 {showAssignmentModal && (
                     <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-                        <div className="bg-white p-6 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-                            <h3 className="text-lg font-medium  mb-4">Distribuir Ítems en Bultos</h3>
+                        <div className="bg-white p-6 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+                            {/* Modal Header */}
+                            <div className="flex-shrink-0 flex justify-between items-center pb-3 border-b border-gray-200 mb-4">
+                                <div>
+                                    <h3 className="text-xl font-semibold text-gray-800">Distribuir Ítems en Bultos</h3>
+                                    <p className="text-xs text-gray-500">Asigne las cantidades escaneadas a cada bulto antes de finalizar la auditoría</p>
+                                </div>
+                                <span className="bg-blue-50 text-[#285f94] text-xs font-semibold px-3 py-1 rounded-full border border-blue-200">
+                                    Total Bultos: {packagesCount || 1}
+                                </span>
+                            </div>
 
-                            {/* Desktop View */}
-                            <div className="hidden sm:block overflow-x-auto">
-                                <table className="w-full text-sm border-collapse">
-                                    <thead>
-                                        <tr className="bg-gray-100">
-                                            <th className="p-2 text-left border w-16">Línea</th>
-                                            <th className="p-2 text-left border">Item</th>
-                                            <th className="p-2 text-center border w-24">Total Scan</th>
-                                            {Array.from({ length: parseInt(packagesCount) || 1 }).map((_, i) => (
-                                                <th key={i} className="p-2 text-center border w-20">Bulto {i + 1}</th>
-                                            ))}
-                                            <th className="p-2 text-center border w-24">Asignado</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {orderItems.map((item, idx) => {
-                                            const itemKey = `${item.code}:${item.order_line || ''}`;
-                                            const assignments = packageAssignments[itemKey] || {};
-                                            const totalAssigned = Object.values(assignments).reduce((a, b) => a + b, 0);
-                                            const isMatch = totalAssigned === item.qty_scan;
+                            {/* Scrollable Content */}
+                            <div className="flex-1 overflow-y-auto pr-1">
+                                {/* Desktop View */}
+                                <div className="hidden sm:block overflow-x-auto">
+                                    <table className="w-full text-sm border-collapse">
+                                        <thead>
+                                            <tr className="bg-gray-100">
+                                                <th className="p-2 text-left border w-16">Línea</th>
+                                                <th className="p-2 text-left border">Item</th>
+                                                <th className="p-2 text-center border w-24">Total Scan</th>
+                                                {Array.from({ length: parseInt(packagesCount) || 1 }).map((_, i) => (
+                                                    <th key={i} className="p-2 text-center border w-20">Bulto {i + 1}</th>
+                                                ))}
+                                                <th className="p-2 text-center border w-24">Asignado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {orderItems.map((item, idx) => {
+                                                const itemKey = `${item.code}:${item.order_line || ''}`;
+                                                const assignments = packageAssignments[itemKey] || {};
+                                                const totalAssigned = Object.values(assignments).reduce((a, b) => a + b, 0);
+                                                const isMatch = totalAssigned === item.qty_scan;
 
-                                            // Only show items that have been scanned
-                                            if (item.qty_scan === 0) return null;
+                                                return (
+                                                    <tr key={idx} className="border-b hover:bg-gray-50">
+                                                        <td className="p-2 border text-center font-mono text-xs">{item.order_line}</td>
+                                                        <td className="p-2 border font-medium">
+                                                            {item.code}
+                                                            <div className="text-xs text-gray-500 truncate max-w-xs">{item.description}</div>
+                                                        </td>
+                                                        <td className="p-2 text-center border font-medium ">{item.qty_scan}</td>
+                                                        {Array.from({ length: parseInt(packagesCount) || 1 }).map((_, i) => (
+                                                            <td key={i} className="p-1 border text-center">
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    className="w-16 text-center border rounded p-1"
+                                                                    value={assignments[i + 1] || 0}
+                                                                    onChange={(e) => handleAssignmentChange(itemKey, i + 1, e.target.value)}
+                                                                    onFocus={(e) => e.target.select()}
+                                                                />
+                                                            </td>
+                                                        ))}
+                                                        <td className={`p-2 text-center border font-medium  ${isMatch ? 'text-green-600' : 'text-red-600'}`}>
+                                                            {totalAssigned}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
 
-                                            return (
-                                                <tr key={idx} className="border-b hover:bg-gray-50">
-                                                    <td className="p-2 border text-center font-mono text-xs">{item.order_line}</td>
-                                                    <td className="p-2 border font-medium">
-                                                        {item.code}
-                                                        <div className="text-xs text-gray-500 truncate max-w-xs">{item.description}</div>
-                                                    </td>
-                                                    <td className="p-2 text-center border font-medium ">{item.qty_scan}</td>
-                                                    {Array.from({ length: parseInt(packagesCount) || 1 }).map((_, i) => (
-                                                        <td key={i} className="p-1 border text-center">
+                                {/* Mobile View */}
+                                <div className="block sm:hidden space-y-4">
+                                    {orderItems.map((item, idx) => {
+                                        const itemKey = `${item.code}:${item.order_line || ''}`;
+                                        const assignments = packageAssignments[itemKey] || {};
+                                        const totalAssigned = Object.values(assignments).reduce((a, b) => a + b, 0);
+                                        const isMatch = totalAssigned === item.qty_scan;
+                                        const pkgCount = parseInt(packagesCount) || 1;
+
+                                        return (
+                                            <div key={idx} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div>
+                                                        <div className="font-medium  text-gray-800">{item.code}</div>
+                                                        <div className="text-xs text-gray-500 truncate">{item.description}</div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <span className="text-[10px] font-mono text-gray-400">LÍNEA {item.order_line}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex justify-between items-center mb-3 text-sm">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[10px] uppercase text-gray-500">Escaneado</span>
+                                                        <span className="font-medium  text-lg">{item.qty_scan}</span>
+                                                    </div>
+                                                    <div className="flex flex-col items-end">
+                                                        <span className="text-[10px] uppercase text-gray-500">Asignado</span>
+                                                        <span className={`font-medium  text-lg ${isMatch ? 'text-green-600' : 'text-red-600'}`}>
+                                                            {totalAssigned}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {Array.from({ length: pkgCount }).map((_, i) => (
+                                                        <div key={i} className="flex flex-col">
+                                                            <label className="text-[10px] uppercase text-gray-500 mb-1">Bulto {i + 1}</label>
                                                             <input
                                                                 type="number"
                                                                 min="0"
-                                                                className="w-16 text-center border rounded p-1"
+                                                                className="w-full text-center border rounded p-2 text-lg font-medium  bg-white focus:ring-2 focus:ring-[#285f94]"
                                                                 value={assignments[i + 1] || 0}
                                                                 onChange={(e) => handleAssignmentChange(itemKey, i + 1, e.target.value)}
                                                                 onFocus={(e) => e.target.select()}
                                                             />
-                                                        </td>
+                                                        </div>
                                                     ))}
-                                                    <td className={`p-2 text-center border font-medium  ${isMatch ? 'text-green-600' : 'text-red-600'}`}>
-                                                        {totalAssigned}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
 
-                            {/* Mobile View */}
-                            <div className="block sm:hidden space-y-4">
-                                {orderItems.map((item, idx) => {
-                                    if (item.qty_scan === 0) return null;
-
-                                    const itemKey = `${item.code}:${item.order_line || ''}`;
-                                    const assignments = packageAssignments[itemKey] || {};
-                                    const totalAssigned = Object.values(assignments).reduce((a, b) => a + b, 0);
-                                    const isMatch = totalAssigned === item.qty_scan;
-                                    const pkgCount = parseInt(packagesCount) || 1;
-
-                                    return (
-                                        <div key={idx} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
-                                            <div className="flex justify-between items-start mb-2">
-                                                <div>
-                                                    <div className="font-medium  text-gray-800">{item.code}</div>
-                                                    <div className="text-xs text-gray-500 truncate">{item.description}</div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <span className="text-[10px] font-mono text-gray-400">LÍNEA {item.order_line}</span>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex justify-between items-center mb-3 text-sm">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] uppercase text-gray-500">Escaneado</span>
-                                                    <span className="font-medium  text-lg">{item.qty_scan}</span>
-                                                </div>
-                                                <div className="flex flex-col items-end">
-                                                    <span className="text-[10px] uppercase text-gray-500">Asignado</span>
-                                                    <span className={`font-medium  text-lg ${isMatch ? 'text-green-600' : 'text-red-600'}`}>
-                                                        {totalAssigned}
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-2">
-                                                {Array.from({ length: pkgCount }).map((_, i) => (
-                                                    <div key={i} className="flex flex-col">
-                                                        <label className="text-[10px] uppercase text-gray-500 mb-1">Bulto {i + 1}</label>
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            className="w-full text-center border rounded p-2 text-lg font-medium  bg-white focus:ring-2 focus:ring-[#285f94]"
-                                                            value={assignments[i + 1] || 0}
-                                                            onChange={(e) => handleAssignmentChange(itemKey, i + 1, e.target.value)}
-                                                            onFocus={(e) => e.target.select()}
-                                                        />
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            <div className="flex justify-end gap-2 mt-6">
-                                <button onClick={() => setShowAssignmentModal(false)} className="btn-sap btn-secondary">Atrás</button>
-                                <button onClick={() => submitAudit()} className="btn-sap btn-success bg-green-600 border-green-700 text-white">
-                                    Guardar y Finalizar
+                            {/* Sticky Modal Footer */}
+                            <div className="flex-shrink-0 flex justify-end gap-3 pt-4 mt-4 border-t border-gray-200 bg-white">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAssignmentModal(false)}
+                                    className="px-5 py-2.5 border border-gray-300 rounded-md text-gray-700 font-medium hover:bg-gray-100 transition-colors"
+                                >
+                                    Atrás
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => submitAudit()}
+                                    className="px-6 py-2.5 bg-green-600 text-white font-semibold rounded-md shadow-md hover:bg-green-700 transition-all flex items-center gap-2 text-base"
+                                >
+                                    <span>💾</span>
+                                    <span>Guardar y Finalizar Auditoría</span>
                                 </button>
                             </div>
                         </div>
