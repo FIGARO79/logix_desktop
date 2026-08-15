@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import { getDB, cacheData, getCachedData } from '../utils/offlineDb';
 
 const CycleCountHistory = () => {
     const navigate = useNavigate();
@@ -50,12 +51,43 @@ const CycleCountHistory = () => {
 
     useEffect(() => {
         const fetchRecordings = async () => {
+            setLoading(true);
+            setError(null);
             try {
-                const res = await fetch('/api/counts/recordings');
-                if (!res.ok) throw new Error("Error loading recordings");
-                const data = await res.json();
+                let data = [];
+                const res = await fetch('/api/counts/recordings').catch(() => null);
+                if (res && res.ok) {
+                    data = await res.json().catch(() => []);
+                    if (data.length > 0) {
+                        await cacheData('cycle_count_recordings', data);
+                    }
+                }
+
+                if (!data || data.length === 0) {
+                    const cached = await getCachedData('cycle_count_recordings');
+                    if (cached) {
+                        data = cached;
+                    } else {
+                        const db = await getDB();
+                        const pending = await db.getAll('pending_sync') || [];
+                        data = pending
+                            .filter(p => p.collection === 'cycle_count' || p.collection === 'counts')
+                            .map((p, idx) => ({
+                                id: p.id || idx,
+                                item_code: p.payload?.item_code || 'N/A',
+                                description: p.payload?.description || 'N/A',
+                                bin_location: p.payload?.bin_location || 'N/A',
+                                system_qty: p.payload?.system_qty || 0,
+                                physical_qty: p.payload?.counted_qty || 0,
+                                difference: (p.payload?.counted_qty || 0) - (p.payload?.system_qty || 0),
+                                username: 'Local',
+                                executed_date: p.timestamp || new Date().toISOString()
+                            }));
+                    }
+                }
                 setRecordings(data);
             } catch (err) {
+                console.error("Error al cargar grabaciones de conteo:", err);
                 setError(err.message);
             } finally {
                 setLoading(false);
@@ -70,8 +102,39 @@ const CycleCountHistory = () => {
     };
 
     const handleExport = () => {
-        const params = new URLSearchParams();
-        window.location.href = `/api/counts/export_recordings?${params.toString()}`;
+        if (recordings.length === 0) return alert("No hay datos de conteos para exportar.");
+        const filtered = recordings.filter(rec =>
+            (rec.item_code && rec.item_code.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (rec.description && rec.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (rec.username && rec.username.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
+        const headers = ['ID', 'Item Code', 'Description', 'Bin Location', 'System Qty', 'Counted Qty', 'Difference', 'Cost', 'User', 'Timestamp'];
+        const csvRows = [headers.join(',')];
+
+        filtered.forEach(rec => {
+            const row = [
+                `"${rec.id || ''}"`,
+                `"${rec.item_code || ''}"`,
+                `"${(rec.description || '').replace(/"/g, '""')}"`,
+                `"${rec.bin_location || ''}"`,
+                rec.system_qty || 0,
+                rec.physical_qty || 0,
+                rec.difference || 0,
+                rec.cost || 0,
+                `"${rec.username || ''}"`,
+                `"${rec.executed_date || ''}"`
+            ];
+            csvRows.push(row.join(','));
+        });
+
+        const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `Reporte_Conteos_Ciclicos_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     const filteredRecordings = recordings.filter(rec =>

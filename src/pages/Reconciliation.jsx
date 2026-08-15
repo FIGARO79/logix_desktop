@@ -30,33 +30,38 @@ const Reconciliation = () => {
         queryKey: ['reconciliation', currentVersion, currentSnapshot, filterGRN, filterWaybill, filterImportRef],
         queryFn: async () => {
             setIsOfflineData(false);
-            if (!navigator.onLine) {
-                const cachedData = await getCachedData('last_reconciliation');
-                if (cachedData) setIsOfflineData(true);
-                return { data: cachedData || [], archive_versions: [], snapshot_versions: [] };
-            }
-
-            const queryParams = new URLSearchParams();
-            let url = `/api/views/reconciliation`;
-            if (isHistoricalMode) {
-                url = `/api/views/reconciliation/history`;
-                if (currentSnapshot) queryParams.append('snapshot_date', currentSnapshot);
-                if (filterGRN) queryParams.append('grn', filterGRN);
-                if (filterWaybill) queryParams.append('waybill', filterWaybill);
-                if (filterImportRef) queryParams.append('import_reference', filterImportRef);
-            } else {
-                if (currentVersion) queryParams.append('archive_date', currentVersion);
-            }
-
-            const res = await fetch(`${url}?${queryParams.toString()}`);
-            if (res.ok) {
-                const response = await res.json();
-                if (!isHistoricalMode && !currentVersion) {
-                    await cacheData('last_reconciliation', response.data);
+            if (navigator.onLine) {
+                const queryParams = new URLSearchParams();
+                let url = `/api/views/reconciliation`;
+                if (isHistoricalMode) {
+                    url = `/api/views/reconciliation/history`;
+                    if (currentSnapshot) queryParams.append('snapshot_date', currentSnapshot);
+                    if (filterGRN) queryParams.append('grn', filterGRN);
+                    if (filterWaybill) queryParams.append('waybill', filterWaybill);
+                    if (filterImportRef) queryParams.append('import_reference', filterImportRef);
+                } else {
+                    if (currentVersion) queryParams.append('archive_date', currentVersion);
                 }
-                return response;
+
+                try {
+                    const res = await fetch(`${url}?${queryParams.toString()}`).catch(() => null);
+                    if (res && res.ok) {
+                        const response = await res.json().catch(() => null);
+                        if (response) {
+                            if (!isHistoricalMode && !currentVersion && response.data) {
+                                await cacheData('last_reconciliation', response.data);
+                            }
+                            return response;
+                        }
+                    }
+                } catch (e) {
+                    console.log("No remote reconciliation API server available, using local cache.");
+                }
             }
-            throw new Error('Failed to fetch data');
+
+            const cachedData = await getCachedData('last_reconciliation');
+            if (cachedData) setIsOfflineData(true);
+            return { data: cachedData || [], archive_versions: [], snapshot_versions: [] };
         },
         refetchInterval: () => {
             if (location.pathname !== '/reconciliation' || currentSnapshot || isHistoricalMode || currentVersion || !navigator.onLine) return false;

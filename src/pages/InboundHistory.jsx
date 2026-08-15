@@ -42,8 +42,8 @@ const InboundHistory = () => {
 
     const loadVersions = async () => {
         try {
-            const res = await fetch('/api/logs/versions', { credentials: 'include' });
-            if (res.ok) setVersions(await res.json());
+            const res = await fetch('/api/logs/versions', { credentials: 'include' }).catch(() => null);
+            if (res && res.ok) setVersions(await res.json().catch(() => []));
         } catch (e) { console.error("Error loading versions", e); }
     };
 
@@ -51,23 +51,30 @@ const InboundHistory = () => {
         if (!isSilent) setLoading(true);
         setCurrentVersion(version);
         try {
+            let serverData = [];
             const url = version ? `/api/get_logs?version_date=${version}` : `/api/get_logs`;
-            const res = await fetch(url, { credentials: 'include' });
-            if (!res.ok) throw new Error("Error loading logs");
-            const serverData = await res.json();
+            const res = await fetch(url, { credentials: 'include' }).catch(() => null);
+            if (res && res.ok) {
+                serverData = await res.json().catch(() => []);
+                if (!version && serverData.length > 0) {
+                    await cacheData('last_inbound_logs', serverData);
+                }
+            } else if (!version) {
+                serverData = await getCachedData('last_inbound_logs') || [];
+            }
 
             // --- Cargar registros pendientes de IndexedDB ---
             let pendingLogs = [];
             if (!version) { // Solo mostrar pendientes en la versión actual
                 try {
                     const db = await getDB();
-                    const allPending = await db.getAll('pending_sync');
+                    const allPending = await db.getAll('pending_sync') || [];
                     pendingLogs = allPending
                         .filter(p => p.collection === 'inbound')
                         .map(p => ({
                             id: p.id,
                             ...p.payload,
-                            username: 'TÚ (Pendiente)',
+                            username: 'TÚ (Pendiente Local)',
                             is_pending: true
                         }));
                 } catch (e) { console.error("Error loading pending logs", e); }

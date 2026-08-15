@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { cacheData, getCachedData } from '../utils/offlineDb';
 
 const IRReconciliation = () => {
     const { setTitle } = useOutletContext();
@@ -32,9 +33,20 @@ const IRReconciliation = () => {
     const { data: reconciliations = [], isLoading: loading, error, refetch } = useQuery({
         queryKey: ['ir_reconciliations'],
         queryFn: async () => {
-            const res = await fetch('/api/inbound/ir_reconciliation', { credentials: 'include' });
-            if (!res.ok) throw new Error("No se pudo cargar el historial de conciliaciones");
-            return res.json();
+            try {
+                const res = await fetch('/api/inbound/ir_reconciliation', { credentials: 'include' }).catch(() => null);
+                if (res && res.ok) {
+                    const data = await res.json().catch(() => null);
+                    if (data) {
+                        await cacheData('ir_reconciliations', data);
+                        return data;
+                    }
+                }
+            } catch (e) {
+                console.log("No API server for IR reconciliations, falling back to local cache.");
+            }
+            const cached = await getCachedData('ir_reconciliations');
+            return cached || [];
         },
         refetchInterval: 15000,
         refetchOnWindowFocus: false

@@ -5,6 +5,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ScannerModal from '../components/ScannerModal';
 import { parseGS1Barcode } from '../utils/gs1Parser';
+import { getDB } from '../utils/offlineDb';
 
 const StockSearch = () => {
     const { setTitle } = useOutletContext();
@@ -67,28 +68,46 @@ const StockSearch = () => {
         setSearchResults([]);
 
         try {
-            const res = await fetch(`/api/search_items?q=${encodeURIComponent(query)}`);
-            const data = await res.json();
+            let data = [];
+            const res = await fetch(`/api/search_items?q=${encodeURIComponent(cleanQuery)}`).catch(() => null);
+            if (res && res.ok) {
+                data = await res.json().catch(() => []);
+            }
 
-            if (res.ok) {
-                if (data.length === 0) {
-                    setError('Item no encontrado');
-                    toast.error('Item no encontrado');
-                } else if (data.length === 1) {
-                    setItemData(data[0]);
-                    playBeep(); // Beep on success
-                    setItemCode(''); // Clear input on success
-                } else {
-                    setSearchResults(data);
-                }
+            if (!data || data.length === 0) {
+                const db = await getDB();
+                const allItems = await db.getAll('master_items') || [];
+                const qUpper = cleanQuery.toUpperCase();
+                const matches = allItems.filter(item =>
+                    (item.Item_Code && item.Item_Code.toUpperCase().includes(qUpper)) ||
+                    (item.Item_Description && item.Item_Description.toUpperCase().includes(qUpper))
+                );
+
+                data = matches.map(item => ({
+                    itemCode: item.Item_Code,
+                    description: item.Item_Description,
+                    binLocation: item.Bin_Location || 'N/A',
+                    systemQty: item.System_Qty || 0,
+                    unitCost: item.Unit_Cost || 0,
+                    weightPerUnit: item.Weight_Per_Unit || 0,
+                    sicCode: item.SIC_Code || '0'
+                }));
+            }
+
+            if (data.length === 0) {
+                setError('Item no encontrado');
+                toast.error('Item no encontrado');
+            } else if (data.length === 1) {
+                setItemData(data[0]);
+                playBeep();
+                setItemCode('');
             } else {
-                setError(data.error || 'Error en la búsqueda');
-                toast.error(data.error || 'Error en la búsqueda');
+                setSearchResults(data);
             }
         } catch (err) {
             console.error(err);
-            setError('Error de conexión');
-            toast.error('Error de conexión al servidor');
+            setError('Error en la búsqueda');
+            toast.error('Error en la búsqueda');
         } finally {
             setLoading(false);
         }

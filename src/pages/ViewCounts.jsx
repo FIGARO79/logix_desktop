@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import { getDB, cacheData, getCachedData } from '../utils/offlineDb';
 
 const ViewCounts = () => {
     const navigate = useNavigate();
@@ -24,23 +25,50 @@ const ViewCounts = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            // 1. Fetch Counts
-            const resCounts = await fetch('/api/counts/all');
-            if (!resCounts.ok) throw new Error("Error cargando conteos");
-            const dataCounts = await resCounts.json();
+            let dataCounts = [];
+            let dataStats = null;
+
+            const resCounts = await fetch('/api/counts/all').catch(() => null);
+            if (resCounts && resCounts.ok) {
+                dataCounts = await resCounts.json().catch(() => []);
+                if (dataCounts.length > 0) {
+                    await cacheData('last_w2w_counts', dataCounts);
+                }
+            }
+
+            const resStats = await fetch('/api/counts/stats').catch(() => null);
+            if (resStats && resStats.ok) {
+                dataStats = await resStats.json().catch(() => null);
+            }
+
+            if (!dataCounts || dataCounts.length === 0) {
+                const cached = await getCachedData('last_w2w_counts');
+                if (cached) {
+                    dataCounts = cached;
+                } else {
+                    const db = await getDB();
+                    const pending = await db.getAll('pending_sync') || [];
+                    dataCounts = pending
+                        .filter(p => p.collection === 'w2w' || p.collection === 'counts')
+                        .map((p, idx) => ({
+                            id: p.id || idx,
+                            item_code: p.payload?.item_code || 'N/A',
+                            description: p.payload?.description || 'N/A',
+                            bin_location: p.payload?.bin_location || 'N/A',
+                            counted_qty: p.payload?.counted_qty || 0,
+                            username: p.payload?.username || 'Local',
+                            timestamp: p.timestamp || new Date().toISOString()
+                        }));
+                }
+            }
+
             setCounts(dataCounts);
             setFilteredCounts(dataCounts);
 
-            // Extract unique usernames for filter
             const distinctUsers = [...new Set(dataCounts.map(c => c.username).filter(Boolean))];
             setUsernames(distinctUsers);
 
-            // 2. Fetch Stats
-            const resStats = await fetch('/api/counts/stats');
-            if (resStats.ok) {
-                const dataStats = await resStats.json();
-                setStats(dataStats);
-            }
+            if (dataStats) setStats(dataStats);
         } catch (err) {
             console.error(err);
         } finally {
