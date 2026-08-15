@@ -103,7 +103,8 @@ export const processLocalCSVUpload = async (file) => {
 
                 const fileName = file.name.toLowerCase();
                 const isPickingFile = fileName.includes('240') || fileName.includes('picking') || fileName.includes('salida') ||
-                    rawHeaders.some(h => ['despatch', 'despatch_', 'order', 'order_', 'order_number', 'order number', 'despatch_number', 'despatch number', 'customer_code', 'customer code', 'customer'].includes(h));
+                    ((rawHeaders.includes('order_') || rawHeaders.includes('order') || rawHeaders.includes('order_number')) &&
+                     (rawHeaders.includes('despatch_') || rawHeaders.includes('despatch') || rawHeaders.includes('despatch_number')));
 
                 const isGrnFile = fileName.includes('280') || fileName.includes('grn') || fileName.includes('entradas') ||
                     (rawHeaders.some(h => ['grn', 'grn_number', 'import_ref', 'import_reference', 'referencia_importacion'].includes(h)) && !isPickingFile);
@@ -222,6 +223,8 @@ export const processLocalCSVUpload = async (file) => {
                     const db = await getDB();
                     const txTracking = db.transaction('picking_tracking', 'readwrite');
                     const trackingStore = txTracking.objectStore('picking_tracking');
+                    await trackingStore.clear();
+
                     let totalLines = 0;
                     for (const key of keys) {
                         const orderData = ordersMap[key];
@@ -240,6 +243,8 @@ export const processLocalCSVUpload = async (file) => {
 
                     const txOrders = db.transaction('picking_orders', 'readwrite');
                     const ordersStore = txOrders.objectStore('picking_orders');
+                    await ordersStore.clear();
+
                     for (const key of keys) {
                         const orderData = ordersMap[key];
                         await ordersStore.put({
@@ -297,6 +302,7 @@ export const processLocalCSVUpload = async (file) => {
                     const db = await getDB();
                     const tx = db.transaction('grn_pending', 'readwrite');
                     const store = tx.objectStore('grn_pending');
+                    await store.clear();
                     let totalItems = 0;
                     for (const [code, data] of Object.entries(grnMap)) {
                         await store.put(data);
@@ -347,6 +353,7 @@ export const processLocalCSVUpload = async (file) => {
                     const db = await getDB();
                     const tx = db.transaction('xdock_reservations', 'readwrite');
                     const store = tx.objectStore('xdock_reservations');
+                    await store.clear();
                     let totalItems = 0;
                     for (const [code, data] of Object.entries(xdockMap)) {
                         const custArr = Array.from(data.customers);
@@ -378,6 +385,7 @@ export const processLocalCSVUpload = async (file) => {
                     const db = await getDB();
                     const tx = db.transaction('po_lookup', 'readwrite');
                     const store = tx.objectStore('po_lookup');
+                    await store.clear();
 
                     let count = 0;
                     for (let i = startIdx; i < lines.length; i++) {
@@ -464,6 +472,7 @@ export const processLocalCSVUpload = async (file) => {
                     const db = await getDB();
                     const txMaster = db.transaction('master_items', 'readwrite');
                     const masterStore = txMaster.objectStore('master_items');
+                    await masterStore.clear();
                     for (const item of itemsToInsert) {
                         await masterStore.put({
                             Item_Code: item.item_code,
