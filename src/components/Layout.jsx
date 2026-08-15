@@ -201,6 +201,20 @@ const Layout = () => {
         }
     };
 
+    const handleClearAllPending = async () => {
+        if (!confirm("¿Desea vaciar todos los registros guardados localmente en la cola?")) return;
+        try {
+            const db = await getDB();
+            await db.clear('pending_sync');
+            toast.success("Cola de registros locales vaciada");
+            await refreshPendingCount();
+            await loadPendingRecords();
+            setShowPendingModal(false);
+        } catch (e) {
+            toast.error("Error al vaciar la cola local");
+        }
+    };
+
     const [tabs, setTabs] = useState(() => {
         const saved = localStorage.getItem('logix_tabs');
         if (saved) {
@@ -446,14 +460,15 @@ const Layout = () => {
                         <button
                             onClick={() => setShowPendingModal(true)}
                             className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 rounded-md text-[11px] font-semibold cursor-pointer transition-all shadow-sm"
-                            title="Ver registros guardados localmente pendientes de sincronización"
+                            title="Ver registros guardados localmente"
                         >
                             <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
                             <span>{pendingCount} {pendingCount === 1 ? 'PENDIENTE' : 'PENDIENTES'}</span>
                         </button>
                     )}
-                    <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-medium text-white tracking-tight uppercase border border-solid transition-all ${!isOnline ? 'bg-red-500/20 border-red-500/30' : 'bg-emerald-500/20 border-emerald-500/30'}`}>
-                        {!isOnline ? 'OFFLINE' : 'ONLINE'}
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-medium text-white tracking-tight uppercase border border-emerald-500/30 bg-emerald-500/20">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        <span>MODO LOCAL</span>
                     </div>
                     <Link to="/admin/login" className="text-[11px] font-medium text-white uppercase tracking-tight px-3 py-1 border border-white/20 rounded hover:bg-white/10 transition-all opacity-0 hover:opacity-100 duration-200">Admin</Link>
                 </div>
@@ -527,12 +542,22 @@ const Layout = () => {
                         </div>
 
                         <div className="p-4 border-t border-gray-100 flex justify-between items-center bg-gray-50 rounded-b-xl gap-2">
-                            <button
-                                onClick={() => setShowPendingModal(false)}
-                                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md text-xs font-medium hover:bg-gray-100 cursor-pointer"
-                            >
-                                Cerrar
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setShowPendingModal(false)}
+                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md text-xs font-medium hover:bg-gray-100 cursor-pointer"
+                                >
+                                    Cerrar
+                                </button>
+                                {pendingList.length > 0 && (
+                                    <button
+                                        onClick={handleClearAllPending}
+                                        className="px-3 py-2 border border-red-200 text-red-600 rounded-md text-xs font-medium hover:bg-red-50 cursor-pointer"
+                                    >
+                                        Vaciar Cola
+                                    </button>
+                                )}
+                            </div>
                             <button
                                 onClick={handleManualSync}
                                 className="px-4 py-2 bg-[#285f94] text-white rounded-md text-xs font-semibold hover:bg-[#1e476f] transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
