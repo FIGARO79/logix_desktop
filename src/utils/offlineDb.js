@@ -1,82 +1,78 @@
 import { openDB } from 'idb';
 
+const isTauri = () => typeof window !== 'undefined' && window.__TAURI__ !== undefined;
+
 const DB_NAME = 'LogixOfflineDB';
-const DB_VERSION = 10;
+const DB_VERSION = 11;
+
+// En modo Tauri nativo, no abrimos IndexedDB; usamos SQLite a través de Rust
+class NullDBStore {
+    async get() { return null; }
+    async getAll() { return []; }
+    async put() { return null; }
+    async delete() { return null; }
+    async clear() { return null; }
+    async count() { return 0; }
+    transaction() {
+        return {
+            objectStore: () => this,
+            done: Promise.resolve(),
+        };
+    }
+}
+
+const nullDbInstance = new NullDBStore();
+
+let dbPromise = null;
 
 const initDB = async () => {
-    return openDB(DB_NAME, DB_VERSION, {
-        upgrade(db, _oldVersion) {
-            if (!db.objectStoreNames.contains('pending_sync')) {
-                db.createObjectStore('pending_sync', { keyPath: 'id' });
-            }
+    if (isTauri()) {
+        return nullDbInstance;
+    }
 
-            if (!db.objectStoreNames.contains('data_cache')) {
-                db.createObjectStore('data_cache', { keyPath: 'key' });
-            }
-
-            if (!db.objectStoreNames.contains('master_items')) {
-                const itemStore = db.createObjectStore('master_items', { keyPath: 'Item_Code' });
-                itemStore.createIndex('by-description', 'Item_Description');
-            }
-
-            if (!db.objectStoreNames.contains('sync_metadata')) {
-                db.createObjectStore('sync_metadata', { keyPath: 'key' });
-            }
-
-            if (!db.objectStoreNames.contains('po_lookup')) {
-                db.createObjectStore('po_lookup', { keyPath: 'id' });
-            }
-
-            if (!db.objectStoreNames.contains('grn_pending')) {
-                db.createObjectStore('grn_pending', { keyPath: 'Item_Code' });
-            }
-
-            if (!db.objectStoreNames.contains('xdock_reservations')) {
-                db.createObjectStore('xdock_reservations', { keyPath: 'Item_Code' });
-            }
-
-            if (!db.objectStoreNames.contains('planner_daily_items')) {
-                db.createObjectStore('planner_daily_items', { keyPath: 'id' });
-            }
-
-            if (!db.objectStoreNames.contains('picking_tracking')) {
-                db.createObjectStore('picking_tracking', { keyPath: 'order_number' });
-            }
-            if (!db.objectStoreNames.contains('picking_orders')) {
-                db.createObjectStore('picking_orders', { keyPath: 'id' });
-            }
-            if (!db.objectStoreNames.contains('active_sessions')) {
-                db.createObjectStore('active_sessions', { keyPath: 'type' });
-            }
-
-            // --- Tablas directas para operacion local permanente (Versión 10) ---
-            if (!db.objectStoreNames.contains('picking_audits')) {
-                db.createObjectStore('picking_audits', { keyPath: 'id' });
-            }
-            if (!db.objectStoreNames.contains('local_counts')) {
-                db.createObjectStore('local_counts', { keyPath: 'id' });
-            }
-            if (!db.objectStoreNames.contains('local_inbound')) {
-                db.createObjectStore('local_inbound', { keyPath: 'id' });
-            }
-            if (!db.objectStoreNames.contains('local_spot_check')) {
-                db.createObjectStore('local_spot_check', { keyPath: 'id' });
-            }
-        },
-    });
+    if (!dbPromise) {
+        dbPromise = openDB(DB_NAME, DB_VERSION, {
+            upgrade(db, _oldVersion) {
+                const stores = [
+                    'pending_sync', 'data_cache', 'master_items', 'sync_metadata',
+                    'po_lookup', 'grn_pending', 'xdock_reservations', 'planner_daily_items',
+                    'picking_tracking', 'picking_orders', 'active_sessions', 'picking_audits',
+                    'picking_audit_history', 'local_counts', 'local_count_sessions', 'local_inbound',
+                    'local_spot_check', 'local_express_audit', 'local_ir_reconciliation',
+                    'local_inbound_audit', 'local_audit_alerts', 'local_slotting_config',
+                    'local_planner_config', 'local_planner_plans', 'local_planner_executions',
+                    'local_users', 'local_w2w_settings'
+                ];
+                for (const storeName of stores) {
+                    if (!db.objectStoreNames.contains(storeName)) {
+                        const opts = (storeName === 'master_items') ? { keyPath: 'Item_Code' } :
+                                     (storeName === 'local_slotting_config' || storeName === 'local_planner_config' || storeName === 'local_w2w_settings' || storeName === 'data_cache' || storeName === 'sync_metadata') ? { keyPath: 'key' } :
+                                     (storeName === 'active_sessions') ? { keyPath: 'type' } :
+                                     { keyPath: 'id' };
+                        db.createObjectStore(storeName, opts);
+                    }
+                }
+            },
+        });
+    }
+    return dbPromise;
 };
 
-export const getDB = () => initDB();
+export const getDB = () => {
+    if (isTauri()) {
+        return Promise.resolve(nullDbInstance);
+    }
+    return initDB();
+};
 
 /**
  * Guarda un registro pendiente en la cola de sincronización.
- * @param {string} collection Nombre de la colección (opcional para logs genéricos)
- * @param {object} payload Datos a sincronizar
- * @param {number|string} editId ID real en BD si es una edición
  */
 export const savePendingSync = async (collection, payload, editId = null) => {
+    if (isTauri()) {
+        return crypto.randomUUID();
+    }
     const db = await getDB();
-    // Generar UUID si no existe uno previo
     const id = (typeof editId === 'string' && editId.includes('-')) ? editId : crypto.randomUUID();
     const record = {
         id,
@@ -91,55 +87,90 @@ export const savePendingSync = async (collection, payload, editId = null) => {
 
 /**
  * Guarda datos en caché genérica.
- * @param {string} key Identificador de la caché
- * @param {any} data Datos a guardar
  */
 export const cacheData = async (key, data) => {
+    if (isTauri()) return;
     const db = await getDB();
     await db.put('data_cache', { key, data, timestamp: new Date().toISOString() });
 };
 
 /**
  * Recupera datos de la caché genérica.
- * @param {string} key Identificador de la caché
  */
 export const getCachedData = async (key) => {
+    if (isTauri()) return null;
     const db = await getDB();
     const result = await db.get('data_cache', key);
     return result ? result.data : null;
 };
 
 /**
- * Obtiene la cantidad esperada de GRN para un SKU e IR, basándose en las GRNs asociadas de po_lookup.
+ * Función de comparación flexible para referencias (Import Reference, Waybill, PO)
+ */
+export const matchRef = (val1, val2) => {
+    if (!val1 || !val2) return false;
+    const s1 = String(val1).trim().toUpperCase();
+    const s2 = String(val2).trim().toUpperCase();
+    if (s1 === s2) return true;
+
+    const stripPrefix = (str) => str.replace(/^(IR|REF|PO)[-_\s]*/i, '');
+    const clean1 = stripPrefix(s1).replace(/[^A-Z0-9]/g, '');
+    const clean2 = stripPrefix(s2).replace(/[^A-Z0-9]/g, '');
+    if (clean1 && clean2 && clean1 === clean2) return true;
+
+    const normParts = (str) => stripPrefix(str).split(/[^A-Z0-9]+/).map(p => p.replace(/^0+/, '')).filter(Boolean).join('-');
+    const p1 = normParts(s1);
+    const p2 = normParts(s2);
+    return Boolean(p1 && p2 && p1 === p2);
+};
+
+/**
+ * Obtiene la cantidad esperada de GRN para un SKU e IR.
  */
 export const getGRNExpectedQty = async (db, itemCode, importRef) => {
     if (!importRef || !itemCode) return 0;
+    if (isTauri()) return 0; // En Tauri se resuelve directamente desde Rust
+
     const normalizedIr = importRef.trim().toUpperCase();
+    const cleanIr = normalizedIr.replace(/[^A-Z0-9]/g, '');
     const normalizedCode = itemCode.trim().toUpperCase();
+    const cleanCode = normalizedCode.replace(/[^A-Z0-9]/g, '');
 
     try {
-        // 1. Obtener GRNs asociadas a la IR desde po_lookup
-        const poInfo = await db.get('po_lookup', `ir_${normalizedIr}`);
+        let poInfo = await db.get('po_lookup', `ir_${normalizedIr}`) || (cleanIr ? await db.get('po_lookup', `ir_${cleanIr}`) : null);
+        if (!poInfo) {
+            const allPos = await db.getAll('po_lookup') || [];
+            poInfo = allPos.find(p => {
+                const irVal = p.import_ref || p.import_reference || (p.type === 'ir' ? p.value : '') || '';
+                return matchRef(irVal, normalizedIr);
+            });
+        }
+
         const associatedGrns = new Set();
+        let directPoQty = 0;
         if (poInfo && poInfo.items) {
             poInfo.items.forEach(it => {
+                const itCode = String(it.item_code || '').toUpperCase().trim();
+                const itClean = itCode.replace(/[^A-Z0-9]/g, '');
+                if (itCode === normalizedCode || (cleanCode && itClean === cleanCode)) {
+                    directPoQty += parseInt(it.qty || it.despatched_qty || 0) || 0;
+                }
                 const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
                 if (grnVal) {
                     grnVal.split(',').forEach(g => {
                         const gKey = g.trim();
-                        if (gKey) {
-                            associatedGrns.add(gKey);
-                        }
+                        if (gKey) associatedGrns.add(gKey);
                     });
                 }
             });
         }
 
-        // 2. Obtener todos los registros de grn_pending
         const allGrns = await db.getAll('grn_pending') || [];
-        const itemGrns = allGrns.filter(g => String(g.Item_Code).toUpperCase().trim() === normalizedCode);
+        const itemGrns = allGrns.filter(g => {
+            const gCode = String(g.Item_Code || '').toUpperCase().trim();
+            return gCode === normalizedCode || (cleanCode && gCode.replace(/[^A-Z0-9]/g, '') === cleanCode);
+        });
 
-        // 3. Si tenemos GRNs asociadas, buscar en el objeto grns
         if (associatedGrns.size > 0) {
             let sum = 0;
             itemGrns.forEach(g => {
@@ -159,11 +190,14 @@ export const getGRNExpectedQty = async (db, itemCode, importRef) => {
             if (sum > 0) return sum;
         }
 
-        // 4. Fallback: buscar por Import_Reference === normalizedIr en registros de GRN (reporte 280)
         const fallbackSum = itemGrns
-            .filter(g => String(g.Import_Reference || '').toUpperCase().trim() === normalizedIr)
+            .filter(g => matchRef(g.Import_Reference || g.import_ref || '', normalizedIr))
             .reduce((acc, curr) => acc + (parseInt(curr.total_expected) || 0), 0);
-        return fallbackSum;
+        if (fallbackSum > 0) return fallbackSum;
+
+        if (directPoQty > 0) return directPoQty;
+
+        return 0;
     } catch (err) {
         console.error("Error in getGRNExpectedQty:", err);
         return 0;
@@ -171,54 +205,41 @@ export const getGRNExpectedQty = async (db, itemCode, importRef) => {
 };
 
 /**
- * Obtiene de forma masiva las cantidades esperadas de GRN para una lista de SKUs e IRs,
- * cargando toda la tabla grn_pending una sola vez en memoria y resolviendo po_lookup en paralelo.
- * @param {object} db Instancia de IndexedDB
- * @param {Array<{itemCode: string, importRef: string}>} items Lista de ítems a consultar
- * @returns {Promise<Object>} Un mapa con claves "itemCode|importRef" y sus respectivas cantidades esperadas.
+ * Obtiene de forma masiva las cantidades esperadas de GRN.
  */
 export const getGRNExpectedQtyBulk = async (db, items) => {
     if (!items || items.length === 0) return {};
+    if (isTauri()) return {}; // En Tauri se resuelve directamente desde Rust
     const resultMap = {};
 
     try {
         const uniqueIrs = new Set();
         items.forEach(item => {
             const ir = item.importRef || '';
-            if (ir) {
-                uniqueIrs.add(ir.trim().toUpperCase());
-            }
+            if (ir) uniqueIrs.add(ir.trim().toUpperCase());
         });
 
-        // 1. Obtener po_lookup para las IR únicas en paralelo
         const poInfoMap = new Map();
-        await Promise.all(Array.from(uniqueIrs).map(async ir => {
-            try {
-                const poInfo = await db.get('po_lookup', `ir_${ir}`);
-                if (poInfo) {
-                    poInfoMap.set(ir, poInfo);
-                }
-            } catch (e) {
-                console.error(`Error al consultar po_lookup para IR ${ir}:`, e);
-            }
-        }));
+        const allPos = await db.getAll('po_lookup') || [];
 
-        // 2. Obtener todos los registros de grn_pending de una sola vez
+        Array.from(uniqueIrs).forEach(ir => {
+            const match = allPos.find(p => {
+                const irVal = p.import_ref || p.import_reference || (p.type === 'ir' ? p.value : '') || '';
+                return matchRef(irVal, ir);
+            });
+            if (match) poInfoMap.set(ir, match);
+        });
+
         const allGrns = await db.getAll('grn_pending') || [];
-
-        // 3. Indexar grn_pending por SKU para búsqueda rápida
         const grnsByItem = new Map();
         allGrns.forEach(g => {
             if (g.Item_Code) {
                 const code = String(g.Item_Code).toUpperCase().trim();
-                if (!grnsByItem.has(code)) {
-                    grnsByItem.set(code, []);
-                }
+                if (!grnsByItem.has(code)) grnsByItem.set(code, []);
                 grnsByItem.get(code).push(g);
             }
         });
 
-        // 4. Calcular el total esperado para cada ítem solicitado
         items.forEach(item => {
             const importRef = item.importRef || '';
             const itemCode = item.itemCode || '';
@@ -231,18 +252,23 @@ export const getGRNExpectedQtyBulk = async (db, items) => {
 
             const normalizedIr = importRef.trim().toUpperCase();
             const normalizedCode = itemCode.trim().toUpperCase();
+            const cleanCode = normalizedCode.replace(/[^A-Z0-9]/g, '');
 
             const poInfo = poInfoMap.get(normalizedIr);
             const associatedGrns = new Set();
+            let directPoQty = 0;
             if (poInfo && poInfo.items) {
                 poInfo.items.forEach(it => {
+                    const itCode = String(it.item_code || '').toUpperCase().trim();
+                    const itClean = itCode.replace(/[^A-Z0-9]/g, '');
+                    if (itCode === normalizedCode || (cleanCode && itClean === cleanCode)) {
+                        directPoQty += parseInt(it.qty || it.despatched_qty || 0) || 0;
+                    }
                     const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
                     if (grnVal) {
                         grnVal.split(',').forEach(g => {
                             const gKey = g.trim();
-                            if (gKey) {
-                                associatedGrns.add(gKey);
-                            }
+                            if (gKey) associatedGrns.add(gKey);
                         });
                     }
                 });
@@ -250,8 +276,8 @@ export const getGRNExpectedQtyBulk = async (db, items) => {
 
             const itemGrns = grnsByItem.get(normalizedCode) || [];
 
-            let sum = 0;
             if (associatedGrns.size > 0) {
+                let sum = 0;
                 itemGrns.forEach(g => {
                     if (g.grns) {
                         Object.entries(g.grns).forEach(([grnNum, qty]) => {
@@ -266,21 +292,22 @@ export const getGRNExpectedQtyBulk = async (db, items) => {
                         }
                     }
                 });
+                if (sum > 0) {
+                    resultMap[key] = sum;
+                    return;
+                }
             }
 
-            if (sum > 0) {
-                resultMap[key] = sum;
-            } else {
-                // Fallback: buscar por Import_Reference === normalizedIr en registros de GRN (reporte 280)
-                const fallbackSum = itemGrns
-                    .filter(g => String(g.Import_Reference || '').toUpperCase().trim() === normalizedIr)
-                    .reduce((acc, curr) => acc + (parseInt(curr.total_expected) || 0), 0);
-                resultMap[key] = fallbackSum;
-            }
+            const fallbackSum = itemGrns
+                .filter(g => matchRef(g.Import_Reference || g.import_ref || '', normalizedIr))
+                .reduce((acc, curr) => acc + (parseInt(curr.total_expected) || 0), 0);
+
+            resultMap[key] = fallbackSum > 0 ? fallbackSum : directPoQty;
         });
-    } catch (err) {
-        console.error("Error en getGRNExpectedQtyBulk:", err);
-    }
 
-    return resultMap;
+        return resultMap;
+    } catch (err) {
+        console.error("Error in getGRNExpectedQtyBulk:", err);
+        return {};
+    }
 };

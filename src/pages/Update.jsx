@@ -71,29 +71,81 @@ const Update = () => {
         fetchSyncStatus();
     }, [setTitle]);
 
+    // Temporizador de 10 segundos para ocultar notificaciones automáticamente
+    useEffect(() => {
+        if (messages.success || messages.error || messages.info) {
+            const timer = setTimeout(() => {
+                setMessages({ success: '', error: '', info: '' });
+            }, 10000);
+            return () => clearTimeout(timer);
+        }
+    }, [messages]);
+
+    const clearMessages = () => setMessages({ success: '', error: '', info: '' });
+
     const fetchPreviewGrns = useCallback(async (file) => {
-        setIsPreviewing(true); setPreviewedFile(file);
+        if (!file) return;
+        setIsPreviewing(true);
+        setPreviewedFile(file);
         try {
             const grnList = await previewLocalGRNFile(file);
-            setAvailableGrns(grnList || []);
-            setSelectedGrns(grnList || []);
+            if (grnList && grnList.length > 0) {
+                setAvailableGrns(grnList);
+                setSelectedGrns(grnList);
+            } else {
+                setAvailableGrns([]);
+                setSelectedGrns([]);
+            }
         } catch (err) {
+            console.error("Error previsualizando GRNs:", err);
             setAvailableGrns([]);
             setSelectedGrns([]);
-        } finally { setIsPreviewing(false); }
+        } finally {
+            setIsPreviewing(false);
+        }
     }, []);
 
     useEffect(() => {
         const grnFile = files.find(f => {
             const name = f.name.toLowerCase();
-            return name.includes('280') || name.includes('pedido') || name.includes('reporte');
+            const isPo = name.includes('extractor') || name.includes('purchase');
+            return !isPo && (name.includes('280') || name.includes('pedido') || name.includes('grn') || name.includes('entrada') || name.includes('recepcion'));
         });
-        if (grnFile && grnFile !== previewedFile && !isPreviewing) fetchPreviewGrns(grnFile);
-        else if (!grnFile) { setAvailableGrns([]); setSelectedGrns([]); setPreviewedFile(null); }
-    }, [files, previewedFile, isPreviewing, fetchPreviewGrns]);
+        if (grnFile && grnFile !== previewedFile) {
+            fetchPreviewGrns(grnFile);
+        } else if (!grnFile && availableGrns.length > 0) {
+            setAvailableGrns([]);
+            setSelectedGrns([]);
+            setPreviewedFile(null);
+        }
+    }, [files, previewedFile, fetchPreviewGrns, availableGrns.length]);
 
-    const handleFiles = (newFiles) => { setFiles(prev => [...prev, ...Array.from(newFiles)]); };
-    const removeFile = (idx) => { setFiles(prev => prev.filter((_, i) => i !== idx)); };
+    const handleFiles = (newFiles) => {
+        if (!newFiles || newFiles.length === 0) return;
+        const incomingArray = Array.from(newFiles);
+        setFiles(prev => {
+            const existingNames = new Set(prev.map(f => f.name));
+            const filteredNew = incomingArray.filter(f => !existingNames.has(f.name));
+            return [...prev, ...filteredNew];
+        });
+    };
+
+    const removeFile = (idx) => {
+        setFiles(prev => {
+            const next = prev.filter((_, i) => i !== idx);
+            const hasGrn = next.some(f => {
+                const name = f.name.toLowerCase();
+                const isPo = name.includes('extractor') || name.includes('purchase');
+                return !isPo && (name.includes('280') || name.includes('pedido') || name.includes('grn') || name.includes('entrada') || name.includes('recepcion'));
+            });
+            if (!hasGrn) {
+                setAvailableGrns([]);
+                setSelectedGrns([]);
+                setPreviewedFile(null);
+            }
+            return next;
+        });
+    };
 
     const handleFileUpdate = async (e) => {
         e.preventDefault(); setMessages({ success: '', error: '' }); setIsLoading(true);
@@ -107,8 +159,9 @@ const Update = () => {
         try {
             let processedMsg = '';
             for (const file of files) {
-                if (file.name.toLowerCase().endsWith('.csv')) {
-                    const result = await processLocalCSVUpload(file);
+                const name = file.name.toLowerCase();
+                if (name.endsWith('.csv') || name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.txt')) {
+                    const result = await processLocalCSVUpload(file, selectedGrns, updateOption);
                     processedMsg += result + '. ';
                 }
             }
@@ -132,7 +185,7 @@ const Update = () => {
             setMessages({ success: processedMsg, error: '' });
             setFiles([]);
         } catch (err) {
-            setMessages({ success: 'Archivos procesados localmente', error: '' });
+            setMessages({ success: '', error: `Error al procesar los archivos: ${err.message || err}` });
         } finally {
             setIsLoading(false);
         }
@@ -200,9 +253,39 @@ const Update = () => {
     return (
         <div className="max-w-[1400px] mx-auto px-6 py-3 font-sans bg-[#fcfcfc] min-h-screen text-black text-[12px]">
 
-            {messages.error && <div className="mb-6 bg-red-50 text-black px-4 py-3 border border-red-100 text-[12px] font-normal uppercase tracking-widest">{messages.error}</div>}
-            {messages.info && <div className="mb-6 bg-blue-50 text-black px-4 py-3 border border-blue-100 text-[12px] font-normal uppercase tracking-widest animate-pulse">{messages.info}</div>}
-            {messages.success && <div className="mb-6 bg-emerald-50 text-black px-4 py-3 border border-emerald-100 text-[12px] font-normal uppercase tracking-widest">{messages.success}</div>}
+            {messages.error && (
+                <div className="mb-6 bg-red-50 text-red-900 px-4 py-3 border border-red-200 rounded flex justify-between items-center text-[12px] font-normal uppercase tracking-tight shadow-sm transition-all">
+                    <div className="flex items-center gap-2">
+                        <span className="font-bold text-red-600">⚠️</span>
+                        <span>{messages.error}</span>
+                    </div>
+                    <button type="button" onClick={clearMessages} className="text-red-700 hover:text-red-950 text-sm font-bold px-2 py-0.5 rounded hover:bg-red-100 transition-colors ml-4" title="Cerrar notificación">
+                        ✕
+                    </button>
+                </div>
+            )}
+            {messages.info && (
+                <div className="mb-6 bg-blue-50 text-blue-900 px-4 py-3 border border-blue-200 rounded flex justify-between items-center text-[12px] font-normal uppercase tracking-tight shadow-sm transition-all">
+                    <div className="flex items-center gap-2">
+                        <span className="font-bold text-blue-600">ℹ️</span>
+                        <span>{messages.info}</span>
+                    </div>
+                    <button type="button" onClick={clearMessages} className="text-blue-700 hover:text-blue-950 text-sm font-bold px-2 py-0.5 rounded hover:bg-blue-100 transition-colors ml-4" title="Cerrar notificación">
+                        ✕
+                    </button>
+                </div>
+            )}
+            {messages.success && (
+                <div className="mb-6 bg-emerald-50 text-emerald-900 px-4 py-3 border border-emerald-200 rounded flex justify-between items-center text-[12px] font-normal uppercase tracking-tight shadow-sm transition-all">
+                    <div className="flex items-center gap-2">
+                        <span className="font-bold text-emerald-600">✅</span>
+                        <span>{messages.success}</span>
+                    </div>
+                    <button type="button" onClick={clearMessages} className="text-emerald-700 hover:text-emerald-950 text-sm font-bold px-2 py-0.5 rounded hover:bg-emerald-100 transition-colors ml-4" title="Cerrar notificación">
+                        ✕
+                    </button>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
 
@@ -219,7 +302,17 @@ const Update = () => {
                             onDrop={(e) => { e.preventDefault(); setDragActive(false); handleFiles(e.dataTransfer.files); }}
                             onClick={() => document.getElementById('file-upload').click()}
                         >
-                            <input id="file-upload" type="file" multiple className="hidden" onChange={e => handleFiles(e.target.files)} />
+                            <input
+                                id="file-upload"
+                                type="file"
+                                multiple
+                                className="hidden"
+                                onClick={(e) => { e.stopPropagation(); e.target.value = ''; }}
+                                onChange={(e) => {
+                                    handleFiles(e.target.files);
+                                    e.target.value = '';
+                                }}
+                            />
                             <div className="text-black">
                                 <p className="text-[12px] font-normal text-black uppercase tracking-normal mb-1">Click para seleccionar o arrastre archivos</p>
                                 <p className="text-[12px] uppercase font-normal text-black">Soporta: CSV (250, 280, 240) y Excel (.xlsx)</p>
@@ -228,10 +321,15 @@ const Update = () => {
 
                         {files.length > 0 && (
                             <div className="mb-6 space-y-2">
+                                <h4 className="text-[12px] font-medium text-black uppercase tracking-tight mb-2">Archivos Seleccionados ({files.length}):</h4>
                                 {files.map((file, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-3 bg-zinc-50 border border-zinc-100 rounded">
-                                        <span className="text-[12px] font-normal text-black uppercase tracking-normal">{file.name}</span>
-                                        <button type="button" onClick={() => removeFile(idx)} className="text-black hover:text-zinc-600 text-[12px] font-normal uppercase hover:underline">Remover</button>
+                                    <div key={idx} className="flex items-center justify-between p-3 bg-zinc-50 border border-zinc-200 rounded shadow-sm">
+                                        <div className="flex items-center gap-2 overflow-hidden">
+                                            <span className="text-zinc-600 font-bold">📄</span>
+                                            <span className="text-[12px] font-medium text-black uppercase tracking-tight truncate">{file.name}</span>
+                                            <span className="text-[11px] text-zinc-500 font-normal">({(file.size / 1024).toFixed(1)} KB)</span>
+                                        </div>
+                                        <button type="button" onClick={() => removeFile(idx)} className="text-red-600 hover:text-red-800 text-[12px] font-normal uppercase hover:underline ml-2 flex-shrink-0">Remover</button>
                                     </div>
                                 ))}
                             </div>

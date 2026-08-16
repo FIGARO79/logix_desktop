@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/tauri';
 import { getDB } from './offlineDb';
+import * as XLSX from 'xlsx';
 
 export const isTauri = () => {
     return typeof window !== 'undefined' && window.__TAURI__ !== undefined;
@@ -19,6 +20,46 @@ export const callTauriCommand = async (commandName, args = {}) => {
     }
     console.warn(`Tauri no está disponible en este entorno. Comando '${commandName}' omitido.`);
     return null;
+};
+
+/**
+ * Muestra un diálogo de confirmación asíncrono no bloqueante del hilo principal.
+ */
+export const confirmNative = async (message, title = "Confirmación") => {
+    if (isTauri()) {
+        try {
+            const { ask } = await import('@tauri-apps/api/dialog');
+            return await ask(message, { title, type: 'warning' });
+        } catch (e) {
+            console.warn("Fallback to window.confirm:", e);
+        }
+    }
+    return window.confirm(message);
+};
+
+export const parseQuantitySmart = (val) => {
+    if (val === null || val === undefined) return 0;
+    let valStr = String(val).trim();
+    if (!valStr) return 0;
+
+    if (valStr.includes(',') && valStr.includes('.')) {
+        const lastComma = valStr.lastIndexOf(',');
+        const lastDot = valStr.lastIndexOf('.');
+        if (lastComma > lastDot) {
+            valStr = valStr.replace(/\./g, '').replace(',', '.');
+        } else {
+            valStr = valStr.replace(/,/g, '');
+        }
+    } else if (valStr.includes(',')) {
+        const parts = valStr.split(',');
+        if (parts[parts.length - 1].length !== 3) {
+            valStr = valStr.replace(',', '.');
+        } else {
+            valStr = valStr.replace(/,/g, '');
+        }
+    }
+    const num = parseFloat(valStr);
+    return isNaN(num) ? 0 : num;
 };
 
 /**
@@ -73,482 +114,450 @@ export const tauriResetPasswordAdmin = async (userId, newPassword) => {
 };
 
 /**
- * Parsea un archivo CSV/TSV/TXT local e inserta los datos masivamente en SQLite local / IndexedDB.
+ * Lee y extrae cualquier archivo (.xlsx, .xls, .csv, .tsv, .txt) utilizando SheetJS
+ * respetando el estándar RFC 4180 (comillas dobles, comas internas, caracteres de escape).
+ * Devuelve un array de filas: Array<Array<string>>.
  */
-export const processLocalCSVUpload = async (file) => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const text = e.target.result;
-                if (!text || typeof text !== 'string') {
-                    resolve("El archivo seleccionado está vacío.");
-                    return;
+export const readTableFromFile = async (file) => {
+    try {
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, {
+            type: 'array',
+            raw: true,
+            cellText: true,
+            cellDates: false,
+            codepage: 65001
+        });
+        if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) {
+            return [];
+        }
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rawRows = XLSX.utils.sheet_to_json(sheet, {
+            header: 1,
+            defval: '',
+            raw: true,
+            rawNumbers: false,
+            blankrows: false
+        });
+        return (rawRows || []).map(row => Array.isArray(row) ? row.map(cell => cell !== null && cell !== undefined ? String(cell).trim() : '') : []);
+    } catch (err) {
+        console.error("Error al leer archivo estructurado con SheetJS:", err);
+        return [];
+    }
+};
+
+/**
+ * Normaliza un nombre de encabezado eliminando acentos, espacios y caracteres especiales.
+ */
+const normalizeHeaderKey = (h) => {
+    if (!h) return '';
+    return String(h)
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '');
+};
+
+/**
+ * Encuentra la fila de encabezados y construye el mapa de columnas a índices.
+ */
+const buildColumnMap = (rows) => {
+    const maxSearch = Math.min(rows.length, 15);
+    let headerRowIdx = 0;
+    let bestMatchCount = -1;
+
+    const knownKeywords = [
+        'item', 'itemcode', 'codigo', 'sku', 'material',
+        'description', 'descripcion', 'desc', 'texto',
+        'bin', 'bin1', 'binlocation', 'ubicacion',
+        'quantity', 'qty', 'cantidad', 'physicalqty',
+        'grn', 'grnnumber', 'pedido', 'order', 'ordernumber',
+        'waybill', 'wb', 'importref', 'importrefcode', 'importreference',
+        'customer', 'cliente', 'customername', 'despatch', 'despatchnumber',
+        'reservedqty', 'quantityreserved', 'totalreserved'
+    ];
+
+    for (let r = 0; r < maxSearch; r++) {
+        const row = rows[r];
+        if (!row || row.length === 0) continue;
+        let matchCount = 0;
+        row.forEach(cell => {
+            const norm = normalizeHeaderKey(cell);
+            if (norm && knownKeywords.some(k => norm.includes(k) || k.includes(norm))) {
+                matchCount++;
+            }
+        });
+        if (matchCount > bestMatchCount) {
+            bestMatchCount = matchCount;
+            headerRowIdx = r;
+        }
+    }
+
+    const headerRow = rows[headerRowIdx] || [];
+    const colMap = {};
+    headerRow.forEach((cell, idx) => {
+        const norm = normalizeHeaderKey(cell);
+        if (norm && colMap[norm] === undefined) {
+            colMap[norm] = idx;
+        }
+    });
+
+    const getCol = (row, ...aliases) => {
+        for (const alias of aliases) {
+            const norm = normalizeHeaderKey(alias);
+            if (colMap[norm] !== undefined && colMap[norm] < row.length) {
+                const val = row[colMap[norm]];
+                if (val !== undefined && val !== null && String(val).trim() !== '') {
+                    return String(val).trim();
                 }
+            }
+        }
+        return '';
+    };
 
-                const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
-                if (lines.length === 0) {
-                    resolve("El archivo no contiene filas procesables.");
-                    return;
-                }
+    return { headerRowIdx, colMap, getCol, rawHeaders: headerRow.map(h => normalizeHeaderKey(h)) };
+};
 
-                // Detectar delimitador (coma, punto y coma, tabulación o barra vertical)
-                const firstLine = lines[0];
-                let delimiter = ',';
-                if (firstLine.includes('\t')) delimiter = '\t';
-                else if (firstLine.includes(';')) delimiter = ';';
-                else if (firstLine.includes('|')) delimiter = '|';
+/**
+ * Parsea un archivo CSV/TSV/TXT/XLSX local e inserta los datos masivamente en SQLite local / almacenamiento.
+ */
+export const processLocalCSVUpload = async (file, selectedGrns = [], updateOption = 'combine') => {
+    return new Promise(async (resolve) => {
+        try {
+            const fileName = file.name.toLowerCase();
+            const rows = await readTableFromFile(file);
 
-                const rawHeaders = firstLine.split(delimiter).map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
+            if (!rows || rows.length === 0) {
+                resolve("El archivo seleccionado está vacío o no contiene filas procesables.");
+                return;
+            }
 
-                const fileName = file.name.toLowerCase();
-                const isPickingFile = fileName.includes('240') || fileName.includes('picking') || fileName.includes('salida') ||
-                    ((rawHeaders.includes('order_') || rawHeaders.includes('order') || rawHeaders.includes('order_number')) &&
-                     (rawHeaders.includes('despatch_') || rawHeaders.includes('despatch') || rawHeaders.includes('despatch_number')));
+            const { headerRowIdx, colMap, getCol, rawHeaders } = buildColumnMap(rows);
+            const dataRows = rows.slice(headerRowIdx + 1);
 
-                const isGrnFile = fileName.includes('280') || fileName.includes('grn') || fileName.includes('entradas') ||
-                    (rawHeaders.some(h => ['grn', 'grn_number', 'import_ref', 'import_reference', 'referencia_importacion'].includes(h)) && !isPickingFile);
+            if (dataRows.length === 0) {
+                resolve("El archivo no contiene filas de datos tras los encabezados.");
+                return;
+            }
 
-                const isXdockFile = fileName.includes('0006') || fileName.includes('xdock') || fileName.includes('crossdock') || fileName.includes('reservas') ||
-                    rawHeaders.some(h => ['reserved_qty', 'xdock', 'crossdock'].includes(h));
+            // Identificación precisa del tipo de archivo (de lo más específico a lo general)
+            const isPoLookupFile = fileName.includes('extractor') || fileName.includes('purchase') || fileName.includes('po_lookup') ||
+                (rawHeaders.some(h => h.includes('waybill') || h === 'wb') && rawHeaders.some(h => h.includes('import') || h === 'ir'));
 
-                const isPoLookupFile = fileName.includes('po_extractor') || fileName.includes('purchase order') || fileName.includes('extractor') ||
-                    (rawHeaders.includes('waybill') && (rawHeaders.includes('import_ref') || rawHeaders.includes('import_reference')));
+            const isXdockFile = !isPoLookupFile && (fileName.includes('0006') || fileName.includes('xdock') || fileName.includes('crossdock') || fileName.includes('reserva') ||
+                rawHeaders.some(h => ['reservedqty', 'quantityreserved', 'totalreserved', 'actionqty', 'sonumber'].includes(h)));
 
-                // 1. ARCHIVO 240 (Salidas Picking)
-                if (isPickingFile) {
-                    const ordersMap = {}; // { 'order_despatch': { order_number, despatch_number, customer_code, customer_name, print_date, items: [] } }
+            const isPickingFile = !isPoLookupFile && !isXdockFile && (fileName.includes('240') || fileName.includes('picking') || fileName.includes('salida') ||
+                rawHeaders.some(h => ['despatchnumber', 'despatch', 'despacho', 'notaentrega', 'picklistprintedtime', 'rpstatustime'].includes(h)) ||
+                (rawHeaders.some(h => ['ordernumber', 'order', 'pedido'].includes(h)) && rawHeaders.some(h => ['customer', 'cliente', 'customername'].includes(h))));
 
-                    const hasHeader = rawHeaders.some(h =>
-                        ['order_', 'order', 'pedido', 'despatch_', 'despatch', 'despacho', 'item', 'codigo', 'código', 'material', 'sku', 'cliente', 'customer', 'customer_name'].includes(h)
-                    );
-                    const startIdx = hasHeader ? 1 : 0;
+            const isGrnFile = !isPoLookupFile && !isXdockFile && !isPickingFile && (fileName.includes('280') || fileName.includes('grn') || fileName.includes('entrada') ||
+                (rawHeaders.some(h => ['grn', 'grnnumber', 'referenciaimportacion', 'importreference'].includes(h)) && !rawHeaders.includes('bin1') && !rawHeaders.includes('physicalqty')));
 
-                    for (let i = startIdx; i < lines.length; i++) {
-                        const values = lines[i].split(delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
-                        if (values.length === 0 || (values.length === 1 && values[0] === '')) continue;
+            const isItemMasterFile = !isPoLookupFile && !isXdockFile && !isPickingFile && !isGrnFile && (fileName.includes('250') || fileName.includes('master') || fileName.includes('maestro') || fileName.includes('item_master') ||
+                rawHeaders.some(h => ['bin1', 'binlocation', 'physicalqty', 'stockroom', 'costperunit', 'totalweight'].includes(h)) ||
+                (rawHeaders.some(h => ['itemcode', 'item', 'material', 'sku', 'codigo'].includes(h)) &&
+                 rawHeaders.some(h => ['description', 'descripcion', 'itemdescription', 'denominacion', 'bin1', 'binlocation', 'ubicacion'].includes(h))));
 
-                        const row = {};
-                        if (hasHeader) {
-                            rawHeaders.forEach((h, idx) => {
-                                row[h] = values[idx] || '';
-                            });
-                        }
-
-                        let order_number = hasHeader
-                            ? (row['order_'] || row['order_number'] || row['order number'] || row['order'] || row['pedido'] || row['numero_pedido'] || row['no_pedido'] || row['documento'] || '')
-                            : (values[4] || values[0] || '');
-
-                        let despatch_number = hasHeader
-                            ? (row['despatch_'] || row['despatch_number'] || row['despatch number'] || row['despatch'] || row['despacho'] || row['nota_entrega'] || row['entrega'] || '')
-                            : (values[5] || values[1] || '00');
-
-                        let customer_code = hasHeader
-                            ? (row['customer'] || row['customer_code'] || row['customer code'] || row['cliente'] || row['codigo_cliente'] || row['código_cliente'] || row['cod_cliente'] || '')
-                            : (values[0] || 'N/A');
-
-                        let customer_name = hasHeader
-                            ? (row['customer_name'] || row['customer name'] || row['nombre_cliente'] || row['cliente_nombre'] || row['nombre'] || row['end_user_name'] || '')
-                            : (values[2] || 'Cliente General');
-
-                        let item_code = hasHeader
-                            ? (row['item'] || row['item_code'] || row['item code'] || row['codigo'] || row['código'] || row['material'] || row['sku'] || '')
-                            : (values[7] || values[3] || '');
-
-                        let description = hasHeader
-                            ? (row['description'] || row['item_description'] || row['item description'] || row['descripcion'] || row['descripción'] || row['texto breve'] || '')
-                            : (values[8] || values[4] || '');
-
-                        let order_line = hasHeader
-                            ? (row['order_line'] || row['order line'] || row['linea'] || row['línea'] || row['posicion'] || '')
-                            : (values[6] || (i - startIdx + 1).toString());
-
-                        let qty = parseInt((hasHeader
-                            ? (row['qty'] || row['quantity'] || row['cantidad'] || row['cant'] || row['qty_req'] || '0')
-                            : (values[9] || '0')).toString().replace(',', '.'), 10) || 0;
-
-                        let rawDate = hasHeader
-                            ? (row['pick_list_printed_time'] || row['creation_time'] || row['requested_date'] || row['print_date'] || row['print date'] || row['fecha_impresion'] || row['fecha'] || row['rp_status_time'] || '')
-                            : '';
-
-                        if (!rawDate) {
-                            rawDate = new Date().toISOString().split('T')[0];
-                        }
-
-                        let print_date = rawDate.split(' ')[0] || rawDate.split('T')[0];
-                        if (print_date.includes('/')) {
-                            const dateParts = print_date.split('/');
-                            if (dateParts.length === 3) {
-                                if (dateParts[0].length === 4) {
-                                    print_date = `${dateParts[0]}-${dateParts[1].padStart(2, '0')}-${dateParts[2].padStart(2, '0')}`;
-                                } else {
-                                    print_date = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`;
-                                }
-                            }
-                        }
-
-                        if (!order_number || !item_code) continue;
-
-                        const cleanOrder = order_number.trim();
-                        const cleanDespatch = despatch_number.trim();
-                        const key = `${cleanOrder}_${cleanDespatch}`;
-
-                        if (!ordersMap[key]) {
-                            ordersMap[key] = {
-                                order_number: cleanOrder,
-                                despatch_number: cleanDespatch,
-                                customer_code: customer_code.trim(),
-                                customer_name: customer_name.trim(),
-                                print_date: print_date,
-                                items: []
-                            };
-                        }
-
-                        ordersMap[key].items.push({
-                            'Customer Code': customer_code.trim(),
-                            'Customer Name': customer_name.trim(),
-                            'Item Code': item_code.toUpperCase().trim(),
-                            'Item Description': description.trim(),
-                            'Order Line': order_line.toString().trim(),
-                            'Qty': qty
-                        });
-                    }
-
-                    const keys = Object.keys(ordersMap);
-                    if (keys.length === 0) {
-                        resolve("No se encontraron pedidos de picking válidos en el archivo 240.");
-                        return;
-                    }
-
-                    const db = await getDB();
-                    const txTracking = db.transaction('picking_tracking', 'readwrite');
-                    const trackingStore = txTracking.objectStore('picking_tracking');
-                    await trackingStore.clear();
-
-                    let totalLines = 0;
-                    for (const key of keys) {
-                        const orderData = ordersMap[key];
-                        totalLines += orderData.items.length;
-                        await trackingStore.put({
-                            order_number: orderData.order_number,
-                            despatch_number: orderData.despatch_number,
-                            customer_code: orderData.customer_code,
-                            customer_name: orderData.customer_name,
-                            total_lines: orderData.items.length,
-                            print_date: orderData.print_date,
-                            is_audited: false
-                        });
-                    }
-                    await txTracking.done;
-
-                    const txOrders = db.transaction('picking_orders', 'readwrite');
-                    const ordersStore = txOrders.objectStore('picking_orders');
-                    await ordersStore.clear();
-
-                    for (const key of keys) {
-                        const orderData = ordersMap[key];
-                        await ordersStore.put({
-                            id: key,
-                            order: orderData.order_number,
-                            despatch: orderData.despatch_number,
-                            data: orderData.items
-                        });
-                    }
-                    await txOrders.done;
-
-                    const txMeta = db.transaction('sync_metadata', 'readwrite');
-                    await txMeta.objectStore('sync_metadata').put({ key: 'picking', value: Math.floor(Date.now() / 1000) });
-                    await txMeta.done;
-
-                    resolve(`Se cargaron ${keys.length} pedidos de picking (${totalLines} líneas) en la base de datos local.`);
-                    return;
-                }
-
-                // 2. ARCHIVO 280 (Entradas GRN)
-                if (isGrnFile) {
-                    const grnMap = {};
-                    const hasHeader = rawHeaders.some(h => ['item', 'codigo', 'código', 'material', 'sku', 'grn', 'pedido', 'cantidad'].includes(h));
-                    const startIdx = hasHeader ? 1 : 0;
-
-                    for (let i = startIdx; i < lines.length; i++) {
-                        const values = lines[i].split(delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
-                        if (values.length === 0 || (values.length === 1 && values[0] === '')) continue;
-
-                        const row = {};
-                        if (hasHeader) {
-                            rawHeaders.forEach((h, idx) => { row[h] = values[idx] || ''; });
-                        }
-
-                        let item_code = row['item_code'] || row['item'] || row['codigo'] || row['código'] || row['sku'] || row['material'] || values[0] || '';
-                        let grn_number = row['grn'] || row['grn_number'] || row['pedido'] || row['po_number'] || row['referencia'] || values[1] || 'GRN_LOCAL';
-                        let qty = parseFloat((row['total_expected'] || row['expected_qty'] || row['qty'] || row['cantidad'] || row['cant_esperada'] || values[2] || '0').toString().replace(',', '.')) || 0;
-                        let import_ref = row['import_ref'] || row['import_reference'] || row['referencia_importacion'] || row['referencia'] || values[3] || '';
-
-                        if (!item_code) continue;
-                        const cleanCode = item_code.toUpperCase().trim();
-                        const cleanGrn = grn_number.trim().toUpperCase();
-
-                        if (!grnMap[cleanCode]) {
-                            grnMap[cleanCode] = { Item_Code: cleanCode, grns: {}, total_expected: 0, Import_Reference: import_ref };
-                        }
-
-                        grnMap[cleanCode].grns[cleanGrn] = (grnMap[cleanCode].grns[cleanGrn] || 0) + qty;
-                        grnMap[cleanCode].total_expected += qty;
-                        if (import_ref && !grnMap[cleanCode].Import_Reference) {
-                            grnMap[cleanCode].Import_Reference = import_ref;
-                        }
-                    }
-
-                    const db = await getDB();
-                    const tx = db.transaction('grn_pending', 'readwrite');
-                    const store = tx.objectStore('grn_pending');
-                    await store.clear();
-                    let totalItems = 0;
-                    for (const [code, data] of Object.entries(grnMap)) {
-                        await store.put(data);
-                        totalItems++;
-                    }
-                    await tx.done;
-
-                    const txMeta = db.transaction('sync_metadata', 'readwrite');
-                    await txMeta.objectStore('sync_metadata').put({ key: 'grn_pending', value: Math.floor(Date.now() / 1000) });
-                    await txMeta.done;
-
-                    resolve(`Se cargaron ${totalItems} registros de Entradas GRN (280) en la base de datos local.`);
-                    return;
-                }
-
-                // 3. ARCHIVO 0006 (Reservas Xdock)
-                if (isXdockFile) {
-                    const xdockMap = {};
-                    const hasHeader = rawHeaders.some(h => ['item', 'codigo', 'código', 'material', 'sku', 'reserved_qty', 'cantidad', 'cliente'].includes(h));
-                    const startIdx = hasHeader ? 1 : 0;
-
-                    for (let i = startIdx; i < lines.length; i++) {
-                        const values = lines[i].split(delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
-                        if (values.length === 0 || (values.length === 1 && values[0] === '')) continue;
-
-                        const row = {};
-                        if (hasHeader) {
-                            rawHeaders.forEach((h, idx) => { row[h] = values[idx] || ''; });
-                        }
-
-                        let item_code = row['item_code'] || row['item'] || row['codigo'] || row['código'] || row['sku'] || row['material'] || values[0] || '';
-                        let qty = parseFloat((row['reserved_qty'] || row['total'] || row['qty'] || row['cantidad'] || values[1] || '0').toString().replace(',', '.')) || 0;
-                        let customer = row['customer_name'] || row['customer'] || row['cliente'] || row['nombre_cliente'] || values[2] || 'Cliente General';
-                        let po_number = row['po_number'] || row['po_date'] || row['po'] || values[3] || '';
-
-                        if (!item_code) continue;
-                        const cleanCode = item_code.toUpperCase().trim();
-
-                        if (!xdockMap[cleanCode]) {
-                            xdockMap[cleanCode] = { Item_Code: cleanCode, total: 0, reserved_qty: 0, customers: new Set(), po_number };
-                        }
-
-                        xdockMap[cleanCode].total += qty;
-                        xdockMap[cleanCode].reserved_qty += qty;
-                        if (customer) xdockMap[cleanCode].customers.add(customer.trim());
-                    }
-
-                    const db = await getDB();
-                    const tx = db.transaction('xdock_reservations', 'readwrite');
-                    const store = tx.objectStore('xdock_reservations');
-                    await store.clear();
-                    let totalItems = 0;
-                    for (const [code, data] of Object.entries(xdockMap)) {
-                        const custArr = Array.from(data.customers);
-                        await store.put({
-                            Item_Code: code,
-                            total: data.total,
-                            reserved_qty: data.reserved_qty,
-                            customers: custArr,
-                            customer_name: custArr.join(' / '),
-                            po_number: data.po_number
-                        });
-                        totalItems++;
-                    }
-                    await tx.done;
-
-                    const txMeta = db.transaction('sync_metadata', 'readwrite');
-                    await txMeta.objectStore('sync_metadata').put({ key: 'xdock_reservations', value: Math.floor(Date.now() / 1000) });
-                    await txMeta.done;
-
-                    resolve(`Se cargaron ${totalItems} registros de Reservas Xdock (0006) en la base de datos local.`);
-                    return;
-                }
-
-                // 4. PO Extractor / PO Lookup
-                if (isPoLookupFile) {
-                    const hasHeader = rawHeaders.some(h => ['waybill', 'import_ref', 'import_reference', 'item'].includes(h));
-                    const startIdx = hasHeader ? 1 : 0;
-
-                    const db = await getDB();
-                    const tx = db.transaction('po_lookup', 'readwrite');
-                    const store = tx.objectStore('po_lookup');
-                    await store.clear();
-
-                    let count = 0;
-                    for (let i = startIdx; i < lines.length; i++) {
-                        const values = lines[i].split(delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
-                        if (values.length === 0 || (values.length === 1 && values[0] === '')) continue;
-
-                        const row = {};
-                        if (hasHeader) {
-                            rawHeaders.forEach((h, idx) => { row[h] = values[idx] || ''; });
-                        }
-
-                        let waybill = (row['waybill'] || values[0] || '').trim().toUpperCase();
-                        let import_ref = (row['import_ref'] || row['import_reference'] || values[1] || '').trim().toUpperCase();
-
-                        if (waybill) {
-                            await store.put({ id: `wb_${waybill}`, type: 'wb', value: waybill, import_ref });
-                            count++;
-                        }
-                        if (import_ref) {
-                            await store.put({ id: `ir_${import_ref}`, type: 'ir', value: import_ref, waybill });
-                            count++;
-                        }
-                    }
-                    await tx.done;
-
-                    const txMeta = db.transaction('sync_metadata', 'readwrite');
-                    await txMeta.objectStore('sync_metadata').put({ key: 'po_extractor', value: Math.floor(Date.now() / 1000) });
-                    await txMeta.done;
-
-                    resolve(`Se cargaron ${count} relaciones de PO Extractor / Lookup en la base de datos local.`);
-                    return;
-                }
-
-                // 5. ARCHIVO 250 (Maestro de Ítems / General)
+            // 1. REPORTE 250 (Maestro de Ítems / Stockroom Master)
+            if (isItemMasterFile) {
                 const itemsToInsert = [];
-                const hasHeader = rawHeaders.some(h =>
-                    ['item', 'codigo', 'código', 'material', 'sku', 'descripcion', 'descripción', 'bin', 'ubicacion', 'ubicación', 'cantidad'].includes(h)
-                );
+                for (const row of dataRows) {
+                    let item_code = getCol(row, 'item_code', 'item', 'codigo', 'sku', 'material', 'item_no', 'articulo');
+                    if (!item_code) continue;
 
-                const startIdx = hasHeader ? 1 : 0;
+                    const cleanCode = item_code.toUpperCase().trim();
+                    if (!cleanCode || ['ITEM', 'CODIGO', 'MATERIAL', 'SKU', 'ITEM_CODE', 'ITEMCODE'].includes(cleanCode)) continue;
 
-                for (let i = startIdx; i < lines.length; i++) {
-                    const values = lines[i].split(delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
-                    if (values.length === 0 || (values.length === 1 && values[0] === '')) continue;
+                    let description = getCol(row, 'item_description', 'description', 'descripcion', 'denominacion', 'texto breve');
+                    let bin_location = getCol(row, 'bin_1', 'bin_location', 'bin', 'ubicacion', 'almacen') || 'N/A';
+                    let additional_bins = getCol(row, 'aditional_bin_location', 'additional_bin_location', 'additional_bins', 'aditional_bins', 'bin_2', 'ubicacion_adicional') || '';
+                    let system_qty = parseQuantitySmart(getCol(row, 'physical_qty', 'system_qty', 'quantity', 'cantidad', 'available_qty') || '0');
+                    let unit_cost = parseQuantitySmart(getCol(row, 'cost_per_unit', 'unit_cost', 'cost', 'costo', 'precio') || '0');
+                    let weight_per_unit = parseQuantitySmart(getCol(row, 'weight_per_unit', 'totalweight', 'net_weight_kg', 'weight', 'peso') || '0');
+                    let sic_code = getCol(row, 'sic_code_stockroom', 'sic_code_company', 'sic_code', 'sic') || '0';
+                    let abc_code = getCol(row, 'abc_code_stockroom', 'abc_code_company', 'abc_code', 'abc', 'item_type') || '';
 
-                    const row = {};
-                    if (hasHeader) {
-                        rawHeaders.forEach((h, idx) => {
-                            row[h] = values[idx] || '';
-                        });
-                    }
-
-                    // Búsqueda flexible de campos
-                    let item_code = row['item_code'] || row['item'] || row['codigo'] || row['código'] || row['sku'] || row['material'] || row['item_no'] || row['articulo'] || row['artículo'] || values[0];
-                    let description = row['item_description'] || row['description'] || row['descripcion'] || row['descripción'] || row['texto breve'] || row['denominacion'] || row['denominación'] || (values[1] || '');
-                    let bin_location = row['bin_1'] || row['bin_location'] || row['ubicacion'] || row['ubicación'] || row['bin'] || row['almacen'] || row['almacén'] || (values[2] || 'N/A');
-                    let system_qty = parseFloat((row['system_qty'] || row['quantity'] || row['cantidad'] || values[3] || '0').toString().replace(',', '.')) || 0;
-                    let unit_cost = parseFloat((row['unit_cost'] || row['cost'] || row['costo'] || row['precio'] || values[4] || '0').toString().replace(',', '.')) || 0;
-                    let weight_per_unit = parseFloat((row['weight_per_unit'] || row['weight'] || row['peso'] || values[5] || '0').toString().replace(',', '.')) || 0;
-                    let sic_code = row['sic_code'] || row['sic'] || '0';
-
-                    if (item_code && item_code.trim() !== '') {
-                        const cleanCode = item_code.toUpperCase().trim();
-                        if (!['ITEM', 'CODIGO', 'CÓDIGO', 'MATERIAL', 'SKU', 'ITEM_CODE'].includes(cleanCode)) {
-                            itemsToInsert.push({
-                                item_code: cleanCode,
-                                description: description.trim(),
-                                bin_location: bin_location.trim(),
-                                system_qty,
-                                unit_cost,
-                                weight_per_unit,
-                                sic_code: sic_code.toString().trim()
-                            });
-                        }
-                    }
+                    itemsToInsert.push({
+                        item_code: cleanCode,
+                        description: (description || '').trim(),
+                        bin_location: (bin_location || 'N/A').trim(),
+                        additional_bins: (additional_bins || '').trim(),
+                        system_qty,
+                        unit_cost,
+                        weight_per_unit,
+                        sic_code: (sic_code || '0').toString().trim(),
+                        abc_code: (abc_code || '').toString().trim()
+                    });
                 }
 
                 if (itemsToInsert.length > 0) {
-                    let resMsg = '';
                     if (isTauri()) {
-                        resMsg = await invoke('add_inventory_items_bulk', { items: itemsToInsert });
+                        const resMsg = await invoke('add_inventory_items_bulk', { items: itemsToInsert });
+                        resolve(resMsg || `Se cargaron ${itemsToInsert.length} registros en el Maestro de Ítems (SQLite).`);
+                        return;
                     }
-
-                    const db = await getDB();
-                    const txMaster = db.transaction('master_items', 'readwrite');
-                    const masterStore = txMaster.objectStore('master_items');
-                    await masterStore.clear();
-                    for (const item of itemsToInsert) {
-                        await masterStore.put({
-                            Item_Code: item.item_code,
-                            Item_Description: item.description,
-                            Bin_Location: item.bin_location,
-                            System_Qty: item.system_qty,
-                            Unit_Cost: item.unit_cost,
-                            Weight_Per_Unit: item.weight_per_unit,
-                            SIC_Code: item.sic_code
-                        });
-                    }
-                    await txMaster.done;
-
-                    const txMeta = db.transaction('sync_metadata', 'readwrite');
-                    await txMeta.objectStore('sync_metadata').put({ key: 'master_items', value: Math.floor(Date.now() / 1000) });
-                    await txMeta.done;
-
-                    resolve(resMsg || `Se cargaron ${itemsToInsert.length} registros en el Maestro de Ítems (250) local`);
-                } else {
-                    resolve("No se encontraron registros de inventario procesables en el archivo");
+                    resolve(`Se procesaron ${itemsToInsert.length} registros del Maestro de Ítems localmente.`);
+                    return;
                 }
-            } catch (err) {
-                console.error("Error al procesar archivo local:", err);
-                resolve("Error al procesar el archivo localmente");
             }
-        };
-        reader.onerror = () => reject("Error al leer el archivo");
-        reader.readAsText(file);
+
+            // 2. REPORTE 240 (Salidas Picking)
+            if (isPickingFile) {
+                const ordersMap = {};
+                for (let i = 0; i < dataRows.length; i++) {
+                    const row = dataRows[i];
+                    let order_number = getCol(row, 'order_', 'order_number', 'order', 'pedido', 'numero_pedido', 'no_pedido', 'documento');
+                    let despatch_number = getCol(row, 'despatch_', 'despatch_number', 'despatch', 'despacho', 'nota_entrega') || '00';
+                    let customer_code = getCol(row, 'customer', 'customer_code', 'cliente', 'codigo_cliente') || 'N/A';
+                    let customer_name = getCol(row, 'customer_name', 'nombre_cliente', 'cliente_nombre', 'end_user_name', 'nombre') || 'Cliente General';
+                    let item_code = getCol(row, 'item', 'item_code', 'codigo', 'material', 'sku');
+                    let description = getCol(row, 'description', 'item_description', 'descripcion', 'texto breve');
+                    let order_line = getCol(row, 'order_line', 'linea', 'posicion') || (i + 1).toString();
+                    let qty = parseInt(parseQuantitySmart(getCol(row, 'qty', 'quantity', 'cantidad', 'cant', 'qty_req') || '0'), 10) || 0;
+                    let print_date = getCol(row, 'pick_list_printed_time', 'creation_time', 'requested_date', 'print_date', 'fecha_impresion', 'fecha') || new Date().toISOString().split('T')[0];
+
+                    if (!order_number || !item_code) continue;
+                    const cleanOrder = order_number.trim();
+                    const cleanDespatch = despatch_number.trim();
+                    const key = `${cleanOrder}_${cleanDespatch}`;
+
+                    if (!ordersMap[key]) {
+                        ordersMap[key] = {
+                            order_number: cleanOrder,
+                            despatch_number: cleanDespatch,
+                            customer_code: customer_code.trim(),
+                            customer_name: customer_name.trim(),
+                            print_date: print_date.split(' ')[0] || print_date,
+                            items: []
+                        };
+                    }
+
+                    ordersMap[key].items.push({
+                        'Customer Code': customer_code.trim(),
+                        'Customer Name': customer_name.trim(),
+                        'Item Code': item_code.toUpperCase().trim(),
+                        'Item Description': description.trim(),
+                        'Order Line': order_line.toString().trim(),
+                        'Qty': qty
+                    });
+                }
+
+                const keys = Object.keys(ordersMap);
+                if (keys.length === 0) {
+                    resolve("No se encontraron pedidos de picking válidos en el archivo 240.");
+                    return;
+                }
+
+                if (isTauri()) {
+                    const ordersToInsert = [];
+                    for (const key of keys) {
+                        const orderData = ordersMap[key];
+                        for (const item of orderData.items) {
+                            ordersToInsert.push({
+                                shipment_id: orderData.order_number,
+                                order_number: orderData.order_number,
+                                customer_name: orderData.customer_name,
+                                carrier: 'N/A',
+                                item_code: item['Item Code'],
+                                item_description: item['Item Description'],
+                                requested_qty: Number(item['Qty'] || 0),
+                                picked_qty: 0,
+                                status: 'Pendiente',
+                                timestamp: new Date().toISOString()
+                            });
+                        }
+                    }
+                    const resMsg = await invoke('import_picking_orders_bulk', { orders: ordersToInsert });
+                    resolve(resMsg || `Se cargaron ${keys.length} pedidos de picking en SQLite.`);
+                    return;
+                }
+                resolve(`Se procesaron ${keys.length} pedidos de picking localmente.`);
+                return;
+            }
+
+            // 3. REPORTE 280 (Entradas GRN)
+            if (isGrnFile) {
+                const grnArray = [];
+                for (const row of dataRows) {
+                    let item_code = getCol(row, 'item_code', 'item', 'codigo', 'material', 'sku');
+                    let grn_number = getCol(row, 'grn_number', 'grn', 'pedido', 'documento');
+                    let qty = parseQuantitySmart(getCol(row, 'quantity', 'qty', 'total_expected', 'expected_qty', 'cantidad') || '0');
+                    let description = getCol(row, 'item_description', 'description', 'descripcion', 'denominacion') || '';
+                    let order_number = getCol(row, 'order_number', 'order', 'pedido', 'customer_ref') || '';
+                    let order_line = getCol(row, 'order_line', 'linea', 'line_number', 'posicion') || '';
+                    let import_ref = getCol(row, 'import_reference', 'import_ref', 'referencia_importacion', 'referencia', 'ir') || '';
+                    let waybill = getCol(row, 'waybill', 'wb', 'guia') || '';
+
+                    if (!item_code || !grn_number) continue;
+                    const cleanCode = item_code.toUpperCase().trim();
+                    const cleanGrn = grn_number.trim().toUpperCase();
+
+                    if (selectedGrns && selectedGrns.length > 0 && !selectedGrns.includes(cleanGrn) && !selectedGrns.includes(grn_number.trim())) {
+                        continue;
+                    }
+
+                    grnArray.push({
+                        Item_Code: cleanCode,
+                        Item_Description: description.trim(),
+                        Quantity: qty,
+                        GRN_Number: cleanGrn,
+                        Order_Number: order_number.trim().toUpperCase(),
+                        Order_Line: order_line.toString().trim(),
+                        Import_Reference: import_ref.trim().toUpperCase(),
+                        Waybill: waybill.trim().toUpperCase(),
+                    });
+                }
+
+                if (isTauri()) {
+                    await invoke('save_grn_master_json', { jsonContent: JSON.stringify(grnArray, null, 2) });
+                    resolve(`Se guardaron ${grnArray.length} líneas de GRN (280) en el almacenamiento local.`);
+                    return;
+                }
+                resolve(`Se procesaron ${grnArray.length} líneas de GRN (280) localmente.`);
+                return;
+            }
+
+            // 4. REPORTE 0006 (Reservas Xdock)
+            if (isXdockFile) {
+                const xdockMap = {};
+                for (const row of dataRows) {
+                    let item_code = getCol(row, 'item_code', 'item', 'codigo', 'material', 'sku');
+                    let qty = parseQuantitySmart(getCol(row, 'quantity_reserved', 'reserved_qty', 'action_qty', 'total', 'cantidad') || '0');
+                    let customer = getCol(row, 'customer_name', 'customer', 'cliente', 'nombre_cliente') || 'Cliente General';
+                    let po_number = getCol(row, 'po_number', 'po_date', 'po');
+
+                    if (!item_code) continue;
+                    const cleanCode = item_code.toUpperCase().trim();
+                    if (!xdockMap[cleanCode]) {
+                        xdockMap[cleanCode] = { Item_Code: cleanCode, total: 0, reserved_qty: 0, customers: new Set(), po_number };
+                    }
+                    xdockMap[cleanCode].total += qty;
+                    xdockMap[cleanCode].reserved_qty += qty;
+                    if (customer) xdockMap[cleanCode].customers.add(customer.trim());
+                }
+
+                if (isTauri()) {
+                    const jsonToSave = {};
+                    for (const [code, data] of Object.entries(xdockMap)) {
+                        jsonToSave[code] = {
+                            total: data.total,
+                            reserved_qty: data.reserved_qty,
+                            customers: Array.from(data.customers),
+                            po_number: data.po_number
+                        };
+                    }
+                    await invoke('save_xdock_reservations_json', { jsonContent: JSON.stringify(jsonToSave, null, 2) });
+                    resolve(`Se cargaron ${Object.keys(xdockMap).length} registros de Reservas Xdock (0006) en SQLite y almacenamiento local.`);
+                    return;
+                }
+                resolve(`Se procesaron ${Object.keys(xdockMap).length} registros de Reservas Xdock.`);
+                return;
+            }
+
+            // 5. PO Extractor / PO Lookup (Excel / CSV)
+            if (isPoLookupFile) {
+                const wbMap = {};
+                const irMap = {};
+
+                for (const row of dataRows) {
+                    let waybill = getCol(row, 'waybill', 'waybill_number', 'wb').toUpperCase();
+                    let import_ref = getCol(row, 'import_ref_code', 'import_ref', 'import_reference', 'ir').toUpperCase();
+                    let item_code = getCol(row, 'item_code', 'item', 'sku', 'material').toUpperCase();
+                    let qty = getCol(row, 'despatched_qty', 'qty', 'quantity', 'cantidad') || '0';
+                    let grn = getCol(row, 'grn_number', 'grn').toUpperCase().replace(/\//g, ',');
+                    let customer_ref = getCol(row, 'customer_reference', 'customer_ref', 'referencia_cliente').toUpperCase();
+
+                    if (!waybill || !import_ref || waybill === 'WAYBILL' || import_ref === 'IMPORT REF CODE') {
+                        continue;
+                    }
+
+                    const itemObj = { item_code, qty, grn, customer_ref };
+
+                    if (!wbMap[waybill]) {
+                        wbMap[waybill] = { id: `wb_${waybill}`, type: 'wb', value: waybill, waybill, import_ref, items: [] };
+                    }
+                    wbMap[waybill].items.push(itemObj);
+
+                    if (!irMap[import_ref]) {
+                        irMap[import_ref] = { id: `ir_${import_ref}`, type: 'ir', value: import_ref, waybill, import_ref, items: [] };
+                    }
+                    irMap[import_ref].items.push(itemObj);
+                }
+
+                if (isTauri()) {
+                    const poJsonData = {
+                        wb_to_data: wbMap,
+                        ir_to_data: irMap,
+                        updated_at: new Date().toISOString()
+                    };
+                    await invoke('save_po_lookup_json', { jsonContent: JSON.stringify(poJsonData, null, 2) });
+                    resolve(`Se guardaron las relaciones de PO Extractor en data/po_lookup.json.`);
+                    return;
+                }
+                resolve(`Se procesaron ${Object.keys(wbMap).length} waybills de PO Extractor.`);
+                return;
+            }
+
+            resolve("Tipo de archivo no reconocido o sin registros procesables.");
+        } catch (err) {
+            console.error("Error al procesar archivo estructurado:", err);
+            resolve(`Error al procesar el archivo: ${err.message || err}`);
+        }
     });
 };
 
 /**
- * Extrae los números de GRN/Pedido de un archivo 280/GRN localmente.
+ * Filtra cadenas que NO son números de GRN válidos (letras sueltas, decimales, fechas YYYYMMDD, encabezados).
+ */
+export const isIgnoredGRNValue = (val) => {
+    if (!val || typeof val !== 'string') return true;
+    const v = val.trim();
+    if (v === '' || v.length <= 1) return true;
+    // Ignorar números decimales como 8.00 o 10.50
+    if (/^\d+[\.,]\d+$/.test(v)) return true;
+    // Ignorar fechas puras en formato AAAAMMDD (ej. 20260724)
+    if (/^\d{8}$/.test(v) && (v.startsWith('202') || v.startsWith('201'))) return true;
+    // Ignorar encabezados conocidos
+    const upper = v.toUpperCase();
+    const headers = ['GRN', 'PEDIDO', 'PO', 'GRN_NUMBER', 'DOCUMENTO', 'REFERENCIA', 'GRN_LOCAL', 'ITEM', 'SKU', 'CÓDIGO', 'CODIGO', 'MATERIAL', 'CANTIDAD', 'QTY', 'FECHA', 'DATE', 'STATUS', 'N/A'];
+    if (headers.includes(upper)) return true;
+    return false;
+};
+
+/**
+ * Extrae los números de GRN/Pedido de un archivo 280/GRN localmente de forma 100% segura.
  */
 export const previewLocalGRNFile = async (file) => {
-    return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const text = e.target.result;
-                if (!text || typeof text !== 'string') {
-                    resolve([]);
-                    return;
-                }
+    try {
+        const rows = await readTableFromFile(file);
+        if (!rows || rows.length === 0) return [];
 
-                const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
-                if (lines.length <= 1) {
-                    resolve([]);
-                    return;
-                }
+        const { headerRowIdx, getCol } = buildColumnMap(rows);
+        const dataRows = rows.slice(headerRowIdx + 1);
+        const grnSet = new Set();
 
-                const delimiter = lines[0].includes(';') ? ';' : (lines[0].includes('\t') ? '\t' : ',');
-                const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
-
-                const grnSet = new Set();
-                const grnColIdx = headers.findIndex(h =>
-                    ['grn', 'grn_number', 'pedido', 'po_number', 'documento', 'referencia', 'po', 'grn_master'].includes(h)
-                );
-
-                for (let i = 1; i < lines.length; i++) {
-                    const values = lines[i].split(delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
-                    let val = (grnColIdx !== -1 && values[grnColIdx]) ? values[grnColIdx] : values[0];
-                    if (val && val.trim() !== '' && !['GRN', 'PEDIDO', 'PO'].includes(val.toUpperCase())) {
-                        grnSet.add(val.trim());
+        for (const row of dataRows) {
+            let val = getCol(row, 'grn_number', 'grn', 'pedido', 'order_number', 'documento', 'po_number');
+            if (!val && row.length > 1) {
+                for (let c = 0; c < row.length; c++) {
+                    const cell = String(row[c] || '').trim();
+                    if (cell && !isIgnoredGRNValue(cell)) {
+                        val = cell;
+                        break;
                     }
                 }
-
-                resolve(Array.from(grnSet));
-            } catch (err) {
-                console.error("Error previsualizando GRNs localmente:", err);
-                resolve([]);
             }
-        };
-        reader.onerror = () => resolve([]);
-        reader.readAsText(file);
-    });
+            if (val && !isIgnoredGRNValue(val)) {
+                grnSet.add(val.trim().toUpperCase());
+            }
+        }
+
+        return Array.from(grnSet);
+    } catch (err) {
+        console.error("Error previsualizando GRNs localmente:", err);
+        return [];
+    }
 };
 
 
@@ -600,6 +609,40 @@ export const tauriGetReconciliationStats = async () => {
         abs_variance_value: 0,
         accuracy_percentage: 100
     };
+};
+
+/**
+ * Obtiene el mapa maestro de relaciones GRN -> IR / Waybill desde Rust (IPC).
+ */
+export const tauriGetInboundMasterMaps = async () => {
+    if (isTauri()) {
+        try {
+            return await invoke('get_inbound_master_maps');
+        } catch (e) {
+            console.error("Error al obtener master maps desde Tauri:", e);
+            return [];
+        }
+    }
+    return [];
+};
+
+/**
+ * Busca referencias cruzadas de Waybill <-> Import Reference en Rust
+ */
+export const tauriLookupInboundReference = async (waybill = null, importRef = null) => {
+    if (isTauri()) {
+        try {
+            return await invoke('lookup_inbound_reference', {
+                waybill: waybill || null,
+                importRef: importRef || null,
+                import_ref: importRef || null
+            });
+        } catch (e) {
+            console.error("Error en lookup_inbound_reference desde Tauri:", e);
+            return null;
+        }
+    }
+    return null;
 };
 
 

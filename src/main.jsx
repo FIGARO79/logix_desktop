@@ -13,17 +13,48 @@ if (typeof window !== 'undefined' && !window.crypto.randomUUID) {
     };
 }
 
-// Interceptor global de fetch para manejar sesiones expiradas (Errores 401)
+import axios from 'axios';
+import { handleLocalApiRequest } from './utils/localApiBridge';
+
+// Interceptor global de fetch para operar 100% en modo standalone local sin servidor backend
 const originalFetch = window.fetch;
-window.fetch = async (...args) => {
-    const response = await originalFetch(...args);
-    if (response.status === 401) {
-        if (!window.location.pathname.includes('/login')) {
-            window.location.href = '/login';
-        }
+window.fetch = async (resource, options = {}) => {
+    const url = typeof resource === 'string' ? resource : (resource instanceof Request ? resource.url : String(resource));
+
+    // Si es una ruta de API (/api/...), se resuelve 100% de forma local en SQLite / IndexedDB
+    if (url.startsWith('/api/') || url.includes('/api/')) {
+        return await handleLocalApiRequest(url, options);
     }
-    return response;
+
+    return await originalFetch(resource, options);
 };
+
+// Interceptor global de Axios para resolver 100% de forma local
+axios.interceptors.request.use(async (config) => {
+    if (config.url && (config.url.startsWith('/api/') || config.url.includes('/api/'))) {
+        const fetchOptions = {
+            method: (config.method || 'get').toUpperCase(),
+            headers: config.headers,
+            body: config.data ? (typeof config.data === 'string' ? config.data : JSON.stringify(config.data)) : undefined
+        };
+        let targetUrl = config.url;
+        if (config.params) {
+            const sp = new URLSearchParams(config.params);
+            targetUrl += (targetUrl.includes('?') ? '&' : '?') + sp.toString();
+        }
+        const resp = await handleLocalApiRequest(targetUrl, fetchOptions);
+        const data = await resp.json().catch(() => ({}));
+        config.adapter = () => Promise.resolve({
+            data,
+            status: resp.status,
+            statusText: resp.statusText,
+            headers: {},
+            config,
+            request: {}
+        });
+    }
+    return config;
+}, (error) => Promise.reject(error));
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 

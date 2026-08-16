@@ -76,7 +76,12 @@ pub fn build_master_maps_rust(
                         .unwrap_or("")
                         .trim().to_uppercase();
                     let wb = wb_raw.trim().to_uppercase();
-                    if !ir.is_empty() {
+                    if !ir.is_empty() && !wb.is_empty() {
+                        master_maps.push(MasterMapEntry {
+                            grn_number: "".to_string(),
+                            import_reference: ir.clone(),
+                            waybill: wb.clone(),
+                        });
                         if let Some(items) = data_obj.get("items").and_then(|v| v.as_array()) {
                             for item in items {
                                 if let Some(grn_val) = item.get("grn").and_then(|v| v.as_str()) {

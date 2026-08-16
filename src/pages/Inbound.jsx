@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import QRCode from 'qrcode';
 import ScannerModal from '../components/ScannerModal';
-import { getDB, savePendingSync, cacheData, getCachedData, getGRNExpectedQty, getGRNExpectedQtyBulk } from '../utils/offlineDb';
+import { getDB, savePendingSync, cacheData, getCachedData, getGRNExpectedQty, getGRNExpectedQtyBulk, matchRef } from '../utils/offlineDb';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { syncPendingInbound, checkAndSyncIfNeeded, downloadMasterData } from '../utils/syncManager';
 import { useOffline } from '../hooks/useOffline';
@@ -10,6 +10,7 @@ import SandvikLabel from '../components/labels/SandvikLabel';
 import { useReactToPrint } from 'react-to-print';
 import '../styles/Label.css';
 import { parseGS1Barcode } from '../utils/gs1Parser';
+import { isTauri, callTauriCommand, tauriGetInboundMasterMaps, tauriLookupInboundReference, tauriGetItemDetails, confirmNative } from '../utils/tauriBridge';
 
 
 const EMPTY_ARRAY = [];
@@ -87,6 +88,7 @@ const Inbound = () => {
 
     // --- Estados de Datos ---
     const [itemData, setItemData] = useState(null);
+    const [refItems, setRefItems] = useState([]);
     const [versions, setVersions] = useState([]);
     const [currentVersion, setCurrentVersion] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
@@ -109,34 +111,62 @@ const Inbound = () => {
         queryFn: async () => {
             let apiLogs = [];
             const version = currentVersion;
-            try {
-                const url = version
-                    ? `/api/get_logs?version_date=${version}`
-                    : `/api/get_logs`;
-                const res = await fetch(url, { credentials: 'include' });
-                if (res.ok) {
-                    apiLogs = await res.json();
-                    if (!version || version === '') {
-                        await cacheData('inbound_logs', apiLogs);
+
+            if (isTauri()) {
+                try {
+                    const rawLogs = await callTauriCommand('get_inbound_logs', { versionDate: version || null });
+                    if (rawLogs && Array.isArray(rawLogs)) {
+                        apiLogs = rawLogs.map(l => ({
+                            id: l.id,
+                            timestamp: l.timestamp,
+                            importReference: l.import_reference,
+                            waybill: l.waybill,
+                            itemCode: l.item_code,
+                            itemDescription: l.item_description,
+                            binLocation: l.bin_location,
+                            relocatedBin: l.relocated_bin,
+                            qtyReceived: l.qty_received,
+                            qtyGrn: l.qty_grn,
+                            difference: l.difference,
+                            username: l.username || 'admin',
+                            client_id: l.client_id,
+                            version_date: l.version_date
+                        }));
                     }
-                } else {
-                    console.error("Failed to load logs:", res.status, res.statusText);
-                    if (res.status === 401) window.location.href = '/login';
+                } catch (tErr) {
+                    console.error("Error cargando logs desde Rust Tauri:", tErr);
                 }
-            } catch (e) {
-                console.error("Error loading logs from API", e);
-                if (!version || version === '') {
-                    apiLogs = await getCachedData('inbound_logs') || [];
-                    console.log("Cargado desde caché local:", apiLogs.length, "registros");
+            } else {
+                try {
+                    const url = version
+                        ? `/api/get_logs?version_date=${version}`
+                        : `/api/get_logs`;
+                    const res = await fetch(url, { credentials: 'include' });
+                    if (res.ok) {
+                        apiLogs = await res.json();
+                        if (!version || version === '') {
+                            await cacheData('inbound_logs', apiLogs);
+                        }
+                    } else {
+                        console.error("Failed to load logs:", res.status, res.statusText);
+                        if (res.status === 401) window.location.href = '/login';
+                    }
+                } catch (e) {
+                    console.error("Error loading logs from API", e);
+                    if (!version || version === '') {
+                        apiLogs = await getCachedData('inbound_logs') || [];
+                        console.log("Cargado desde caché local:", apiLogs.length, "registros");
+                    }
                 }
             }
 
-            let pendingLogs = [];
+            let localLogs = [];
             if (!version || version === '') {
                 try {
                     const db = await getDB();
-                    const pending = await db.getAll('pending_sync');
-                    pendingLogs = pending.map(p => ({
+                    const directLocal = await db.getAll('local_inbound') || [];
+                    const pending = await db.getAll('pending_sync') || [];
+                    const pendingMapped = pending.map(p => ({
                         ...p.payload,
                         id: p.id,
                         timestamp: p.timestamp,
@@ -144,13 +174,14 @@ const Inbound = () => {
                         isPending: true,
                         itemDescription: p.payload.itemDescription || 'Cargando...'
                     }));
-                } catch (e) { console.error("Error loading pending logs", e); }
+                    localLogs = [...directLocal, ...pendingMapped];
+                } catch (e) { console.error("Error loading local inbound logs", e); }
             }
 
             const logMap = new Map();
-            pendingLogs.forEach(log => {
-                const key = log.id;
-                logMap.set(key, log);
+            localLogs.forEach(log => {
+                const key = log.id || log.client_id;
+                if (key) logMap.set(key, log);
             });
             apiLogs.forEach(log => {
                 const key = log.client_id || `server_${log.id}`;
@@ -255,6 +286,8 @@ const Inbound = () => {
     const itemCodeRef = useRef(null);
     const labelComponentRef = useRef(null);
     const relocatedBinRef = useRef(null);
+    const lastLookupRef = useRef({ ir: '', wb: '' });
+    const isLookupRunningRef = useRef(false);
 
     // --- Helpers de Sincronización ---
     const runAutoSync = async () => {
@@ -385,7 +418,15 @@ const Inbound = () => {
             const targetIr = importRef.trim().toUpperCase();
             
             // 1. Obtener GRNs asociadas a la IR desde po_lookup
-            const poInfo = await db.get('po_lookup', `ir_${targetIr}`);
+            let poInfo = await db.get('po_lookup', `ir_${targetIr}`);
+            if (!poInfo) {
+                const allPoItems = await db.getAll('po_lookup') || [];
+                poInfo = allPoItems.find(p => {
+                    const irVal = getImportRefFromMatch(p);
+                    return matchRef(irVal, targetIr);
+                });
+            }
+
             const associatedGrns = new Set();
             if (poInfo && poInfo.items) {
                 poInfo.items.forEach(it => {
@@ -404,6 +445,7 @@ const Inbound = () => {
             // 2. Filtrar líneas de la GRN para esta IR (por GRN_Number si hay asociadas, sino fallback a Import_Reference)
             let irLines = [];
             allGrns.forEach(g => {
+                const code = String(g.Item_Code || g.item_code || '').toUpperCase().trim();
                 if (g.grns) {
                     // Si el nuevo formato estructurado de grns está presente:
                     let itemExpectedForIr = 0;
@@ -414,21 +456,31 @@ const Inbound = () => {
                     });
                     if (itemExpectedForIr > 0) {
                         irLines.push({
-                            Item_Code: g.Item_Code,
+                            Item_Code: code,
                             total_expected: itemExpectedForIr
                         });
                     }
                 } else {
-                    // Fallback para formato antiguo / registros planos
-                    const grnNum = (g.GRN_Number || '').trim().toUpperCase();
+                    // Fallback para formato plano (Item_Code, GRN_Number, Quantity, Import_Reference)
+                    const grnNum = (g.GRN_Number || g.grn_number || '').trim().toUpperCase();
+                    const qty = parseInt(g.Quantity || g.quantity || g.total_expected || 0) || 0;
                     if (associatedGrns.size > 0) {
                         if (grnNum && associatedGrns.has(grnNum)) {
-                            irLines.push(g);
-                        } else if (!grnNum && String(g.Import_Reference || '').toUpperCase().trim() === targetIr) {
-                            irLines.push(g);
+                            irLines.push({
+                                Item_Code: code,
+                                total_expected: qty
+                            });
+                        } else if (!grnNum && matchRef(g.Import_Reference || g.import_ref || g.import_reference, targetIr)) {
+                            irLines.push({
+                                Item_Code: code,
+                                total_expected: qty
+                            });
                         }
-                    } else if (String(g.Import_Reference || '').toUpperCase().trim() === targetIr) {
-                        irLines.push(g);
+                    } else if (matchRef(g.Import_Reference || g.import_ref || g.import_reference, targetIr)) {
+                        irLines.push({
+                            Item_Code: code,
+                            total_expected: qty
+                        });
                     }
                 }
             });
@@ -443,7 +495,7 @@ const Inbound = () => {
                         total_expected: 0
                     };
                 }
-                groupedIrLines[code].total_expected += parseInt(line.total_expected) || 0;
+                groupedIrLines[code].total_expected += parseInt(line.total_expected || line.Quantity || line.quantity || 0) || 0;
             });
 
             // Si no hay líneas de la GRN (280) para calcular en el tablero, ir a la PO Purchase (poInfo)
@@ -482,7 +534,7 @@ const Inbound = () => {
             const receivedMap = {};
             logs.forEach(log => {
                 const logIr = (log.importReference || log.importRef || '').trim().toUpperCase();
-                if (logIr === targetIr) {
+                if (matchRef(logIr, targetIr)) {
                     const code = String(log.itemCode).toUpperCase().trim();
                     const qty = parseInt(log.qtyReceived) || parseInt(log.quantity) || 0;
                     receivedMap[code] = (receivedMap[code] || 0) + qty;
@@ -524,7 +576,7 @@ const Inbound = () => {
             // Crear mapa de cantidades esperadas por SKU y por GRN individual a partir de allGrns (280)
             const grnDetailExpectedMap = {};
             allGrns.forEach(g => {
-                const code = String(g.Item_Code).toUpperCase().trim();
+                const code = String(g.Item_Code || g.item_code || '').toUpperCase().trim();
                 if (code) {
                     if (!grnDetailExpectedMap[code]) {
                         grnDetailExpectedMap[code] = {};
@@ -533,6 +585,10 @@ const Inbound = () => {
                         Object.entries(g.grns).forEach(([grnNum, qty]) => {
                             grnDetailExpectedMap[code][grnNum.toUpperCase().trim()] = parseInt(qty) || 0;
                         });
+                    } else if (g.GRN_Number || g.grn_number) {
+                        const grnNum = String(g.GRN_Number || g.grn_number).toUpperCase().trim();
+                        const qty = parseInt(g.Quantity || g.quantity || 0) || 0;
+                        grnDetailExpectedMap[code][grnNum] = qty;
                     }
                 }
             });
@@ -559,12 +615,11 @@ const Inbound = () => {
                                     
                                     // Determinar la cantidad esperada de forma inteligente
                                     let expectedQty = 0;
-                                    const has280Data = uniqueIrLines.length > 0;
                                     
                                     if (grnDetailExpectedMap[itemCode] !== undefined && 
                                         grnDetailExpectedMap[itemCode][gKeyUpper] !== undefined) {
                                         expectedQty = grnDetailExpectedMap[itemCode][gKeyUpper];
-                                    } else if (!has280Data) {
+                                    } else {
                                         expectedQty = qty;
                                     }
                                     
@@ -648,6 +703,24 @@ const Inbound = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [importRef, logs]);
 
+    // Búsqueda automática en tiempo real al escribir Import Reference (300ms debounce)
+    useEffect(() => {
+        if (!importRef || importRef.trim().length < 3) return;
+        const timer = setTimeout(() => {
+            handleLookupReference('import_ref', importRef);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [importRef]);
+
+    // Búsqueda automática en tiempo real al escribir Waybill (300ms debounce)
+    useEffect(() => {
+        if (!waybill || waybill.trim().length < 3) return;
+        const timer = setTimeout(() => {
+            handleLookupReference('waybill', waybill);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [waybill]);
+
     // Autoguardar la conciliación en segundo plano de manera silenciosa cada vez que cambien las estadísticas
     useEffect(() => {
         if (!importRef || importRef.trim() === '' || (irStats.totalLines === 0 && irStats.receivedUnits === 0)) return;
@@ -681,13 +754,19 @@ const Inbound = () => {
     }, [irStats, importRef]);
 
     // Filter logs based on search term
-    const filteredLogs = useMemo(() => logs.filter(log =>
-        (log.itemCode && log.itemCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (log.waybill && log.waybill.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (log.importReference && log.importReference.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (log.itemDescription && log.itemDescription.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (log.username && log.username.toLowerCase().includes(searchTerm.toLowerCase()))
-    ), [logs, searchTerm]);
+    const filteredLogs = useMemo(() => {
+        if (!searchTerm || !searchTerm.trim()) return logs;
+        const term = searchTerm.trim().toLowerCase();
+        return logs.filter(log =>
+            (log.itemCode && String(log.itemCode).toLowerCase().includes(term)) ||
+            (log.waybill && String(log.waybill).toLowerCase().includes(term)) ||
+            ((log.importReference || log.importRef) && String(log.importReference || log.importRef).toLowerCase().includes(term)) ||
+            ((log.itemDescription || log.description) && String(log.itemDescription || log.description).toLowerCase().includes(term)) ||
+            (log.binLocation && String(log.binLocation).toLowerCase().includes(term)) ||
+            (log.relocatedBin && String(log.relocatedBin).toLowerCase().includes(term)) ||
+            (log.username && String(log.username).toLowerCase().includes(term))
+        );
+    }, [logs, searchTerm]);
 
     // Generar QR para la etiqueta cuando cambia el item o el código
     useEffect(() => {
@@ -711,44 +790,117 @@ const Inbound = () => {
         } catch (e) { console.error(e); }
     };
 
+    const matchRef = (val1, val2) => {
+        if (!val1 || !val2) return false;
+        const s1 = String(val1).trim().toUpperCase();
+        const s2 = String(val2).trim().toUpperCase();
+        if (s1 === s2) return true;
+
+        // Quitar prefijos comunes como 'IR', 'IR-', 'REF-', 'PO-'
+        const stripPrefix = (str) => str.replace(/^(IR|REF|PO)[-_\s]*/i, '');
+        const clean1 = stripPrefix(s1).replace(/[^A-Z0-9]/g, '');
+        const clean2 = stripPrefix(s2).replace(/[^A-Z0-9]/g, '');
+        if (clean1 && clean2 && clean1 === clean2) return true;
+
+        // Normalizar ceros a la izquierda en subpartes (ej. 26-0594 === 26-594)
+        const normParts = (str) => stripPrefix(str).split(/[^A-Z0-9]+/).map(p => p.replace(/^0+/, '')).filter(Boolean).join('-');
+        const p1 = normParts(s1);
+        const p2 = normParts(s2);
+        return Boolean(p1 && p2 && p1 === p2);
+    };
+
+    const getWaybillFromMatch = (m) => {
+        if (!m) return '';
+        if (m.waybill) return m.waybill;
+        if (m.Waybill) return m.Waybill;
+        if (m.wb) return m.wb;
+        if (m.type === 'wb' && m.value) return m.value;
+        if (m.id && typeof m.id === 'string' && m.id.startsWith('wb_')) return m.id.replace('wb_', '');
+        return '';
+    };
+
+    const getImportRefFromMatch = (m) => {
+        if (!m) return '';
+        if (m.import_ref) return m.import_ref;
+        if (m.import_reference) return m.import_reference;
+        if (m.Import_Reference) return m.Import_Reference;
+        if (m.ir) return m.ir;
+        if (m.type === 'ir' && m.value) return m.value;
+        if (m.id && typeof m.id === 'string' && m.id.startsWith('ir_')) return m.id.replace('ir_', '');
+        return '';
+    };
+
     const handleLookupReference = async (type, value) => {
         if (!value) return;
         const normalizedValue = value.trim().toUpperCase();
+        if (!normalizedValue) return;
 
-        let onlineDataFound = false;
-        if (navigator.onLine) {
+        let foundWb = '';
+        let foundIr = '';
+
+        // 1. Intentar Búsqueda en Rust Core nativo (100% local en SQLite / po_lookup.json)
+        if (isTauri()) {
             try {
-                const params = type === 'waybill' ? `waybill=${encodeURIComponent(normalizedValue)}` : `import_ref=${encodeURIComponent(normalizedValue)}`;
-                const res = await fetch(`/api/inbound/lookup_reference?${params}`, { credentials: 'include' });
-                if (res.ok) {
-                    const data = await res.json();
-                    if ((type === 'waybill' && data.import_ref) || (type === 'import_ref' && data.waybill)) {
-                        if (data.waybill) setWaybill(data.waybill);
-                        if (data.import_ref) setImportRef(data.import_ref);
-                        onlineDataFound = true;
-                        return;
+                const res = await tauriLookupInboundReference(
+                    type === 'waybill' ? normalizedValue : null,
+                    type === 'import_ref' ? normalizedValue : null
+                );
+                if (res) {
+                    const resWb = res.waybill || res.wb || '';
+                    const resIr = res.import_ref || res.importRef || res.ir || '';
+                    if (resWb && !matchRef(resWb, normalizedValue)) setWaybill(resWb);
+                    if (resIr && !matchRef(resIr, normalizedValue)) setImportRef(resIr);
+                    if (res.items && Array.isArray(res.items) && res.items.length > 0) {
+                        setRefItems(res.items);
                     }
+                    if (resWb || resIr) return;
                 }
-            } catch (e) { console.error("Error lookup", e); }
+            } catch (err) {
+                console.warn("Error en lookup de Rust:", err);
+            }
         }
 
-        if (!onlineDataFound) {
+        // 2. Fallback a caché local si no se encontró en Rust
+        if ((type === 'import_ref' && !foundWb) || (type === 'waybill' && !foundIr)) {
             try {
                 const db = await getDB();
-                const id = type === 'waybill' ? `wb_${normalizedValue}` : `ir_${normalizedValue}`;
-                const match = await db.get('po_lookup', id);
-                if (match) {
-                    if (type === 'waybill' && match.import_ref) setImportRef(match.import_ref);
-                    else if (type === 'import_ref' && match.waybill) setWaybill(match.waybill);
+                const cleanVal = normalizedValue.replace(/[^A-Z0-9]/g, '');
+                const idExact = type === 'waybill' ? `wb_${normalizedValue}` : `ir_${normalizedValue}`;
+                const idClean = type === 'waybill' ? `wb_${cleanVal}` : `ir_${cleanVal}`;
+
+                let match = await db.get('po_lookup', idExact) || (cleanVal ? await db.get('po_lookup', idClean) : null);
+                if (!match) {
+                    const allPo = await db.getAll('po_lookup') || [];
+                    match = allPo.find(p => {
+                        const irStr = getImportRefFromMatch(p);
+                        const wbStr = getWaybillFromMatch(p);
+                        return type === 'import_ref'
+                            ? matchRef(irStr, normalizedValue)
+                            : matchRef(wbStr, normalizedValue);
+                    });
                 }
-            } catch (e) { console.error("Offline lookup error", e); }
+
+                if (match) {
+                    if (!foundIr) foundIr = getImportRefFromMatch(match);
+                    if (!foundWb) foundWb = getWaybillFromMatch(match);
+                    if (match.items && Array.isArray(match.items)) {
+                        setRefItems(match.items);
+                    }
+                }
+            } catch (e) {
+                console.error("Error en búsqueda de referencia:", e);
+            }
         }
+
+        // 3. Asignar los valores encontrados a los inputs del formulario
+        if (foundWb && type === 'import_ref' && !matchRef(foundWb, waybill)) setWaybill(foundWb);
+        if (foundIr && type === 'waybill' && !matchRef(foundIr, importRef)) setImportRef(foundIr);
     };
 
     const findItem = async (codeToSearch = null) => {
         const rawCode = (codeToSearch !== null && typeof codeToSearch === 'string') ? codeToSearch : itemCode;
-        if (!rawCode || !importRef) {
-            alert("Ingrese Import Reference e Item Code");
+        if (!rawCode) {
+            alert("Por favor ingrese el código del ítem");
             return;
         }
         setLoading(true);
@@ -760,159 +912,78 @@ const Inbound = () => {
         }
         setItemCode(normalizedCode);
 
-        let onlineFound = false;
-        if (navigator.onLine) {
-            try {
-                const res = await fetch(`/api/find_item/${encodeURIComponent(normalizedCode)}/${encodeURIComponent(importRef)}?_=${Date.now()}`, { credentials: 'include' });
-                if (res.ok) {
-                    const data = await res.json();
-                    setItemData(data);
+        try {
+            // 1. En Tauri Desktop, invocar directamente find_item_inbound de Rust
+            if (isTauri()) {
+                const res = await callTauriCommand('find_item_inbound', {
+                    itemCode: normalizedCode,
+                    importRef: importRef || null
+                });
+                if (res) {
+                    const suggested = res.suggested_bin || res.suggestedBin || null;
+                    const binLoc = res.bin_location || 'N/A';
+                    setItemData({
+                        itemCode: res.item_code || normalizedCode,
+                        description: res.description || 'Ítem sin descripción',
+                        binLocation: binLoc,
+                        aditionalBins: res.additional_bins || '',
+                        weight: res.weight || 0,
+                        itemType: res.item_type || '',
+                        sicCode: res.sic_code || '',
+                        defaultQtyGrn: res.default_qty_grn || 0,
+                        xdockTotal: res.xdock_total || 0,
+                        xdockPending: res.xdock_pending || 0,
+                        xdockCustomers: res.xdock_customers || [],
+                        expectedBreakdown: res.expected_breakdown || [],
+                        suggestedBin: suggested
+                    });
                     if (!editId) {
-                        setQuantity('');
-                        // El binLocation ya viene actualizado del backend (effective_bin_location)
-                        setRelocatedBin('');
+                        setQuantity(res.default_qty_grn > 0 ? String(res.default_qty_grn) : '');
+                        const currBin = binLoc.trim().toUpperCase();
+                        if ((!currBin || currBin === 'N/A' || currBin === 'SIN UBICACION' || currBin === 'NONE' || currBin === '0' || currBin === '-') && suggested) {
+                            setRelocatedBin(suggested);
+                        } else {
+                            setRelocatedBin('');
+                        }
                     }
                     quantityRef.current?.focus();
                     setLoading(false);
-                    onlineFound = true;
                     return;
                 }
-            } catch (e) { console.error("Error finding item online", e); }
-        }
+            }
 
-        if (!onlineFound) {
-            try {
-                const db = await getDB();
-                const localItem = await db.get('master_items', normalizedCode);
-                if (localItem) {
-                    const xdockInfo = await db.get('xdock_reservations', normalizedCode);
-
-                    // Buscar si ya hay reubicaciones de este ítem en la cola local
-                    const pendingLogs = await db.getAll('pending_sync');
-                    const recentRelocation = pendingLogs
-                        .filter(l => l.payload.itemCode === normalizedCode && l.payload.relocatedBin)
-                        .pop();
-
-                    // Calcular acumulado local
-                    const itemLogs = logs.filter(l => l.itemCode === normalizedCode);
-                    const localCumulative = itemLogs.reduce((acc, curr) => acc + (parseInt(curr.qtyReceived) || 0), 0);
-
-                    let offlineSuggestedBin = null;
-                    if (recentRelocation) {
-                        offlineSuggestedBin = recentRelocation.payload.relocatedBin;
+            // 2. Fetch HTTP estándar (manejado por localApiBridge en local o backend en web)
+            const fetchRes = await fetch(`/api/find_item/${encodeURIComponent(normalizedCode)}/${encodeURIComponent(importRef || '')}?_=${Date.now()}`, { credentials: 'include' });
+            if (fetchRes.ok) {
+                const data = await fetchRes.json();
+                const suggested = data.suggestedBin || data.suggested_bin || null;
+                const binLoc = data.binLocation || data.bin_location || 'N/A';
+                setItemData({
+                    ...data,
+                    binLocation: binLoc,
+                    suggestedBin: suggested
+                });
+                if (!editId) {
+                    setQuantity(data.defaultQtyGrn > 0 ? String(data.defaultQtyGrn) : '');
+                    const currBin = binLoc.trim().toUpperCase();
+                    if ((!currBin || currBin === 'N/A' || currBin === 'SIN UBICACION' || currBin === 'NONE' || currBin === '0' || currBin === '-') && suggested) {
+                        setRelocatedBin(suggested);
                     } else {
-                        offlineSuggestedBin = localItem.Bin_1;
-                    }
-
-                    // Obtener desglose offline y po_lookup
-                    const allPos = await db.getAll('po_lookup') || [];
-                    const offlineBreakdown = [];
-                    for (const po of allPos) {
-                        if (po.type === 'ir' && po.items) {
-                            let itemQty = 0;
-                            const grns = new Set();
-                            for (const it of po.items) {
-                                if (String(it.item_code).toUpperCase() === normalizedCode) {
-                                    itemQty += parseInt(it.qty) || 0;
-                                    if (it.grn) {
-                                        String(it.grn).split(',').forEach(g => {
-                                            if (g.trim()) grns.add(g.trim().toUpperCase());
-                                        });
-                                    }
-                                }
-                            }
-                            if (itemQty > 0) {
-                                offlineBreakdown.push({
-                                    ir: po.value,
-                                    grn: Array.from(grns).join(',') || 'N/A',
-                                    qty: itemQty
-                                });
-                            }
-                        }
-                    }
-
-                    // Filtrar Xdock exclusivamente por PO_Number de la IR en offline
-                    let totalRes = xdockInfo ? xdockInfo.total : 0;
-                    let xdockCustomersList = xdockInfo ? xdockInfo.customers : [];
-                    if (importRef && xdockInfo?.customers?.length > 0 && allPos.length > 0) {
-                        const targetPos = new Set();
-                        for (const po of allPos) {
-                            if (po.type === 'ir' && String(po.value).toUpperCase() === importRef.toUpperCase() && po.items) {
-                                for (const it of po.items) {
-                                    if (String(it.item_code).toUpperCase() === normalizedCode && it.customer_ref) {
-                                        targetPos.add(String(it.customer_ref).toUpperCase());
-                                    }
-                                }
-                            }
-                        }
-                        if (targetPos.size > 0) {
-                            const filteredCusts = xdockInfo.customers.filter(c => {
-                                const po = typeof c === 'object' ? (c.po_number || '') : '';
-                                return po && targetPos.has(String(po).toUpperCase());
-                            });
-                            if (filteredCusts.length > 0) {
-                                const filteredTot = filteredCusts.reduce((acc, c) => acc + (typeof c === 'object' ? (Number(c.qty) || 0) : 0), 0);
-                                totalRes = filteredTot;
-                                let remDeduct = localCumulative;
-                                const custsWithPending = [];
-                                for (const c of filteredCusts) {
-                                    if (typeof c === 'object') {
-                                        const cQty = Number(c.qty) || 0;
-                                        if (remDeduct >= cQty) {
-                                            remDeduct -= cQty;
-                                        } else {
-                                            const pendingQty = cQty - remDeduct;
-                                            remDeduct = 0;
-                                            custsWithPending.push({ ...c, qty: pendingQty });
-                                        }
-                                    } else {
-                                        custsWithPending.push(c);
-                                    }
-                                }
-                                xdockCustomersList = custsWithPending;
-                            } else {
-                                totalRes = 0;
-                                xdockCustomersList = [];
-                            }
-                        }
-                    }
-
-                    const xdockRemanente = Math.max(0, totalRes - localCumulative);
-
-                    const expectedQty = await getGRNExpectedQty(db, normalizedCode, importRef);
-
-                    const itemDataObj = {
-                        itemCode: localItem.Item_Code,
-                        description: localItem.Item_Description,
-                        binLocation: localItem.Bin_1,
-                        weight: localItem.Weight_per_Unit,
-                        itemType: localItem.ABC_Code_stockroom,
-                        sicCode: localItem.SIC_Code_stockroom,
-                        defaultQtyGrn: expectedQty,
-                        xdockTotal: totalRes,
-                        xdockPending: xdockRemanente,
-                        xdockCustomers: xdockCustomersList,
-                        is_offline_result: true,
-                        suggestedBin: offlineSuggestedBin,
-                        expectedBreakdown: offlineBreakdown
-                    };
-                    setItemData(itemDataObj);
-                    if (!editId) {
-                        setQuantity('');
-                        // En offline mantenemos el comportamiento anterior
                         setRelocatedBin('');
                     }
-                    quantityRef.current?.focus();
-                } else {
-                    alert("Item no encontrado en el maestro local.");
-                    setItemData(null);
                 }
-            } catch (e) {
-                console.error("Offline lookup error", e);
-                alert("Error al buscar el ítem localmente.");
+                quantityRef.current?.focus();
+                setLoading(false);
+                return;
             }
-            finally { setLoading(false); }
+        } catch (e) {
+            console.error("Error buscando ítem:", e);
+        } finally {
+            setLoading(false);
         }
+
+        alert(`No se encontraron datos para el ítem '${normalizedCode}'. Asegúrese de haber cargado el archivo 250 en Datos Maestros.`);
+        setItemData(null);
     };
 
     const handleSaveLog = async (e) => {
@@ -988,16 +1059,36 @@ const Inbound = () => {
         });
 
         try {
-            const db = await getDB();
-            const logRecord = {
-                id: editId || crypto.randomUUID(),
-                ...payload,
-                username: 'Local',
-                timestamp: new Date().toISOString()
-            };
+            if (isTauri()) {
+                await callTauriCommand('save_inbound_log', {
+                    entry: {
+                        id: typeof editId === 'number' ? editId : null,
+                        timestamp: payload.timestamp,
+                        import_reference: payload.importReference,
+                        waybill: payload.waybill || null,
+                        item_code: payload.itemCode,
+                        item_description: payload.itemDescription || null,
+                        bin_location: payload.binLocation || null,
+                        relocated_bin: payload.relocatedBin || null,
+                        qty_received: Number(payload.quantity),
+                        qty_grn: Number(payload.qtyGrn || 0),
+                        difference: Number(payload.quantity - (payload.qtyGrn || 0)),
+                        username: 'admin',
+                        client_id: targetClientId,
+                        archived_at: null,
+                        version_date: null
+                    }
+                });
+            } else {
+                await fetch(editId ? `/api/update_log/${editId}` : '/api/add_log', {
+                    method: editId ? 'PUT' : 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(payload)
+                });
+            }
 
-            await db.put('local_inbound', logRecord);
-
+            resetForm();
             queryClient.invalidateQueries({ queryKey: ['inbound_logs'] });
             queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
             queryClient.invalidateQueries({ queryKey: ['ir_reconciliations'] });
@@ -1006,10 +1097,9 @@ const Inbound = () => {
                 bc.postMessage({ type: 'INBOUND_MUTATED' });
                 bc.close();
             }
-            toast.success("Registro de inbound guardado en la base de datos local");
-            resetForm();
+            toast.success("Registro de inbound guardado exitosamente");
         } catch (e) {
-            console.error("Error al guardar log de inbound local:", e);
+            console.error("Error al guardar log de inbound:", e);
             toast.error("Error al guardar registro");
             resetForm();
         } finally {
@@ -1018,42 +1108,78 @@ const Inbound = () => {
     };
 
     const handleDelete = async (id) => {
-        if (!confirm("¿Eliminar registro?")) return;
-        if (typeof id === 'string' && id.includes('-')) {
-            try {
-                const db = await getDB();
-                await db.delete('pending_sync', id);
-                loadLogs(); return;
-            } catch (e) { console.error(e); }
-        }
+        const confirmed = await confirmNative("¿Está seguro de que desea eliminar este registro de recepción?", "Eliminar Registro");
+        if (!confirmed) return;
         try {
-            await fetch(`/api/delete_log/${id}`, { method: 'DELETE', credentials: 'include' });
+            if (isTauri()) {
+                await callTauriCommand('delete_inbound_log', { id: Number(id) });
+            } else {
+                await fetch(`/api/delete_log/${id}`, { method: 'DELETE', credentials: 'include' });
+            }
+            queryClient.invalidateQueries({ queryKey: ['inbound_logs'] });
+            queryClient.invalidateQueries({ queryKey: ['ir_reconciliations'] });
             loadLogs();
-        } catch (e) { alert("Error"); }
+            toast.success("Registro eliminado correctamente");
+        } catch (e) {
+            console.error("Error al eliminar log:", e);
+            toast.error("Error al eliminar");
+        }
     };
 
     const handleArchive = async () => {
-        if (!confirm("¿Archivar registros actuales y limpiar base?")) return;
+        const confirmed = await confirmNative("¿Desea archivar todos los registros actuales y limpiar la base activa?", "Archivar Registros");
+        if (!confirmed) return;
         try {
-            await fetch(`/api/logs/archive`, { method: 'POST', credentials: 'include' });
-            loadLogs(); loadVersions();
-        } catch (e) { alert("Error"); }
+            if (isTauri()) {
+                await callTauriCommand('archive_inbound_logs');
+            } else {
+                await fetch(`/api/logs/archive`, { method: 'POST', credentials: 'include' });
+            }
+            queryClient.invalidateQueries({ queryKey: ['inbound_logs'] });
+            loadLogs();
+            loadVersions();
+            toast.success("Registros archivados exitosamente");
+        } catch (e) {
+            console.error("Error al archivar logs:", e);
+            toast.error("Error al archivar");
+        }
     };
 
     const resetForm = () => {
-        setEditId(null); setItemCode(''); setQuantity(''); setRelocatedBin(''); setItemData(null);
-        setTimeout(() => itemCodeRef.current?.focus(), 300);
+        setEditId(null);
+        setItemCode('');
+        setQuantity('');
+        setRelocatedBin('');
+        setItemData(null);
+        setQrImage(null);
+        if (itemCodeRef.current) {
+            itemCodeRef.current.value = '';
+        }
+        if (quantityRef.current) {
+            quantityRef.current.value = '';
+        }
+        if (relocatedBinRef.current) {
+            relocatedBinRef.current.value = '';
+        }
+        setTimeout(() => {
+            if (itemCodeRef.current) {
+                itemCodeRef.current.focus();
+                itemCodeRef.current.select?.();
+            }
+        }, 50);
     };
 
     const startEdit = (log) => {
         setEditId(log.id);
-        setImportRef(log.importReference ? log.importReference.trim() : '');
-        setWaybill(log.waybill ? log.waybill.trim() : '');
-        setItemCode(log.itemCode);
-        setQuantity(log.qtyReceived);
-        setRelocatedBin(log.relocatedBin ? log.relocatedBin.trim() : '');
-        fetch(`/api/find_item/${encodeURIComponent(log.itemCode)}/${encodeURIComponent(log.importReference)}?_=${Date.now()}`)
-            .then(r => r.json()).then(data => setItemData(data));
+        const ir = (log.importReference || log.importRef || '').trim();
+        const wb = (log.waybill || '').trim();
+        const code = (log.itemCode || '').trim();
+        setImportRef(ir);
+        setWaybill(wb);
+        setItemCode(code);
+        setQuantity(log.qtyReceived || log.quantity || '');
+        setRelocatedBin((log.relocatedBin || '').trim());
+        findItem(code);
     };
 
     const handleScan = (code) => {
@@ -1103,20 +1229,40 @@ const Inbound = () => {
                             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-2">
                                 <div>
                                     <label className="form-label font-normal text-black">Import Reference</label>
-                                    <input type="text" value={importRef} onChange={e => setImportRef(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('import_ref', e.target.value)} placeholder="I.R." className="font-normal text-black" required />
+                                    <input type="text" value={importRef} onChange={e => setImportRef(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('import_ref', e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleLookupReference('import_ref', e.target.value))} placeholder="I.R." className="font-normal text-black" required />
                                 </div>
                                 <div>
                                     <label className="form-label font-normal text-black">Waybill</label>
-                                    <input type="text" value={waybill} onChange={e => setWaybill(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('waybill', e.target.value)} placeholder="W.B." className="font-normal text-black" required />
+                                    <input type="text" value={waybill} onChange={e => setWaybill(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('waybill', e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleLookupReference('waybill', e.target.value))} placeholder="W.B." className="font-normal text-black" required />
                                 </div>
                                 <div className="sm:col-span-2">
                                     <label className="form-label font-normal text-black">Item Code</label>
-                                    <div className="flex gap-2">
-                                        <input type="text" ref={itemCodeRef} value={itemCode} onChange={e => setItemCode(e.target.value.toUpperCase())} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), findItem(e.target.value))} placeholder="Escanear o Escribir" className="font-normal text-black" required disabled={!!editId} />
+                                    <div className="flex gap-2 relative">
+                                        <input
+                                            type="text"
+                                            ref={itemCodeRef}
+                                            list="inbound-item-suggestions"
+                                            value={itemCode}
+                                            onChange={e => setItemCode(e.target.value.toUpperCase())}
+                                            onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), findItem(e.target.value))}
+                                            placeholder="Escanear o Escribir"
+                                            className="font-normal text-black"
+                                            required
+                                            disabled={!!editId}
+                                        />
+                                        {refItems.length > 0 && (
+                                            <datalist id="inbound-item-suggestions">
+                                                {refItems.map((it, idx) => (
+                                                    <option key={idx} value={it.item_code || it.item || it.code}>
+                                                        {`Cant: ${it.qty || it.quantity || 0} | GRN: ${it.grn || 'N/A'}`}
+                                                    </option>
+                                                ))}
+                                            </datalist>
+                                        )}
                                         <button
                                             type="button"
                                             className="btn-sap btn-secondary w-[30px] h-[30px] !p-0 flex items-center justify-center"
-                                            onClick={findItem}
+                                            onClick={() => findItem(itemCode)}
                                             disabled={loading}
                                         >
                                             {loading ? '...' : (
@@ -1440,12 +1586,12 @@ const Inbound = () => {
                                         <td className="px-2 py-1 uppercase font-normal text-sm text-black">{log.username}</td>
                                         <td className="px-2 py-0.5">
                                             <div className="flex gap-1 justify-center">
-                                                <button onClick={() => startEdit(log)} className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Editar">
+                                                <button type="button" onClick={(e) => { e.stopPropagation(); startEdit(log); }} className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Editar">
                                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
                                                     </svg>
                                                 </button>
-                                                <button onClick={() => handleDelete(log.id)} className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors" title="Eliminar">
+                                                <button type="button" onClick={(e) => { e.stopPropagation(); handleDelete(log.id); }} className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors" title="Eliminar">
                                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
                                                     </svg>

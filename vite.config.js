@@ -10,7 +10,15 @@ export default defineConfig({
     server: {
         port: 5173,
         strictPort: true,
-        host: '127.0.0.1'
+        host: '127.0.0.1',
+        proxy: {
+            '/api': {
+                target: 'http://127.0.0.1:8000',
+                changeOrigin: true,
+                secure: false,
+                ws: false,
+            }
+        }
     },
     build: {
         target: process.env.TAURI_PLATFORM == 'windows' ? 'chrome105' : 'safari13',

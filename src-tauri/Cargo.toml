@@ -15,6 +15,7 @@ serde_json = "1.0"
 csv = "1.4"
 tokio = { version = "1.35", features = ["full"] }
 rusqlite = { version = "0.31", features = ["bundled"] }
+chrono = { version = "0.4", features = ["serde"] }
 
 [features]
 default = ["custom-protocol"]
