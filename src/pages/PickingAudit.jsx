@@ -5,6 +5,7 @@ import DimensionScanner from '../components/DimensionScanner';
 import { useOffline } from '../hooks/useOffline';
 import { getDB, savePendingSync } from '../utils/offlineDb';
 import { downloadPickingTracking, downloadPickingOrder } from '../utils/syncManager';
+import { savePickingAudit as tauriSavePickingAudit } from '../utils/tauriApi';
 
 // Sound effects using Web Audio API
 const createBeep = (frequency, duration) => {
@@ -230,13 +231,13 @@ const PickingAudit = () => {
             }
 
             if (data && data.length > 0) {
-                setCustomerCode(data[0]['Customer Code'] || '');
-                setCustomerName(data[0]['Customer Name']);
+                setCustomerCode(data[0]['Customer Code'] || data[0].customer_code || '');
+                setCustomerName(data[0]['Customer Name'] || data[0].customer_name || 'Cliente General');
                 const items = data.map(row => ({
-                    code: row['Item Code'],
-                    description: row['Item Description'],
-                    order_line: row['Order Line'],
-                    qty_req: parseInt(row['Qty'] || 0),
+                    code: row['Item Code'] || row.item_code || row.code || '',
+                    description: row['Item Description'] || row.item_description || row.description || '',
+                    order_line: row['Order Line'] || row.order_line || '',
+                    qty_req: parseInt(row['Qty'] || row.requested_qty || row.qty_req || 0, 10),
                     qty_scan: 0,
                     difference: 0
                 }));
@@ -402,15 +403,24 @@ const PickingAudit = () => {
     };
 
     const submitAudit = async (statusOverride) => {
+        // Validar que ningún item tenga código vacío (causaría NOT NULL constraint)
+        const emptyCodeItems = orderItems.filter(i => !i.code || i.code.trim() === '');
+        if (emptyCodeItems.length > 0) {
+            alert(`Error: ${emptyCodeItems.length} ítem(s) no tienen código de artículo. Por favor recargue el pedido.`);
+            return;
+        }
+
         const hasDifferences = orderItems.some(i => i.qty_scan !== i.qty_req);
         const payload = {
+
             order_number: orderNumber,
             despatch_number: despatchNumber,
             customer_code: customerCode,
             customer_name: customerName,
             status: statusOverride || (hasDifferences ? 'Con Diferencia' : 'Completo'),
             items: orderItems.map(i => ({
-                code: i.code,
+                item_code: i.code,   // campo principal para el servidor
+                code: i.code,        // alias para compatibilidad con el alias Rust
                 description: i.description,
                 order_line: i.order_line,
                 qty_req: i.qty_req,
@@ -425,41 +435,18 @@ const PickingAudit = () => {
         };
 
         try {
-            const db = await getDB();
-            const auditId = `${orderNumber}_${despatchNumber}`;
-            const auditRecord = {
-                id: auditId,
-                ...payload,
-                username: 'Local',
-                timestamp: new Date().toISOString()
-            };
+            // Invoke directo: sin fetch → bridge → invoke, va directamente a Rust/SQLite
+            const auditId = await tauriSavePickingAudit(payload);
 
-            // Guardar directamente en la tabla local picking_audits
-            await db.put('picking_audits', auditRecord);
-
-            // Actualizar estado de la orden en el tracking local (is_audited: true)
-            const tx = db.transaction('picking_tracking', 'readwrite');
-            const trackingStore = tx.objectStore('picking_tracking');
-            const existingTrack = await trackingStore.get(orderNumber);
-            if (existingTrack) {
-                existingTrack.is_audited = true;
-                existingTrack.status = payload.status;
-                await trackingStore.put(existingTrack);
-            }
-            await tx.done;
-
-            alert("Auditoría de picking guardada exitosamente en la base de datos local.");
+            alert("Auditoría de picking guardada exitosamente en la base de datos.");
             handleReset();
             setShowConfirmModal(false);
             setShowAssignmentModal(false);
             setPackagesCount('1');
+            await loadTrackingData();
         } catch (e) {
-            console.error("Error al guardar auditoría de picking local:", e);
-            alert("Ocurrió un error al guardar la auditoría.");
-            handleReset();
-            setShowConfirmModal(false);
-            setShowAssignmentModal(false);
-            setPackagesCount('1');
+            console.error("Error al guardar auditoría de picking:", e);
+            alert(`Ocurrió un error al guardar la auditoría: ${e.message || e}`);
         }
     };
 
@@ -1016,9 +1003,11 @@ const PickingAudit = () => {
                                             const dateB = new Date(b.print_date);
                                             return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
                                         })
-                                        .map((t, idx) => (
+                                        .map((t, idx) => {
+                                            const isAudited = Boolean(t.is_audited) || t.status === 'AUDITADO' || t.status === 'Completo' || t.status === 'Con Diferencia';
+                                            return (
                                             <tr key={idx}
-                                                className={`cursor-pointer ${t.is_audited ? 'bg-slate-100 opacity-75' : 'hover:bg-blue-50'}`}
+                                                className={`cursor-pointer transition-colors ${isAudited ? 'bg-slate-100/80 hover:bg-slate-200/70' : 'hover:bg-blue-50'}`}
                                                 onClick={() => {
                                                     setOrderNumber(t.order_number);
                                                     setDespatchNumber(t.despatch_number);
@@ -1026,8 +1015,12 @@ const PickingAudit = () => {
                                             >
                                                 <td className="font-medium">
                                                     <div className="flex items-center gap-2">
-                                                        {t.order_number}
-                                                        {t.is_audited && <span className="text-[10px] bg-slate-400 text-white px-1 rounded">AUDITADO</span>}
+                                                        <span className={isAudited ? 'text-slate-800' : 'text-[#1e4a74]'}>{t.order_number}</span>
+                                                        {isAudited && (
+                                                            <span className="text-[10px] bg-emerald-600 text-white font-semibold px-2 py-0.5 rounded shadow-xs tracking-wider uppercase">
+                                                                AUDITADO
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </td>
                                                 <td>{t.despatch_number}</td>
@@ -1036,7 +1029,8 @@ const PickingAudit = () => {
                                                 <td className="text-center font-medium  text-[#285f94]">{t.total_lines}</td>
                                                 <td className="text-gray-500 text-xs">{t.print_date}</td>
                                             </tr>
-                                        ))
+                                            );
+                                        })
                                 )}
                             </tbody>
                             {filteredTracking.length > 0 && (
@@ -1059,9 +1053,11 @@ const PickingAudit = () => {
                             <div className="text-center p-4 text-gray-500 bg-gray-50 rounded">No hay pedidos recientes</div>
                         ) : (
                             <>
-                                {filteredTracking.map((t, idx) => (
+                                {filteredTracking.map((t, idx) => {
+                                    const isAudited = Boolean(t.is_audited) || t.status === 'AUDITADO' || t.status === 'Completo' || t.status === 'Con Diferencia';
+                                    return (
                                     <div key={idx}
-                                        className={`${t.is_audited ? 'bg-slate-100 border-slate-200 opacity-80' : 'bg-blue-50 border-blue-100'} p-3 rounded border cursor-pointer active:bg-blue-100`}
+                                        className={`${isAudited ? 'bg-slate-100 border-slate-300' : 'bg-blue-50 border-blue-100'} p-3 rounded border cursor-pointer active:bg-blue-100`}
                                         onClick={() => {
                                             setOrderNumber(t.order_number);
                                             setDespatchNumber(t.despatch_number);
@@ -1069,11 +1065,15 @@ const PickingAudit = () => {
                                     >
                                         <div className="flex justify-between items-center mb-1">
                                             <div className="flex items-center gap-2">
-                                                <span className={`font-medium  ${t.is_audited ? 'text-slate-600' : 'text-[#1e4a74]'} text-lg`}>{t.order_number}</span>
+                                                <span className={`font-medium  ${isAudited ? 'text-slate-700' : 'text-[#1e4a74]'} text-lg`}>{t.order_number}</span>
                                                 <span className="text-xs font-mono text-gray-500 bg-white px-1.5 rounded border">{t.despatch_number}</span>
-                                                {t.is_audited && <span className="text-[10px] bg-slate-400 text-white px-1 rounded uppercase">Auditado</span>}
+                                                {isAudited && (
+                                                    <span className="text-[10px] bg-emerald-600 text-white font-semibold px-2 py-0.5 rounded uppercase">
+                                                        Auditado
+                                                    </span>
+                                                )}
                                             </div>
-                                            <span className={`${t.is_audited ? 'bg-slate-500' : 'bg-[#285f94]'} text-white text-xs font-medium  px-2 py-0.5 rounded-full`}>{t.total_lines} líneas</span>
+                                            <span className={`${isAudited ? 'bg-slate-600' : 'bg-[#285f94]'} text-white text-xs font-medium  px-2 py-0.5 rounded-full`}>{t.total_lines} líneas</span>
                                         </div>
                                         <div className="flex items-center gap-2 mb-1">
                                             <span className="text-[10px] font-medium  text-slate-500 uppercase">Cliente:</span>
@@ -1084,7 +1084,8 @@ const PickingAudit = () => {
                                             {t.print_date}
                                         </div>
                                     </div>
-                                ))}
+                                    );
+                                })}
                                 <div className="sticky bottom-0 mt-2 p-3 bg-white border border-blue-200 rounded shadow-lg flex justify-between items-center z-10">
                                     <span className="text-[10px] font-medium  text-slate-500 uppercase">Total Líneas:</span>
                                     <span className="text-[12px] font-black text-[#285f94]">

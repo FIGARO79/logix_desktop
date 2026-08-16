@@ -11,14 +11,8 @@ export default defineConfig({
         port: 5173,
         strictPort: true,
         host: '127.0.0.1',
-        proxy: {
-            '/api': {
-                target: 'http://127.0.0.1:8000',
-                changeOrigin: true,
-                secure: false,
-                ws: false,
-            }
-        }
+        // No proxy needed: localApiBridge.js intercepts all /api/* fetches
+        // and routes them directly to Tauri invoke commands (100% offline desktop)
     },
     build: {
         target: process.env.TAURI_PLATFORM == 'windows' ? 'chrome105' : 'safari13',

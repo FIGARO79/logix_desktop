@@ -109,7 +109,7 @@ const Update = () => {
         const grnFile = files.find(f => {
             const name = f.name.toLowerCase();
             const isPo = name.includes('extractor') || name.includes('purchase');
-            return !isPo && (name.includes('280') || name.includes('pedido') || name.includes('grn') || name.includes('entrada') || name.includes('recepcion'));
+            return !isPo && (name.includes('280') || name.includes('aurrsglbd0280') || name.includes('goods received') || name.includes('goods_received') || name.includes('pedido') || name.includes('grn') || name.includes('entrada') || name.includes('recepcion') || name.includes('receipt'));
         });
         if (grnFile && grnFile !== previewedFile) {
             fetchPreviewGrns(grnFile);
@@ -136,7 +136,7 @@ const Update = () => {
             const hasGrn = next.some(f => {
                 const name = f.name.toLowerCase();
                 const isPo = name.includes('extractor') || name.includes('purchase');
-                return !isPo && (name.includes('280') || name.includes('pedido') || name.includes('grn') || name.includes('entrada') || name.includes('recepcion'));
+                return !isPo && (name.includes('280') || name.includes('aurrsglbd0280') || name.includes('goods received') || name.includes('goods_received') || name.includes('pedido') || name.includes('grn') || name.includes('entrada') || name.includes('recepcion') || name.includes('receipt'));
             });
             if (!hasGrn) {
                 setAvailableGrns([]);

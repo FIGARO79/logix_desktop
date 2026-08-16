@@ -3,6 +3,23 @@ import { isTauri, callTauriCommand } from './tauriBridge';
 import * as XLSX from 'xlsx';
 
 /**
+ * @deprecated localApiBridge.js — Capa de compatibilidad (fetch → Tauri invoke)
+ *
+ * Esta capa intercepta llamadas fetch('/api/...') y las redirige a comandos Tauri
+ * mediante callTauriCommand(). Es funcional pero introduce una capa innecesaria.
+ *
+ * ✅ CAMINO FUTURO: Usar tauriApi.js con funciones nombradas que llaman invoke()
+ * directamente, sin pasar por fetch ni este bridge.
+ *
+ * Ejemplo de migración:
+ *   ANTES: fetch('/api/save_picking_audit', { method: 'POST', body: JSON.stringify(payload) })
+ *   AHORA: import { savePickingAudit } from './tauriApi'; await savePickingAudit(payload);
+ *
+ * Páginas ya migradas a tauriApi.js:
+ *   - PickingAudit.jsx → savePickingAudit
+ */
+
+/**
  * Crea una respuesta HTTP simulada (Response) compatible con la API Fetch estándar.
  */
 function createJsonResponse(data, status = 200) {
@@ -129,7 +146,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
                     console.warn("Error getting users from SQLite:", e);
                 }
             }
-            const localUsers = await db.getAll('local_users') || [];
+            const localUsers = db ? (await db.getAll('local_users') || []) : [];
             if (localUsers.length === 0) {
                 return createJsonResponse([
                     { id: 1, username: 'admin', role: 'admin', permissions: 'stock,inbound,picking,inventory,planner,counts,admin', is_approved: true }
@@ -232,8 +249,8 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
             }
 
             // Fallback en navegador
-            let localItem = await db.get('master_items', code);
-            if (!localItem) {
+            let localItem = db ? await db.get('master_items', code) : null;
+            if (!localItem && db) {
                 const allItems = await db.getAll('master_items') || [];
                 localItem = allItems.find(it => (it.Item_Code || it.item_code || '').toString().toUpperCase().trim() === code);
             }
@@ -291,7 +308,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
                 }
             }
 
-            const localLogs = await db.getAll('local_inbound') || [];
+            const localLogs = db ? (await db.getAll('local_inbound') || []) : [];
             return createJsonResponse(localLogs);
         }
 
@@ -328,7 +345,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
                 ...body,
                 timestamp: body?.timestamp || new Date().toISOString()
             };
-            await db.put('local_inbound', logRecord);
+            if (db) await db.put('local_inbound', logRecord);
             return createJsonResponse({ success: true, log: logRecord });
         }
 
@@ -368,7 +385,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
             if (isTauri()) {
                 await callTauriCommand('delete_inbound_log', { id });
             }
-            await db.delete('local_inbound', id);
+            if (db) await db.delete('local_inbound', id);
             return createJsonResponse({ success: true });
         }
 
@@ -431,7 +448,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
                     ...body,
                     timestamp: new Date().toISOString()
                 };
-                await db.put('local_ir_reconciliation', recData);
+                if (db) await db.put('local_ir_reconciliation', recData);
                 return createJsonResponse({ success: true, record: recData });
             }
 
@@ -443,7 +460,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
                     console.warn("Error getting IR reconciliations:", e);
                 }
             }
-            const records = await db.getAll('local_ir_reconciliation') || [];
+            const records = db ? (await db.getAll('local_ir_reconciliation') || []) : [];
             return createJsonResponse(records);
         }
 
@@ -539,7 +556,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
                     console.warn("Error getting alerts:", e);
                 }
             }
-            const alerts = await db.getAll('local_audit_alerts') || [];
+            const alerts = db ? (await db.getAll('local_audit_alerts') || []) : [];
             return createJsonResponse(alerts);
         }
 
@@ -634,7 +651,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
                 }
             }
 
-            const allItems = await db.getAll('master_items') || [];
+            const allItems = db ? (await db.getAll('master_items') || []) : [];
             const qUpper = q.toUpperCase();
             const matches = allItems.filter(item =>
                 (item.Item_Code && item.Item_Code.toUpperCase().includes(qUpper)) ||
@@ -750,8 +767,8 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
                 }
             }
 
-            let item = await db.get('master_items', code);
-            if (!item) {
+            let item = db ? await db.get('master_items', code) : null;
+            if (!item && db) {
                 const allItems = await db.getAll('master_items') || [];
                 item = allItems.find(i => (i.Item_Code && i.Item_Code.toUpperCase() === code) || (i.item_code && i.item_code.toUpperCase() === code));
             }
@@ -813,7 +830,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
                     console.warn("Error getting valid bins:", e);
                 }
             }
-            const allItems = await db.getAll('master_items') || [];
+            const allItems = db ? (await db.getAll('master_items') || []) : [];
             const binsSet = new Set();
             allItems.forEach(it => {
                 const b = it.Bin_Location || it.Bin_1 || it.bin_location;
@@ -831,7 +848,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
                     console.warn("Error getting occupancy stats:", e);
                 }
             }
-            const allItems = await db.getAll('master_items') || [];
+            const allItems = db ? (await db.getAll('master_items') || []) : [];
             const totalItems = allItems.length;
             const occupiedBins = new Set(allItems.map(it => it.Bin_Location || it.Bin_1).filter(Boolean)).size;
             return createJsonResponse({
@@ -846,133 +863,329 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
         // -------------------------------------------------------------
         // 4. PICKING & DESPACHOS (SHIPMENTS)
         // -------------------------------------------------------------
-        if (pathname === '/api/shipments/') {
+
+        // 4.1 Tracking Matrix
+        if (pathname === '/api/picking/tracking') {
             if (isTauri()) {
                 try {
-                    const shipments = await callTauriCommand('get_shipments');
-                    if (shipments) return createJsonResponse(shipments);
+                    const tracking = await callTauriCommand('get_picking_tracking');
+                    if (tracking && Array.isArray(tracking)) {
+                        return createJsonResponse(tracking);
+                    }
                 } catch (e) {
-                    console.warn("Error getting shipments in Tauri:", e);
+                    console.warn("Error getting picking tracking in Tauri:", e);
                 }
             }
-            const orders = await db.getAll('picking_orders') || [];
-            return createJsonResponse(orders);
+            const cached = db ? (await db.getAll('picking_tracking') || []) : [];
+            return createJsonResponse(cached);
+        }
+
+        // 4.2 Order Details
+        if (pathname.startsWith('/api/picking/order/')) {
+            const parts = pathname.replace('/api/picking/order/', '').split('/');
+            const orderNumber = decodeURIComponent(parts[0] || '').trim();
+            const despatchNumber = decodeURIComponent(parts[1] || '00').trim();
+
+            if (isTauri()) {
+                try {
+                    const orderRows = await callTauriCommand('get_picking_order_details', {
+                        orderNumber,
+                        despatchNumber,
+                    });
+                    if (orderRows && orderRows.length > 0) {
+                        return createJsonResponse(orderRows);
+                    }
+                } catch (e) {
+                    console.warn("Error getting picking order details in Tauri:", e);
+                }
+            }
+
+            if (db) {
+                const cached = await db.get('picking_orders', `${orderNumber}_${despatchNumber}`);
+                if (cached && cached.data) {
+                    return createJsonResponse(cached.data);
+                }
+            }
+            return createJsonResponse([], 404);
+        }
+
+        // 4.3 Save Picking Audit
+        if (pathname === '/api/save_picking_audit' || pathname === '/api/picking/save_audit') {
+            if (isTauri()) {
+                try {
+                    const cleanAssignments = {};
+                    if (body?.packages_assignment && typeof body.packages_assignment === 'object') {
+                        for (const [k, v] of Object.entries(body.packages_assignment)) {
+                            if (v && typeof v === 'object') {
+                                cleanAssignments[String(k)] = {};
+                                for (const [pkgKey, qtyVal] of Object.entries(v)) {
+                                    cleanAssignments[String(k)][String(pkgKey)] = parseInt(qtyVal, 10) || 0;
+                                }
+                            }
+                        }
+                    }
+
+                    const auditId = await callTauriCommand('save_picking_audit_full', {
+                        payload: {
+                            id: body?.id ? Number(body.id) : null,
+                            order_number: String(body?.order_number || body?.orderNumber || '').trim(),
+                            despatch_number: String(body?.despatch_number || body?.despatchNumber || '00').trim(),
+                            customer_code: body?.customer_code || body?.customerCode || null,
+                            customer_name: body?.customer_name || body?.customerName || null,
+                            username: body?.username || 'admin',
+                            timestamp: body?.timestamp || new Date().toISOString(),
+                            status: body?.status || 'Completo',
+                            packages: Number(body?.packages || 1),
+                            items: (body?.items || []).map(it => ({
+                                id: it.id ? Number(it.id) : null,
+                                item_code: String(it.code || it.item_code || it.itemCode || '').trim(),
+                                description: String(it.description || '').trim(),
+                                order_line: String(it.order_line || it.orderLine || '').trim(),
+                                qty_req: Number(it.qty_req || it.qtyReq || 0),
+                                qty_scan: Number(it.qty_scan || it.qtyScan || 0),
+                                difference: Number(it.difference !== undefined ? it.difference : (Number(it.qty_scan || 0) - Number(it.qty_req || 0))),
+                                edited: Number(it.edited || 0)
+                            })),
+                            packages_assignment: cleanAssignments,
+                            packages_dimensions: (Array.isArray(body?.packages_dimensions) ? body.packages_dimensions : []).map(d => ({
+                                package_number: parseInt(d?.package_number || d?.packageNumber || 1, 10) || 1,
+                                length: parseFloat(d?.length) || 0.0,
+                                width: parseFloat(d?.width) || 0.0,
+                                height: parseFloat(d?.height) || 0.0,
+                                weight: parseFloat(d?.weight) || 0.0
+                            }))
+                        }
+                    });
+
+                    return createJsonResponse({
+                        message: "Auditoría de picking guardada con éxito",
+                        audit_id: auditId
+                    }, 201);
+                } catch (e) {
+                    console.error("Error saving full picking audit in Tauri:", e);
+                    return createJsonResponse({
+                        detail: `Error al guardar en Tauri SQLite: ${e?.message || e}`
+                    }, 500);
+                }
+            }
+
+            const auditId = Date.now();
+            if (db) {
+                const record = { id: auditId, ...body, timestamp: new Date().toISOString() };
+                await db.put('picking_audits', record);
+            }
+            return createJsonResponse({
+                message: "Auditoría de picking guardada con éxito",
+                audit_id: auditId
+            }, 201);
+        }
+
+        // 4.4 View Picking Audits List
+        if (pathname === '/api/views/view_picking_audits') {
+            if (isTauri()) {
+                try {
+                    const audits = await callTauriCommand('get_picking_audits_full');
+                    if (audits && Array.isArray(audits)) {
+                        return createJsonResponse(audits);
+                    }
+                } catch (e) {
+                    console.warn("Error getting picking audits full in Tauri:", e);
+                }
+            }
+            const audits = db ? (await db.getAll('picking_audits') || []) : [];
+            return createJsonResponse(audits);
+        }
+
+        // 4.5 Single Picking Audit Detail & Packing List
+        if (pathname.startsWith('/api/picking/packing_list/') || pathname.endsWith('/print') && pathname.includes('/picking_audit/')) {
+            const clean = pathname.replace('/api/picking/packing_list/', '').replace('/api/picking_audit/', '').replace('/print', '');
+            const auditId = parseInt(clean, 10) || 0;
+
+            if (isTauri() && auditId > 0) {
+                try {
+                    const pl = await callTauriCommand('get_picking_packing_list', { auditId });
+                    if (pl) return createJsonResponse(pl);
+                } catch (e) {
+                    console.warn("Error getting picking packing list in Tauri:", e);
+                }
+            }
+
+            const all = db ? (await db.getAll('picking_audits') || []) : [];
+            const found = all.find(a => a.id === auditId || a.order_number === clean);
+            if (found) {
+                return createJsonResponse(found);
+            }
+            return createJsonResponse({ detail: "Auditoría no encontrada" }, 404);
+        }
+
+        if (pathname.startsWith('/api/picking_audit/')) {
+            const id = parseInt(pathname.replace('/api/picking_audit/', '').split('/')[0], 10) || 0;
+            if (isTauri() && id > 0) {
+                try {
+                    const audit = await callTauriCommand('get_picking_audit_by_id_full', { auditId: id });
+                    if (audit) return createJsonResponse(audit);
+                } catch (e) {
+                    console.warn("Error getting audit detail in Tauri:", e);
+                }
+            }
+            const all = db ? (await db.getAll('picking_audits') || []) : [];
+            const found = all.find(a => a.id === id);
+            if (found) return createJsonResponse(found);
+            return createJsonResponse({ id, status: 'Completo' });
+        }
+
+        // 4.6 Update Picking Audit
+        if (pathname.startsWith('/api/update_picking_audit/')) {
+            const id = parseInt(pathname.replace('/api/update_picking_audit/', ''), 10) || 0;
+            if (isTauri() && id > 0) {
+                try {
+                    await callTauriCommand('update_picking_audit_full', {
+                        id,
+                        payload: {
+                            id,
+                            order_number: body?.order_number || '',
+                            despatch_number: body?.despatch_number || '00',
+                            customer_code: body?.customer_code || null,
+                            customer_name: body?.customer_name || null,
+                            username: body?.username || 'admin',
+                            timestamp: body?.timestamp || new Date().toISOString(),
+                            status: body?.status || 'Completo',
+                            packages: Number(body?.packages || 1),
+                            items: (body?.items || []).map(it => ({
+                                id: it.id || null,
+                                item_code: it.code || it.item_code || '',
+                                description: it.description || '',
+                                order_line: it.order_line || '',
+                                qty_req: Number(it.qty_req || 0),
+                                qty_scan: Number(it.qty_scan || 0),
+                                difference: Number(it.difference !== undefined ? it.difference : (Number(it.qty_scan || 0) - Number(it.qty_req || 0))),
+                                edited: 1
+                            })),
+                            packages_assignment: body?.packages_assignment || {},
+                            packages_dimensions: (body?.packages_dimensions || []).map(d => ({
+                                package_number: Number(d.package_number || 1),
+                                length: Number(d.length || 0),
+                                width: Number(d.width || 0),
+                                height: Number(d.height || 0),
+                                weight: Number(d.weight || 0)
+                            }))
+                        }
+                    });
+                    return createJsonResponse({ message: "Auditoría actualizada exitosamente" });
+                } catch (e) {
+                    console.error("Error updating picking audit in Tauri:", e);
+                }
+            }
+            return createJsonResponse({ message: "Auditoría actualizada localmente" });
+        }
+
+        // 4.7 Delete Picking Audits
+        if (pathname === '/api/delete_picking_audits') {
+            const rawIds = body?.audit_ids || body?.ids || (body?.id ? [body.id] : []);
+            const ids = rawIds.map(Number).filter(n => !isNaN(n));
+            if (isTauri() && ids.length > 0) {
+                try {
+                    await callTauriCommand('delete_picking_audits', { ids });
+                } catch (e) {
+                    console.warn("Error deleting picking audits in Tauri:", e);
+                }
+            }
+            if (db) {
+                for (const id of ids) {
+                    await db.delete('picking_audits', id).catch(() => {});
+                }
+            }
+            return createJsonResponse({ success: true, message: "Auditorías eliminadas correctamente" });
+        }
+
+        // 4.8 Shipments (Consolidación)
+        if (pathname === '/api/shipments/' || pathname === '/api/shipments') {
+            if (method === 'POST') {
+                const auditIds = (body?.audit_ids || []).map(Number).filter(n => !isNaN(n));
+                const note = body?.note || null;
+                const carrier = body?.carrier || null;
+
+                if (isTauri() && auditIds.length > 0) {
+                    try {
+                        const shipId = await callTauriCommand('create_shipment', {
+                            auditIds,
+                            note,
+                            carrier,
+                            username: 'admin'
+                        });
+                        return createJsonResponse({
+                            id: shipId,
+                            message: `Envío #${shipId} creado exitosamente con ${auditIds.length} pedido(s)`
+                        }, 201);
+                    } catch (e) {
+                        console.error("Error creating shipment in Tauri:", e);
+                    }
+                }
+
+                const fallbackId = Date.now();
+                return createJsonResponse({
+                    id: fallbackId,
+                    message: `Envío #${fallbackId} creado localmente`
+                }, 201);
+            }
+
+            // GET List Shipments
+            if (isTauri()) {
+                try {
+                    const list = await callTauriCommand('list_shipments');
+                    if (list && Array.isArray(list)) {
+                        return createJsonResponse(list);
+                    }
+                } catch (e) {
+                    console.warn("Error listing shipments in Tauri:", e);
+                }
+            }
+            const shipments = db ? (await db.getAll('shipments') || []) : [];
+            return createJsonResponse(shipments);
         }
 
         if (pathname.startsWith('/api/shipments/')) {
             const rest = pathname.replace('/api/shipments/', '');
-            if (rest.endsWith('/packing_list')) {
-                const shipId = rest.replace('/packing_list', '');
-                if (isTauri()) {
+            if (rest.endsWith('/packing_list') || rest.endsWith('/print')) {
+                const shipId = parseInt(rest.replace('/packing_list', '').replace('/print', ''), 10) || 0;
+                if (isTauri() && shipId > 0) {
                     try {
-                        const pl = await callTauriCommand('get_shipment_packing_list', { shipmentId: shipId });
+                        const pl = await callTauriCommand('get_consolidated_packing_list', { shipmentId: shipId });
                         if (pl) return createJsonResponse(pl);
                     } catch (e) {
-                        console.warn("Error getting packing list in Tauri:", e);
+                        console.warn("Error getting consolidated packing list in Tauri:", e);
                     }
                 }
-                return createJsonResponse({ shipment_id: shipId, items: [], created_at: new Date().toISOString() });
+                return createJsonResponse({
+                    shipment_id: shipId,
+                    created_at: new Date().toISOString(),
+                    carrier: '',
+                    note: '',
+                    total_orders: 0,
+                    orders: []
+                });
             }
 
-            const shipId = rest;
+            const shipId = parseInt(rest, 10) || 0;
             if (method === 'DELETE') {
-                if (isTauri()) {
-                    await callTauriCommand('delete_shipment', { shipmentId: shipId });
+                if (isTauri() && shipId > 0) {
+                    await callTauriCommand('delete_shipment', { shipmentId: shipId }).catch(() => {});
                 }
-                return createJsonResponse({ success: true });
+                if (db) {
+                    await db.delete('shipments', shipId).catch(() => {});
+                }
+                return createJsonResponse({ success: true, message: `Envío #${shipId} cancelado` });
             }
 
-            if (isTauri()) {
-                const details = await callTauriCommand('get_shipment_details', { shipmentId: shipId });
-                if (details) return createJsonResponse(details);
-            }
-            return createJsonResponse({ id: shipId, items: [] });
-        }
-
-        if (pathname === '/api/views/view_picking_audits') {
-            if (isTauri()) {
+            if (isTauri() && shipId > 0) {
                 try {
-                    const audits = await callTauriCommand('get_picking_audits');
-                    if (audits) return createJsonResponse(audits);
+                    const pl = await callTauriCommand('get_consolidated_packing_list', { shipmentId: shipId });
+                    if (pl) return createJsonResponse(pl);
                 } catch (e) {
-                    console.warn("Error getting picking audits:", e);
+                    console.warn("Error getting shipment detail in Tauri:", e);
                 }
             }
-            const audits = await db.getAll('picking_audits') || [];
-            return createJsonResponse(audits);
-        }
-
-        if (pathname === '/api/picking/save_audit') {
-            if (isTauri()) {
-                try {
-                    const saved = await callTauriCommand('save_picking_audit', {
-                        audit: {
-                            id: body?.id || null,
-                            shipment_id: body?.shipment_id || body?.shipmentId || 'GENERAL',
-                            order_number: body?.order_number || null,
-                            item_code: body?.item_code || body?.itemCode || '',
-                            item_description: body?.item_description || body?.itemDescription || null,
-                            requested_qty: Number(body?.requested_qty || body?.requestedQty || 0),
-                            audited_qty: Number(body?.audited_qty || body?.auditedQty || 0),
-                            difference: Number(body?.difference || 0),
-                            auditor_user: body?.auditor_user || 'admin',
-                            status: body?.status || 'Auditado',
-                            timestamp: body?.timestamp || new Date().toISOString()
-                        }
-                    });
-                    return createJsonResponse({ success: true, record: saved });
-                } catch (e) {
-                    console.error("Error saving picking audit:", e);
-                }
-            }
-            const record = { id: body?.id || Date.now(), ...body };
-            await db.put('picking_audits', record);
-            return createJsonResponse({ success: true, record });
-        }
-
-        if (pathname.startsWith('/api/update_picking_audit/')) {
-            const id = parseInt(pathname.replace('/api/update_picking_audit/', '')) || 0;
-            if (isTauri()) {
-                try {
-                    const updated = await callTauriCommand('update_picking_audit', {
-                        id,
-                        audit: {
-                            id: id,
-                            shipment_id: body?.shipment_id || 'GENERAL',
-                            order_number: body?.order_number || null,
-                            item_code: body?.item_code || '',
-                            item_description: body?.item_description || null,
-                            requested_qty: Number(body?.requested_qty || 0),
-                            audited_qty: Number(body?.audited_qty || 0),
-                            difference: Number(body?.difference || 0),
-                            auditor_user: body?.auditor_user || 'admin',
-                            status: body?.status || 'Auditado',
-                            timestamp: body?.timestamp || new Date().toISOString()
-                        }
-                    });
-                    return createJsonResponse({ success: true, record: updated });
-                } catch (e) {
-                    console.error("Error updating picking audit:", e);
-                }
-            }
-            return createJsonResponse({ success: true });
-        }
-
-        if (pathname.startsWith('/api/picking_audit/')) {
-            const id = parseInt(pathname.replace('/api/picking_audit/', '').split('/')[0]) || 0;
-            if (isTauri() && id > 0) {
-                const audit = await callTauriCommand('get_picking_audit_by_id', { auditId: id });
-                if (audit) return createJsonResponse(audit);
-            }
-            return createJsonResponse({ id, status: 'Auditado' });
-        }
-
-        if (pathname === '/api/delete_picking_audits') {
-            const ids = (body?.ids || (body?.id ? [body.id] : [])).map(Number);
-            if (isTauri()) {
-                await callTauriCommand('delete_picking_audits', { ids });
-            }
-            return createJsonResponse({ success: true });
+            return createJsonResponse({ id: shipId, orders: [] });
         }
 
         // -------------------------------------------------------------
@@ -1056,7 +1269,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
                 }
             }
 
-            let item = await db.get('master_items', code);
+            let item = db ? await db.get('master_items', code) : null;
             if (item) {
                 return createJsonResponse({
                     item_code: item.Item_Code,
@@ -1101,7 +1314,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
                     }
                 }
                 const countRecord = { id: body?.id || Date.now(), ...body, timestamp: new Date().toISOString() };
-                await db.put('local_counts', countRecord);
+                if (db) await db.put('local_counts', countRecord);
                 return createJsonResponse({ success: true, count: countRecord });
             }
 
@@ -1109,7 +1322,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
                 const all = await callTauriCommand('get_all_counts', { countType: null });
                 return createJsonResponse(all || []);
             }
-            const counts = await db.getAll('local_counts') || [];
+            const counts = db ? (await db.getAll('local_counts') || []) : [];
             return createJsonResponse(counts);
         }
 
@@ -1117,12 +1330,12 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
             if (isTauri()) {
                 try {
                     const counts = await callTauriCommand('get_all_counts', { countType: null });
-                    return createJsonResponse(counts || []);
+                    if (counts) return createJsonResponse(counts);
                 } catch (e) {
                     console.warn("Error in get_all_counts:", e);
                 }
             }
-            const counts = await db.getAll('local_counts') || [];
+            const counts = db ? (await db.getAll('local_counts') || []) : [];
             return createJsonResponse(counts);
         }
 
@@ -1269,7 +1482,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
                     console.warn("Error getting spot checks:", e);
                 }
             }
-            const list = await db.getAll('local_spot_check') || [];
+            const list = db ? (await db.getAll('local_spot_check') || []) : [];
             return createJsonResponse(list);
         }
 
@@ -1308,7 +1521,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
                 }
             }
             const record = { id: body?.id || Date.now(), ...body, timestamp: new Date().toISOString() };
-            await db.put('local_spot_check', record);
+            if (db) await db.put('local_spot_check', record);
             return createJsonResponse({ success: true, record });
         }
 
@@ -1316,7 +1529,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
             if (isTauri()) {
                 await callTauriCommand('clear_spot_checks');
             }
-            await db.clear('local_spot_check');
+            if (db) await db.clear('local_spot_check');
             return createJsonResponse({ success: true });
         }
 
@@ -1337,7 +1550,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
                     console.warn("Error getting express audits:", e);
                 }
             }
-            const list = await db.getAll('local_express_audit') || [];
+            const list = db ? (await db.getAll('local_express_audit') || []) : [];
             return createJsonResponse(list);
         }
 
@@ -1376,7 +1589,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
                 }
             }
             const record = { id: body?.id || Date.now(), ...body, timestamp: new Date().toISOString() };
-            await db.put('local_express_audit', record);
+            if (db) await db.put('local_express_audit', record);
             return createJsonResponse({ success: true, record });
         }
 
@@ -1384,7 +1597,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
             if (isTauri()) {
                 await callTauriCommand('clear_express_audits');
             }
-            await db.clear('local_express_audit');
+            if (db) await db.clear('local_express_audit');
             return createJsonResponse({ success: true });
         }
 
@@ -1410,7 +1623,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
             }
 
             // Fallback en IndexedDB offline si no corre en Tauri
-            const logs = await db.getAll('inbound_logs') || [];
+            const logs = db ? (await db.getAll('inbound_logs') || []) : [];
             const rows = logs.map(l => ({
                 id: l.id || Math.random(),
                 Import_Reference: l.importReference || l.import_reference || '',
@@ -1750,7 +1963,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
         // -------------------------------------------------------------
         if (pathname.startsWith('/api/export_') || pathname.startsWith('/api/counts/export') || pathname.startsWith('/api/spot_check/export') || pathname.startsWith('/api/planner/generate_plan')) {
             if (pathname.includes('counts') || pathname.includes('recount')) {
-                const counts = isTauri() ? await callTauriCommand('get_all_counts', { countType: null }) : await db.getAll('local_counts') || [];
+                const counts = isTauri() ? await callTauriCommand('get_all_counts', { countType: null }) : (db ? (await db.getAll('local_counts') || []) : []);
                 const ws = XLSX.utils.json_to_sheet(counts || []);
                 const csv = XLSX.utils.sheet_to_csv(ws);
                 downloadLocalFile(`conteos_${Date.now()}.csv`, csv);
@@ -1827,14 +2040,16 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
             if (isTauri()) {
                 await callTauriCommand('clear_all_database');
             }
-            await db.clear('master_items');
-            await db.clear('grn_pending');
-            await db.clear('xdock_reservations');
-            await db.clear('po_lookup');
-            await db.clear('picking_orders');
-            await db.clear('picking_audits');
-            await db.clear('local_counts');
-            await db.clear('local_inbound');
+            if (db) {
+                await db.clear('master_items');
+                await db.clear('grn_pending');
+                await db.clear('xdock_reservations');
+                await db.clear('po_lookup');
+                await db.clear('picking_orders');
+                await db.clear('picking_audits');
+                await db.clear('local_counts');
+                await db.clear('local_inbound');
+            }
             return createJsonResponse({ success: true, message: "Base de datos local restablecida correctamente" });
         }
 

@@ -6,7 +6,7 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "LogixDesktopPortable",
+    "productName": "LogixDesktop",
     "version": "1.0.0"
   },
   "tauri": {
@@ -47,7 +47,12 @@
         "title": "Logix Desktop",
         "width": 1280,
         "height": 800,
+        "minWidth": 1024,
+        "minHeight": 700,
         "resizable": true,
+        "maximized": true,
+        "center": true,
+        "decorations": true,
         "fullscreen": false
       }
     ]

@@ -240,7 +240,8 @@ const AdminInventory = () => {
         }
 
         let interval = setInterval(() => {
-            if (navigator.onLine && !document.hidden) {
+            // Desktop: no onLine check, always available - only skip if tab is hidden
+            if (!document.hidden) {
                 fetchStats();
                 if (activeTab === 'cycle') fetchCounts();
             }

@@ -106,7 +106,7 @@ export const downloadMasterData = async () => {
  * Sincroniza los registros pendientes hacia el servidor (Inbound, Planner, Picking, Counts).
  */
 export const syncPendingData = async () => {
-    if (!navigator.onLine) return;
+    // Desktop app: always available (no navigator.onLine check needed)
     
     const db = await getDB();
     const allPending = await db.getAll('pending_sync');
@@ -139,7 +139,7 @@ export const syncPendingData = async () => {
                 if (!record.payload.session_id) {
                     try {
                         let activeSess = await db.get('active_sessions', 'cycle_count');
-                        if (!activeSess && navigator.onLine) {
+                        if (!activeSess) { // Desktop: always try to fetch session
                             const sessRes = await fetch('/api/sessions/active');
                             if (sessRes.ok) {
                                 const fetchedSess = await sessRes.json();
@@ -211,25 +211,16 @@ export const syncPendingData = async () => {
 };
 
 /**
- * Descarga y cachea los pedidos recientes de picking.
+ * Descarga y cachea la matriz de seguimiento de picking.
  */
 export const downloadPickingTracking = async () => {
-    if (!navigator.onLine) return null;
     try {
         const res = await fetch('/api/picking/tracking', { credentials: 'include' });
         if (!res.ok) return null;
         const data = await res.json();
-        const db = await getDB();
-        const tx = db.transaction('picking_tracking', 'readwrite');
-        const store = tx.objectStore('picking_tracking');
-        await store.clear();
-        for (const t of data) {
-            await store.put(t);
-        }
-        await tx.done;
         return data;
     } catch (e) {
-        console.error(e);
+        console.error("Error al descargar tracking de picking:", e);
         return null;
     }
 };
@@ -238,22 +229,13 @@ export const downloadPickingTracking = async () => {
  * Descarga y cachea el detalle de un pedido de picking.
  */
 export const downloadPickingOrder = async (order, despatch) => {
-    if (!navigator.onLine) return null;
     try {
         const res = await fetch(`/api/picking/order/${order}/${despatch}`, { credentials: 'include' });
         if (!res.ok) return null;
         const data = await res.json();
-        const db = await getDB();
-        await db.put('picking_orders', {
-            id: `${order}_${despatch}`,
-            order,
-            despatch,
-            data,
-            timestamp: Date.now()
-        });
         return data;
     } catch (e) {
-        console.error(e);
+        console.error("Error al descargar pedido de picking:", e);
         return null;
     }
 };
@@ -265,7 +247,7 @@ export const syncPendingInbound = syncPendingData;
  * Verifica si el maestro local está desactualizado comparando timestamps con el servidor.
  */
 export const checkAndSyncIfNeeded = async () => {
-    if (!navigator.onLine) return false;
+    // Desktop app: no network check needed, bridge handles everything locally
     
     try {
         const res = await fetch('/api/sync/status');

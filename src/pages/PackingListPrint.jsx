@@ -219,7 +219,7 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
                                                         <td className="px-2 py-1 font-mono text-black text-[10px] whitespace-nowrap">{item.order_line}</td>
                                                         <td className="px-2 py-1 font-mono text-black text-[11px] break-all">{item.item_code}</td>
                                                         <td className="px-2 py-1 text-black text-[11px] leading-tight break-words">{item.description}</td>
-                                                        <td className="px-2 py-1 text-right text-sm font-medium  whitespace-nowrap">{item.quantity}</td>
+                                                        <td className="px-2 py-1 text-right text-sm font-medium  whitespace-nowrap">{item.quantity ?? item.qty}</td>
                                                     </tr>
                                                 ))
                                             ) : (

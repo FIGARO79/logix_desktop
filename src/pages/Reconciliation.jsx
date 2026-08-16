@@ -44,19 +44,18 @@ const Reconciliation = () => {
         queryKey: ['reconciliation'],
         queryFn: async () => {
             setIsOfflineData(false);
-            if (navigator.onLine) {
-                try {
-                    const res = await fetch(`/api/views/reconciliation`).catch(() => null);
-                    if (res && res.ok) {
-                        const response = await res.json().catch(() => null);
-                        if (response && response.data) {
-                            await cacheData('last_reconciliation', response.data);
-                            return response;
-                        }
+            // Desktop: always attempt to fetch (localApiBridge handles routing to SQLite)
+            try {
+                const res = await fetch(`/api/views/reconciliation`).catch(() => null);
+                if (res && res.ok) {
+                    const response = await res.json().catch(() => null);
+                    if (response && response.data) {
+                        await cacheData('last_reconciliation', response.data);
+                        return response;
                     }
-                } catch (e) {
-                    console.log("No remote reconciliation API server available, using local cache.");
                 }
+            } catch (e) {
+                console.log("Error loading reconciliation data, using local cache.");
             }
 
             const cachedData = await getCachedData('last_reconciliation');
@@ -64,7 +63,7 @@ const Reconciliation = () => {
             return { data: cachedData || [] };
         },
         refetchInterval: () => {
-            if (location.pathname !== '/reconciliation' || !navigator.onLine) return false;
+            if (location.pathname !== '/reconciliation') return false;
             return 5000;
         },
         refetchOnWindowFocus: true,

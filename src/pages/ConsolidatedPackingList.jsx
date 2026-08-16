@@ -126,7 +126,7 @@ const ConsolidatedPackingList = () => {
                                 <td className="px-2 py-0.5 font-mono text-black text-[9px] font-medium ">{item.order_line}</td>
                                 <td className="px-2 py-0.5 font-mono text-black text-[9px] break-all">{item.item_code}</td>
                                 <td className="px-2 py-0.5 text-black text-[9px] leading-tight break-words">{item.description}</td>
-                                <td className="px-2 py-0.5 text-right text-[10px] font-medium  whitespace-nowrap">{item.quantity}</td>
+                                <td className="px-2 py-0.5 text-right text-[10px] font-medium  whitespace-nowrap">{item.quantity ?? item.qty}</td>
                             </tr>
                         ))
                     ) : (

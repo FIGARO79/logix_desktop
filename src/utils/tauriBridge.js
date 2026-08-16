@@ -241,23 +241,31 @@ export const processLocalCSVUpload = async (file, selectedGrns = [], updateOptio
             }
 
             // Identificación precisa del tipo de archivo (de lo más específico a lo general)
-            const isPoLookupFile = fileName.includes('extractor') || fileName.includes('purchase') || fileName.includes('po_lookup') ||
+            const isPoLookupFile = fileName.includes('extractor') || fileName.includes('purchase') || fileName.includes('po_lookup') || fileName.includes('po lookup') ||
                 (rawHeaders.some(h => h.includes('waybill') || h === 'wb') && rawHeaders.some(h => h.includes('import') || h === 'ir'));
 
-            const isXdockFile = !isPoLookupFile && (fileName.includes('0006') || fileName.includes('xdock') || fileName.includes('crossdock') || fileName.includes('reserva') ||
-                rawHeaders.some(h => ['reservedqty', 'quantityreserved', 'totalreserved', 'actionqty', 'sonumber'].includes(h)));
+            const isXdockFile = !isPoLookupFile && (
+                fileName.includes('0006') || fileName.includes('aurrslamp0006') || fileName.includes('xdock') || fileName.includes('crossdock') || fileName.includes('reserva') || fileName.includes('reservation') ||
+                rawHeaders.some(h => ['reservedqty', 'quantityreserved', 'totalreserved', 'actionqty', 'sonumber', 'orderref'].includes(h))
+            );
 
-            const isPickingFile = !isPoLookupFile && !isXdockFile && (fileName.includes('240') || fileName.includes('picking') || fileName.includes('salida') ||
+            const isPickingFile = !isPoLookupFile && !isXdockFile && (
+                fileName.includes('240') || fileName.includes('aurrsglbd0240') || fileName.includes('picking') || fileName.includes('salida') || fileName.includes('unconfirmed') || fileName.includes('despacho') ||
                 rawHeaders.some(h => ['despatchnumber', 'despatch', 'despacho', 'notaentrega', 'picklistprintedtime', 'rpstatustime'].includes(h)) ||
-                (rawHeaders.some(h => ['ordernumber', 'order', 'pedido'].includes(h)) && rawHeaders.some(h => ['customer', 'cliente', 'customername'].includes(h))));
+                (rawHeaders.some(h => ['ordernumber', 'order', 'pedido'].includes(h)) && rawHeaders.some(h => ['customer', 'cliente', 'customername'].includes(h)))
+            );
 
-            const isGrnFile = !isPoLookupFile && !isXdockFile && !isPickingFile && (fileName.includes('280') || fileName.includes('grn') || fileName.includes('entrada') ||
-                (rawHeaders.some(h => ['grn', 'grnnumber', 'referenciaimportacion', 'importreference'].includes(h)) && !rawHeaders.includes('bin1') && !rawHeaders.includes('physicalqty')));
+            const isGrnFile = !isPoLookupFile && !isXdockFile && !isPickingFile && (
+                fileName.includes('280') || fileName.includes('aurrsglbd0280') || fileName.includes('goods received') || fileName.includes('goodsreceived') || fileName.includes('grn') || fileName.includes('entrada') || fileName.includes('recepcion') || fileName.includes('receipt') ||
+                (rawHeaders.some(h => ['grn', 'grnnumber', 'referenciaimportacion', 'importreference'].includes(h)) && !rawHeaders.includes('bin1') && !rawHeaders.includes('physicalqty'))
+            );
 
-            const isItemMasterFile = !isPoLookupFile && !isXdockFile && !isPickingFile && !isGrnFile && (fileName.includes('250') || fileName.includes('master') || fileName.includes('maestro') || fileName.includes('item_master') ||
+            const isItemMasterFile = !isPoLookupFile && !isXdockFile && !isPickingFile && !isGrnFile && (
+                fileName.includes('250') || fileName.includes('aurrsglbd0250') || fileName.includes('stockroom') || fileName.includes('balance') || fileName.includes('master') || fileName.includes('maestro') || fileName.includes('item_master') ||
                 rawHeaders.some(h => ['bin1', 'binlocation', 'physicalqty', 'stockroom', 'costperunit', 'totalweight'].includes(h)) ||
                 (rawHeaders.some(h => ['itemcode', 'item', 'material', 'sku', 'codigo'].includes(h)) &&
-                 rawHeaders.some(h => ['description', 'descripcion', 'itemdescription', 'denominacion', 'bin1', 'binlocation', 'ubicacion'].includes(h))));
+                 rawHeaders.some(h => ['description', 'descripcion', 'itemdescription', 'denominacion', 'bin1', 'binlocation', 'ubicacion'].includes(h)))
+            );
 
             // 1. REPORTE 250 (Maestro de Ítems / Stockroom Master)
             if (isItemMasterFile) {
@@ -349,30 +357,57 @@ export const processLocalCSVUpload = async (file, selectedGrns = [], updateOptio
                     return;
                 }
 
-                if (isTauri()) {
-                    const ordersToInsert = [];
-                    for (const key of keys) {
-                        const orderData = ordersMap[key];
-                        for (const item of orderData.items) {
-                            ordersToInsert.push({
-                                shipment_id: orderData.order_number,
-                                order_number: orderData.order_number,
-                                customer_name: orderData.customer_name,
-                                carrier: 'N/A',
-                                item_code: item['Item Code'],
-                                item_description: item['Item Description'],
-                                requested_qty: Number(item['Qty'] || 0),
-                                picked_qty: 0,
-                                status: 'Pendiente',
-                                timestamp: new Date().toISOString()
+                const ordersToInsert = [];
+                for (const key of keys) {
+                    const orderData = ordersMap[key];
+                    for (const item of orderData.items) {
+                        ordersToInsert.push({
+                            shipment_id: orderData.order_number,
+                            order_number: orderData.order_number,
+                            despatch_number: orderData.despatch_number,
+                            customer_code: orderData.customer_code,
+                            customer_name: orderData.customer_name,
+                            carrier: 'N/A',
+                            order_line: item['Order Line'] || '1',
+                            item_code: item['Item Code'],
+                            item_description: item['Item Description'],
+                            requested_qty: Number(item['Qty'] || 0),
+                            picked_qty: 0,
+                            print_date: orderData.print_date,
+                            time_zone_hours: '-05:00',
+                            status: 'PP',
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+                }
+
+                // Sincronizar con IndexedDB (limpiar primero para reescribir completamente)
+                try {
+                    const db = await getDB();
+                    if (db) {
+                        await db.clear('picking_orders');
+                        await db.clear('picking_tracking');
+                        for (const key of keys) {
+                            const orderData = ordersMap[key];
+                            await db.put('picking_orders', {
+                                id: `${orderData.order_number}_${orderData.despatch_number}`,
+                                order: orderData.order_number,
+                                despatch: orderData.despatch_number,
+                                data: orderData.items,
+                                timestamp: Date.now()
                             });
                         }
                     }
+                } catch (errDb) {
+                    console.warn("Error updating local IndexedDB picking_orders:", errDb);
+                }
+
+                if (isTauri()) {
                     const resMsg = await invoke('import_picking_orders_bulk', { orders: ordersToInsert });
-                    resolve(resMsg || `Se cargaron ${keys.length} pedidos de picking en SQLite.`);
+                    resolve(resMsg || `Se actualizaron ${keys.length} pedidos de picking en SQLite (base reemplazada).`);
                     return;
                 }
-                resolve(`Se procesaron ${keys.length} pedidos de picking localmente.`);
+                resolve(`Se procesaron ${keys.length} pedidos de picking localmente (base reemplazada).`);
                 return;
             }
 

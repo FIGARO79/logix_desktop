@@ -1029,46 +1029,41 @@ fn archive_w2w_reconciliation(state: State<'_, AppState>, archive_name: Option<S
 // -------------------------------------------------------------
 
 #[tauri::command]
-fn get_shipments(state: State<'_, AppState>) -> Result<Vec<picking::ShipmentSummary>, String> {
-    let conn = state.db.get_connection().map_err(|e| e.to_string())?;
-    picking::get_shipments_from_db(&conn).map_err(|e| e.to_string())
+fn get_picking_tracking(state: State<'_, AppState>) -> Result<Vec<picking::PickingTrackingItem>, String> {
+    let mut conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    let csv_path = get_data_file_path("AURRSGLBD0240.csv");
+    let _ = picking::seed_picking_orders_from_csv_if_empty(&mut conn, csv_path.to_str().unwrap_or("./data/AURRSGLBD0240.csv"));
+    picking::get_picking_tracking_from_db(&conn).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn get_shipment_details(state: State<'_, AppState>, shipment_id: String) -> Result<Option<picking::ShipmentSummary>, String> {
+fn get_picking_order_details(state: State<'_, AppState>, order_number: String, despatch_number: String) -> Result<Vec<picking::PickingOrderRow>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
-    picking::get_shipment_details_from_db(&conn, &shipment_id).map_err(|e| e.to_string())
+    picking::get_picking_order_details_from_db(&conn, &order_number, &despatch_number).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn get_shipment_packing_list(state: State<'_, AppState>, shipment_id: String) -> Result<picking::PackingList, String> {
-    let conn = state.db.get_connection().map_err(|e| e.to_string())?;
-    picking::get_packing_list_from_db(&conn, &shipment_id).map_err(|e| e.to_string())
+fn save_picking_audit_full(state: State<'_, AppState>, payload: picking::PickingAuditFullInput) -> Result<i64, String> {
+    let mut conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    picking::save_picking_audit_full_to_db(&mut conn, payload).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn delete_shipment(state: State<'_, AppState>, shipment_id: String) -> Result<String, String> {
+fn get_picking_audits_full(state: State<'_, AppState>) -> Result<Vec<picking::PickingAuditSummaryFull>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
-    picking::delete_shipment_from_db(&conn, &shipment_id).map_err(|e| e.to_string())?;
-    Ok("Despacho eliminado".to_string())
+    picking::get_picking_audits_full_from_db(&conn).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn get_picking_audits(state: State<'_, AppState>) -> Result<Vec<picking::PickingAudit>, String> {
+fn get_picking_audit_by_id_full(state: State<'_, AppState>, audit_id: i64) -> Result<Option<picking::PickingAuditSummaryFull>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
-    picking::get_picking_audits_from_db(&conn).map_err(|e| e.to_string())
+    picking::get_picking_audit_by_id_full_db(&conn, audit_id).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn save_picking_audit(state: State<'_, AppState>, audit: picking::PickingAudit) -> Result<picking::PickingAudit, String> {
-    let conn = state.db.get_connection().map_err(|e| e.to_string())?;
-    picking::save_picking_audit_to_db(&conn, audit).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-fn update_picking_audit(state: State<'_, AppState>, id: i64, audit: picking::PickingAudit) -> Result<picking::PickingAudit, String> {
-    let conn = state.db.get_connection().map_err(|e| e.to_string())?;
-    picking::update_picking_audit_in_db(&conn, id, audit).map_err(|e| e.to_string())
+fn update_picking_audit_full(state: State<'_, AppState>, id: i64, payload: picking::PickingAuditFullInput) -> Result<bool, String> {
+    let mut conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    picking::update_picking_audit_full_in_db(&mut conn, id, payload).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -1079,10 +1074,41 @@ fn delete_picking_audits(state: State<'_, AppState>, ids: Vec<i64>) -> Result<St
 }
 
 #[tauri::command]
-fn import_picking_orders_bulk(state: State<'_, AppState>, orders: Vec<picking::PickingOrder>) -> Result<String, String> {
+fn get_picking_packing_list(state: State<'_, AppState>, audit_id: i64) -> Result<Option<picking::PickingAuditPackingListDto>, String> {
+    let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    picking::get_picking_packing_list_from_db(&conn, audit_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn create_shipment(state: State<'_, AppState>, audit_ids: Vec<i64>, note: Option<String>, carrier: Option<String>, username: Option<String>) -> Result<i64, String> {
     let mut conn = state.db.get_connection().map_err(|e| e.to_string())?;
-    let count = picking::import_picking_orders_bulk(&mut conn, &orders).map_err(|e| e.to_string())?;
-    Ok(format!("Se importaron {} órdenes de picking", count))
+    picking::create_shipment_in_db(&mut conn, &audit_ids, note, carrier, username).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn list_shipments(state: State<'_, AppState>) -> Result<Vec<picking::ShipmentDto>, String> {
+    let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    picking::list_shipments_from_db(&conn).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn get_consolidated_packing_list(state: State<'_, AppState>, shipment_id: i64) -> Result<Option<picking::ConsolidatedPackingListDto>, String> {
+    let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    picking::get_consolidated_packing_list_from_db(&conn, shipment_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn delete_shipment(state: State<'_, AppState>, shipment_id: i64) -> Result<String, String> {
+    let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    picking::delete_shipment_in_db(&conn, shipment_id).map_err(|e| e.to_string())?;
+    Ok("Despacho eliminado".to_string())
+}
+
+#[tauri::command]
+fn import_picking_orders_bulk(state: State<'_, AppState>, orders: Vec<picking::PickingOrderImportRow>) -> Result<String, String> {
+    let mut conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    let count = picking::import_picking_orders_bulk_db(&mut conn, &orders).map_err(|e| e.to_string())?;
+    Ok(format!("Se importaron {} registros de picking en SQLite", count))
 }
 
 // -------------------------------------------------------------
@@ -1274,12 +1300,6 @@ fn update_count_root_cause(state: State<'_, AppState>, count_id: i64, root_cause
 }
 
 #[tauri::command]
-fn get_picking_audit_by_id(state: State<'_, AppState>, audit_id: i64) -> Result<Option<picking::PickingAudit>, String> {
-    let conn = state.db.get_connection().map_err(|e| e.to_string())?;
-    picking::get_picking_audit_by_id_db(&conn, audit_id).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
 fn get_items_with_differences_planner(state: State<'_, AppState>) -> Result<Vec<planner::PlannerExecutionRecord>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     planner::get_items_with_differences_db(&conn).map_err(|e| e.to_string())
@@ -1393,15 +1413,18 @@ fn main() {
             archive_w2w_reconciliation,
 
             // Picking & Shipments
-            get_shipments,
-            get_shipment_details,
-            get_shipment_packing_list,
-            delete_shipment,
-            get_picking_audits,
-            get_picking_audit_by_id,
-            save_picking_audit,
-            update_picking_audit,
+            get_picking_tracking,
+            get_picking_order_details,
+            save_picking_audit_full,
+            get_picking_audits_full,
+            get_picking_audit_by_id_full,
+            update_picking_audit_full,
             delete_picking_audits,
+            get_picking_packing_list,
+            create_shipment,
+            list_shipments,
+            get_consolidated_packing_list,
+            delete_shipment,
             import_picking_orders_bulk,
 
             // Spot Check & Express Audit

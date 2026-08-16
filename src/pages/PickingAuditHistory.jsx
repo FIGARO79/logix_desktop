@@ -6,7 +6,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import { getDB } from '../utils/offlineDb';
 
 const PickingAuditHistory = () => {
-    const { setTitle } = useOutletContext();
+    const tabContext = useOutletContext();
+    const setTitle = tabContext?.setTitle || (() => {});
     const [audits, setAudits] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -27,7 +28,9 @@ const PickingAuditHistory = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        setTitle("Pickings Empacados");
+        if (typeof setTitle === 'function') {
+            setTitle("Pickings Empacados");
+        }
     }, [setTitle]);
 
     useEffect(() => {
@@ -39,15 +42,20 @@ const PickingAuditHistory = () => {
         setError(null);
         try {
             let serverAudits = [];
-            const response = await fetch('/api/views/view_picking_audits', { credentials: 'include' }).catch(() => null);
-            if (response && response.ok) {
-                serverAudits = await response.json().catch(() => []);
+            const response = await fetch('/api/views/view_picking_audits', { credentials: 'include' });
+            if (response.ok) {
+                serverAudits = await response.json();
             }
 
-            // Leer auditorías locales de IndexedDB (picking_audits y pending_sync para retrocompatibilidad)
+            if (Array.isArray(serverAudits) && serverAudits.length > 0) {
+                setAudits(serverAudits);
+                return;
+            }
+
+            // Fallback para IndexedDB solo si no vinieron del servidor/SQLite
             const db = await getDB();
-            const directAudits = await db.getAll('picking_audits') || [];
-            const pendingList = await db.getAll('pending_sync') || [];
+            const directAudits = db ? (await db.getAll('picking_audits') || []) : [];
+            const pendingList = db ? (await db.getAll('pending_sync') || []) : [];
             
             const legacyLocalAudits = pendingList
                 .filter(item => item.collection === 'picking' && item.payload)
@@ -75,17 +83,14 @@ const PickingAuditHistory = () => {
                 }));
 
             const combinedMap = new Map();
-            directAudits.forEach(a => combinedMap.set(`${a.order_number}_${a.despatch_number}`, a));
+            directAudits.forEach(a => {
+                const key = a.id ? String(a.id) : `${a.order_number}_${a.despatch_number}`;
+                combinedMap.set(key, a);
+            });
             legacyLocalAudits.forEach(a => {
-                const key = `${a.order_number}_${a.despatch_number}`;
+                const key = a.id ? String(a.id) : `${a.order_number}_${a.despatch_number}`;
                 if (!combinedMap.has(key)) combinedMap.set(key, a);
             });
-            if (Array.isArray(serverAudits)) {
-                serverAudits.forEach(sa => {
-                    const key = `${sa.order_number}_${sa.despatch_number}`;
-                    if (!combinedMap.has(key)) combinedMap.set(key, sa);
-                });
-            }
 
             setAudits(Array.from(combinedMap.values()));
         } catch (err) {
@@ -413,9 +418,9 @@ const PickingAuditHistory = () => {
                 <div className="bg-white border border-zinc-200 shadow-sm overflow-hidden">
                     <div className="hidden sm:block overflow-x-auto">
                         <table className="min-w-full leading-normal">
-                            <thead>
-                                <tr className="bg-zinc-50 border-b border-zinc-200">
-                                    <th className="px-4 py-1.5 text-center w-10">
+                            <thead className="bg-slate-700 text-white">
+                                <tr>
+                                    <th className="px-4 py-2.5 text-center w-10">
                                         <input
                                             type="checkbox"
                                             checked={audits.length > 0 && audits.every(a => selectedIds.has(a.id))}
@@ -430,26 +435,33 @@ const PickingAuditHistory = () => {
                                             title="Seleccionar todo"
                                         />
                                     </th>
-                                    <th className="px-4 py-1.5 text-center w-8"></th>
-                                    <th className="px-4 py-1.5 text-[12px] font-medium text-white uppercase tracking-widest text-left">ID</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-medium text-white uppercase tracking-widest text-left">Orden</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-medium text-white uppercase tracking-widest text-left">Despacho</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-medium text-white uppercase tracking-widest text-left">Cliente</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-medium text-white uppercase tracking-widest text-left">Usuario</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-medium text-white uppercase tracking-widest text-left">Fecha</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-medium text-white uppercase tracking-widest text-center">Estado</th>
-                                    <th className="px-4 py-1.5 text-[12px] font-medium text-white uppercase tracking-widest text-center">Acciones</th>
+                                    <th className="px-4 py-2.5 text-center w-8"></th>
+                                    <th className="px-4 py-2.5 text-[11px] font-semibold text-white uppercase tracking-wider text-left">ID</th>
+                                    <th className="px-4 py-2.5 text-[11px] font-semibold text-white uppercase tracking-wider text-left">Orden</th>
+                                    <th className="px-4 py-2.5 text-[11px] font-semibold text-white uppercase tracking-wider text-left">Despacho</th>
+                                    <th className="px-4 py-2.5 text-[11px] font-semibold text-white uppercase tracking-wider text-left">Cliente</th>
+                                    <th className="px-4 py-2.5 text-[11px] font-semibold text-white uppercase tracking-wider text-left">Usuario</th>
+                                    <th className="px-4 py-2.5 text-[11px] font-semibold text-white uppercase tracking-wider text-left">Fecha</th>
+                                    <th className="px-4 py-2.5 text-[11px] font-semibold text-white uppercase tracking-wider text-center">Estado</th>
+                                    <th className="px-4 py-2.5 text-[11px] font-semibold text-white uppercase tracking-wider text-center">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {audits.map((audit) => (
-                                    <React.Fragment key={audit.id}>
-                                        <tr
-                                            className={`border-b border-zinc-100 hover:bg-zinc-50/50 transition-colors cursor-pointer
-                                                ${expandedAuditId === audit.id ? 'bg-zinc-50' : ''}
-                                                ${selectedIds.has(audit.id) ? 'bg-blue-50/50' : ''}`}
-                                            onClick={() => toggleExpand(audit.id)}
-                                        >
+                                {audits.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="10" className="px-6 py-12 text-center text-zinc-400 text-xs uppercase tracking-wider">
+                                            No se han registrado auditorías de picking todavía.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    audits.map((audit) => (
+                                        <React.Fragment key={audit.id}>
+                                            <tr
+                                                className={`border-b border-zinc-100 hover:bg-zinc-50/50 transition-colors cursor-pointer
+                                                    ${expandedAuditId === audit.id ? 'bg-zinc-50' : ''}
+                                                    ${selectedIds.has(audit.id) ? 'bg-blue-50/50' : ''}`}
+                                                onClick={() => toggleExpand(audit.id)}
+                                            >
                                             <td className="px-4 py-1.5 text-center" onClick={e => e.stopPropagation()}>
                                                 <input
                                                     type="checkbox"
@@ -525,7 +537,7 @@ const PickingAuditHistory = () => {
                                                                 </tr>
                                                             </thead>
                                                             <tbody className="text-[10px]">
-                                                                {audit.items.map((item, idx) => (
+                                                                {(audit.items || []).map((item, idx) => (
                                                                     <tr key={idx} className="border-t border-zinc-50 hover:bg-zinc-50/30">
                                                                         <td className="py-2 font-mono text-zinc-600">{item.order_line}</td>
                                                                         <td className="py-2 font-medium  text-zinc-800">{item.item_code}</td>
@@ -544,15 +556,21 @@ const PickingAuditHistory = () => {
                                             </tr>
                                         )}
                                     </React.Fragment>
-                                ))}
+                                ))
+                                )}
                             </tbody>
                         </table>
                     </div>
 
                     {/* Mobile View */}
                     <div className="block sm:hidden bg-zinc-50 p-2 space-y-3">
-                        {audits.map((audit) => (
-                            <div key={audit.id} className="bg-white border border-zinc-200 p-4 shadow-sm" onClick={() => toggleExpand(audit.id)}>
+                        {audits.length === 0 ? (
+                            <div className="bg-white border border-zinc-200 p-8 text-center text-zinc-400 text-xs uppercase tracking-wider">
+                                No se han registrado auditorías de picking todavía.
+                            </div>
+                        ) : (
+                            audits.map((audit) => (
+                                <div key={audit.id} className="bg-white border border-zinc-200 p-4 shadow-sm" onClick={() => toggleExpand(audit.id)}>
                                 <div className="flex justify-between items-start mb-2">
                                     <div className="flex flex-col">
                                         <span className="text-[12px] font-medium  text-[#285f94] tracking-tight">{audit.order_number}</span>
@@ -576,7 +594,7 @@ const PickingAuditHistory = () => {
                                 </div>
                                 {expandedAuditId === audit.id && (
                                     <div className="mt-4 pt-4 border-t border-zinc-100 space-y-2">
-                                        {audit.items.map((item, idx) => (
+                                        {(audit.items || []).map((item, idx) => (
                                             <div key={idx} className="flex justify-between items-center text-[9px] bg-zinc-50 p-2 rounded">
                                                 <div className="flex flex-col">
                                                     <span className="font-medium  text-zinc-800">{item.item_code}</span>
@@ -592,7 +610,8 @@ const PickingAuditHistory = () => {
                                     </div>
                                 )}
                             </div>
-                        ))}
+                            ))
+                        )}
                     </div>
                 </div>
             )}

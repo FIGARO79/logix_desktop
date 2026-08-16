@@ -248,19 +248,24 @@ impl Database {
             [],
         )?;
 
-        // 11. Picking Orders & Audits
+        // 11. Picking Orders, Audits, Packages, Shipments
         conn.execute(
             "CREATE TABLE IF NOT EXISTS picking_orders (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                shipment_id TEXT NOT NULL,
-                order_number TEXT,
+                shipment_id TEXT DEFAULT '',
+                order_number TEXT NOT NULL,
+                despatch_number TEXT NOT NULL DEFAULT '00',
+                customer_code TEXT,
                 customer_name TEXT,
                 carrier TEXT,
+                order_line TEXT DEFAULT '1',
                 item_code TEXT NOT NULL,
                 item_description TEXT,
                 requested_qty REAL DEFAULT 0.0,
                 picked_qty REAL DEFAULT 0.0,
-                status TEXT DEFAULT 'Pendiente',
+                print_date TEXT,
+                time_zone_hours TEXT,
+                status TEXT DEFAULT 'PP',
                 timestamp TEXT NOT NULL
             );",
             [],
@@ -269,16 +274,77 @@ impl Database {
         conn.execute(
             "CREATE TABLE IF NOT EXISTS picking_audits (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                shipment_id TEXT NOT NULL,
-                order_number TEXT,
+                order_number TEXT NOT NULL,
+                despatch_number TEXT NOT NULL DEFAULT '00',
+                customer_code TEXT,
+                customer_name TEXT,
+                username TEXT NOT NULL DEFAULT 'admin',
+                timestamp TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'Completo',
+                packages INTEGER DEFAULT 1,
+                shipment_id TEXT DEFAULT ''
+            );",
+            [],
+        )?;
+
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS picking_audit_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                audit_id INTEGER NOT NULL REFERENCES picking_audits(id) ON DELETE CASCADE,
                 item_code TEXT NOT NULL,
-                item_description TEXT,
-                requested_qty REAL DEFAULT 0.0,
-                audited_qty REAL DEFAULT 0.0,
+                description TEXT,
+                order_line TEXT DEFAULT '',
+                qty_req REAL DEFAULT 0.0,
+                qty_scan REAL DEFAULT 0.0,
                 difference REAL DEFAULT 0.0,
-                auditor_user TEXT,
-                status TEXT DEFAULT 'Auditado',
-                timestamp TEXT NOT NULL
+                edited INTEGER DEFAULT 0
+            );",
+            [],
+        )?;
+
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS picking_package_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                audit_id INTEGER NOT NULL REFERENCES picking_audits(id) ON DELETE CASCADE,
+                package_number INTEGER NOT NULL,
+                order_line TEXT DEFAULT '',
+                item_code TEXT NOT NULL,
+                description TEXT,
+                qty_scan REAL DEFAULT 0.0
+            );",
+            [],
+        )?;
+
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS picking_packages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                audit_id INTEGER NOT NULL REFERENCES picking_audits(id) ON DELETE CASCADE,
+                package_number INTEGER NOT NULL,
+                length REAL DEFAULT 0.0,
+                width REAL DEFAULT 0.0,
+                height REAL DEFAULT 0.0,
+                weight REAL DEFAULT 0.0
+            );",
+            [],
+        )?;
+
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS shipments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL,
+                note TEXT,
+                carrier TEXT,
+                status TEXT DEFAULT 'active',
+                created_at TEXT NOT NULL
+            );",
+            [],
+        )?;
+
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS shipment_audits (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                shipment_id INTEGER NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
+                audit_id INTEGER NOT NULL REFERENCES picking_audits(id) ON DELETE CASCADE
             );",
             [],
         )?;
@@ -388,15 +454,75 @@ impl Database {
         Self::add_column_if_not_exists(&conn, "recount_list", "approved", "INTEGER DEFAULT 0")?;
         Self::add_column_if_not_exists(&conn, "recount_list", "created_at", "TEXT DEFAULT ''")?;
 
-        Self::add_column_if_not_exists(&conn, "picking_orders", "order_number", "TEXT")?;
+        Self::add_column_if_not_exists(&conn, "picking_orders", "order_number", "TEXT NOT NULL DEFAULT ''")?;
+        Self::add_column_if_not_exists(&conn, "picking_orders", "despatch_number", "TEXT DEFAULT '00'")?;
+        Self::add_column_if_not_exists(&conn, "picking_orders", "customer_code", "TEXT")?;
         Self::add_column_if_not_exists(&conn, "picking_orders", "customer_name", "TEXT")?;
         Self::add_column_if_not_exists(&conn, "picking_orders", "carrier", "TEXT")?;
+        Self::add_column_if_not_exists(&conn, "picking_orders", "order_line", "TEXT DEFAULT '1'")?;
         Self::add_column_if_not_exists(&conn, "picking_orders", "item_description", "TEXT")?;
         Self::add_column_if_not_exists(&conn, "picking_orders", "picked_qty", "REAL DEFAULT 0.0")?;
-        Self::add_column_if_not_exists(&conn, "picking_orders", "status", "TEXT DEFAULT 'Pendiente'")?;
+        Self::add_column_if_not_exists(&conn, "picking_orders", "print_date", "TEXT")?;
+        Self::add_column_if_not_exists(&conn, "picking_orders", "time_zone_hours", "TEXT")?;
+        Self::add_column_if_not_exists(&conn, "picking_orders", "status", "TEXT DEFAULT 'PP'")?;
 
+        Self::add_column_if_not_exists(&conn, "picking_audits", "despatch_number", "TEXT DEFAULT '00'")?;
+        Self::add_column_if_not_exists(&conn, "picking_audits", "customer_code", "TEXT")?;
+        Self::add_column_if_not_exists(&conn, "picking_audits", "customer_name", "TEXT")?;
+        Self::add_column_if_not_exists(&conn, "picking_audits", "username", "TEXT DEFAULT 'admin'")?;
+        Self::add_column_if_not_exists(&conn, "picking_audits", "packages", "INTEGER DEFAULT 1")?;
         Self::add_column_if_not_exists(&conn, "picking_audits", "difference", "REAL DEFAULT 0.0")?;
-        Self::add_column_if_not_exists(&conn, "picking_audits", "status", "TEXT DEFAULT 'Auditado'")?;
+        Self::add_column_if_not_exists(&conn, "picking_audits", "status", "TEXT DEFAULT 'Completo'")?;
+
+        // Migración: la tabla picking_audits legacy tenía item_code y shipment_id como NOT NULL.
+        // El nuevo INSERT no los envía, causando "NOT NULL constraint failed: picking_audits.item_code".
+        // Si detectamos esa condición, recreamos la tabla con DEFAULTs seguros.
+        {
+            let col_notnull: i32 = conn
+                .query_row(
+                    "SELECT notnull FROM pragma_table_info('picking_audits') WHERE name='item_code'",
+                    [],
+                    |row| row.get(0),
+                )
+                .unwrap_or(0);
+
+            if col_notnull == 1 {
+                conn.execute_batch("
+                    PRAGMA foreign_keys=OFF;
+                    BEGIN;
+                    CREATE TABLE IF NOT EXISTS picking_audits_migration_tmp (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        shipment_id TEXT DEFAULT '',
+                        order_number TEXT NOT NULL DEFAULT '',
+                        despatch_number TEXT NOT NULL DEFAULT '00',
+                        item_code TEXT DEFAULT '',
+                        item_description TEXT,
+                        requested_qty REAL DEFAULT 0.0,
+                        audited_qty REAL DEFAULT 0.0,
+                        difference REAL DEFAULT 0.0,
+                        auditor_user TEXT,
+                        status TEXT DEFAULT 'Completo',
+                        timestamp TEXT NOT NULL DEFAULT '',
+                        customer_code TEXT,
+                        customer_name TEXT,
+                        username TEXT DEFAULT 'admin',
+                        packages INTEGER DEFAULT 1
+                    );
+                    INSERT INTO picking_audits_migration_tmp
+                        SELECT id, COALESCE(shipment_id,''), COALESCE(order_number,''),
+                               COALESCE(despatch_number,'00'), COALESCE(item_code,''),
+                               item_description, COALESCE(requested_qty,0), COALESCE(audited_qty,0),
+                               COALESCE(difference,0), auditor_user, COALESCE(status,'Completo'),
+                               COALESCE(timestamp,''), customer_code, customer_name,
+                               COALESCE(username,'admin'), COALESCE(packages,1)
+                        FROM picking_audits;
+                    DROP TABLE picking_audits;
+                    ALTER TABLE picking_audits_migration_tmp RENAME TO picking_audits;
+                    COMMIT;
+                    PRAGMA foreign_keys=ON;
+                ")?;
+            }
+        }
 
         Self::add_column_if_not_exists(&conn, "spot_checks", "diff_qty", "REAL DEFAULT 0.0")?;
         Self::add_column_if_not_exists(&conn, "express_audits", "diff_qty", "REAL DEFAULT 0.0")?;
@@ -408,8 +534,11 @@ impl Database {
              CREATE INDEX IF NOT EXISTS idx_counts_loc ON counts(location);
              CREATE INDEX IF NOT EXISTS idx_inbound_ir ON inbound_logs(import_reference);
              CREATE INDEX IF NOT EXISTS idx_inbound_item ON inbound_logs(item_code);
-             CREATE INDEX IF NOT EXISTS idx_picking_shipment ON picking_orders(shipment_id);
-             CREATE INDEX IF NOT EXISTS idx_picking_audits_shipment ON picking_audits(shipment_id);"
+             CREATE INDEX IF NOT EXISTS idx_picking_orders_ord ON picking_orders(order_number, despatch_number);
+             CREATE INDEX IF NOT EXISTS idx_picking_audits_ord ON picking_audits(order_number, despatch_number);
+             CREATE INDEX IF NOT EXISTS idx_picking_audit_items_aid ON picking_audit_items(audit_id);
+             CREATE INDEX IF NOT EXISTS idx_picking_pkg_items_aid ON picking_package_items(audit_id);
+             CREATE INDEX IF NOT EXISTS idx_shipment_audits_sid ON shipment_audits(shipment_id);"
         )?;
 
         Ok(())

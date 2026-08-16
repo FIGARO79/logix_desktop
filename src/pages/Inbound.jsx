@@ -332,28 +332,25 @@ const Inbound = () => {
     const loadSlottingBins = async () => {
         let binsLoaded = false;
 
-        // 1. Intentar cargar en tiempo real desde la API del backend (más actualizado, consulta DB física directamente)
-        if (navigator.onLine) {
-            try {
-                const res = await fetch('/api/views/valid_bins', { credentials: 'include' });
-                if (res.ok) {
-                    const binsList = await res.json();
-                    if (Array.isArray(binsList) && binsList.length > 0) {
-                        const binsSet = new Set(binsList.map(b => b.toUpperCase()));
-                        setValidBins(binsSet);
-                        // Guardar en la caché IndexedDB para soporte offline futuro
-                        await cacheData('slotting_valid_bins', binsList);
-                        binsLoaded = true;
-                        console.log(`Logix: Cargadas ${binsSet.size} ubicaciones válidas de slotting desde API.`);
-                    }
+        // Desktop: always attempt to load from API (localApiBridge routes to SQLite)
+        try {
+            const res = await fetch('/api/views/valid_bins', { credentials: 'include' });
+            if (res.ok) {
+                const binsList = await res.json();
+                if (Array.isArray(binsList) && binsList.length > 0) {
+                    const binsSet = new Set(binsList.map(b => b.toUpperCase()));
+                    setValidBins(binsSet);
+                    await cacheData('slotting_valid_bins', binsList);
+                    binsLoaded = true;
+                    console.log(`Logix: Cargadas ${binsSet.size} ubicaciones válidas de slotting.`);
                 }
-            } catch (e) {
-                console.warn("No se pudo cargar bins desde la API, intentando fallback estático...", e);
             }
+        } catch (e) {
+            console.warn("No se pudo cargar bins desde la API, intentando fallback estático...", e);
         }
 
-        // 2. Fallback 1: Cargar desde el archivo estático JSON (con prevención de caché)
-        if (!binsLoaded && navigator.onLine) {
+        // 2. Fallback: Cargar desde archivo estático JSON
+        if (!binsLoaded) {
             try {
                 const res = await fetch(`/static/json/slotting_parameters.json?t=${Date.now()}`);
                 if (res.ok) {

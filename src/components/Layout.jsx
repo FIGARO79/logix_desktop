@@ -178,11 +178,8 @@ const Layout = () => {
     }, [showPendingModal]);
 
     const handleManualSync = async () => {
-        if (!navigator.onLine) {
-            toast.warning("El equipo se encuentra offline. No se pudo conectar al servidor.");
-            return;
-        }
-        toast.info("Intentando sincronizar datos pendientes...");
+        // Desktop app: always available, no need to check navigator.onLine
+        toast.info("Sincronizando datos...");
         await syncPendingData();
         await refreshPendingCount();
         await loadPendingRecords();
@@ -456,10 +453,6 @@ const Layout = () => {
                 </div>
 
                 <div className="header-actions flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-medium text-white tracking-tight uppercase border border-emerald-500/30 bg-emerald-500/20">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                        <span>MODO LOCAL</span>
-                    </div>
                     <Link to="/admin/login" className="text-[11px] font-medium text-white uppercase tracking-tight px-3 py-1 border border-white/20 rounded hover:bg-white/10 transition-all opacity-0 hover:opacity-100 duration-200">Admin</Link>
                 </div>
             </header>
