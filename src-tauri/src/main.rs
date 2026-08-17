@@ -30,16 +30,23 @@ fn get_data_file_path(filename: &str) -> PathBuf {
     if path.ends_with("src-tauri") {
         path.pop();
     }
-    path.push("data");
-    path.push(filename);
-    if path.exists() {
-        return path;
+    let data_file = path.join("data").join(filename);
+    if data_file.exists() {
+        return data_file;
+    }
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let exe_data_file = exe_dir.join("data").join(filename);
+            if exe_data_file.exists() {
+                return exe_data_file;
+            }
+        }
     }
     let direct = PathBuf::from("data").join(filename);
     if direct.exists() {
         return direct;
     }
-    path
+    data_file
 }
 
 // -------------------------------------------------------------

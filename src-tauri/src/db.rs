@@ -13,6 +13,17 @@ impl Database {
         if path.ends_with("src-tauri") {
             path.pop();
         }
+        let data_dir = path.join("data");
+        if !data_dir.exists() {
+            if let Ok(exe_path) = std::env::current_exe() {
+                if let Some(exe_dir) = exe_path.parent() {
+                    let exe_data = exe_dir.join("data");
+                    if exe_data.exists() || !exe_dir.to_string_lossy().contains("target") {
+                        path = exe_dir.to_path_buf();
+                    }
+                }
+            }
+        }
         path.push("data");
         if !path.exists() {
             let _ = fs::create_dir_all(&path);
