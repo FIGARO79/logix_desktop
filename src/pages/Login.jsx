@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { isTauri, tauriLogin } from '../utils/tauriBridge';
 
 const Login = () => {
-    const [username, setUsername] = useState('admin');
-    const [password, setPassword] = useState('admin123');
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
