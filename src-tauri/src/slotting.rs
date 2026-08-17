@@ -4,6 +4,7 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BinInfo {
     pub zone: Option<String>,
+    pub aisle: Option<String>,
     pub level: i32,
     pub score: i32,
     pub spot: Option<String>,
@@ -299,6 +300,7 @@ pub fn load_slotting_config(path_str: &str) -> (
             if let Some(storage_obj) = val.get("storage").and_then(|v| v.as_object()) {
                 for (bin_code, b_val) in storage_obj {
                     let zone = b_val.get("zone").and_then(|v| v.as_str()).map(|s| s.to_string());
+                    let aisle = b_val.get("aisle").and_then(|v| v.as_str()).map(|s| s.to_string());
                     let spot = b_val.get("spot").and_then(|v| v.as_str()).map(|s| s.to_string());
                     let level = b_val.get("level")
                         .and_then(|v| v.as_i64().map(|n| n as i32))
@@ -313,6 +315,7 @@ pub fn load_slotting_config(path_str: &str) -> (
                         bin_code.to_uppercase(),
                         BinInfo {
                             zone,
+                            aisle,
                             level,
                             score,
                             spot,
@@ -392,11 +395,13 @@ pub fn load_slotting_config(path_str: &str) -> (
 pub fn get_occupancy_from_db(conn: &rusqlite::Connection) -> HashMap<String, i32> {
     let mut map = HashMap::new();
     if let Ok(mut stmt) = conn.prepare(
-        "SELECT UPPER(TRIM(bin_location)), COUNT(*)
+        "SELECT UPPER(TRIM(bin_location)), COUNT(DISTINCT UPPER(TRIM(item_code)))
          FROM inventory_items
          WHERE bin_location IS NOT NULL
            AND bin_location != ''
            AND UPPER(bin_location) != 'N/A'
+           AND UPPER(bin_location) != 'SIN UBICACION'
+           AND system_qty > 0
          GROUP BY UPPER(TRIM(bin_location))"
     ) {
         if let Ok(iter) = stmt.query_map([], |row| {
@@ -452,8 +457,8 @@ mod tests {
     #[test]
     fn test_slotting_heavy_item() {
         let mut storage = HashMap::new();
-        storage.insert("A-01-01".to_string(), BinInfo { zone: Some("Rack".to_string()), level: 1, score: 5, spot: Some("hot".to_string()) });
-        storage.insert("A-01-03".to_string(), BinInfo { zone: Some("Rack".to_string()), level: 3, score: 5, spot: Some("warm".to_string()) });
+        storage.insert("A-01-01".to_string(), BinInfo { zone: Some("Rack".to_string()), aisle: Some("01".to_string()), level: 1, score: 5, spot: Some("hot".to_string()) });
+        storage.insert("A-01-03".to_string(), BinInfo { zone: Some("Rack".to_string()), aisle: Some("01".to_string()), level: 3, score: 5, spot: Some("warm".to_string()) });
 
         let turnover = HashMap::new();
         let zone_rules = ZoneRules::default();
@@ -474,8 +479,8 @@ mod tests {
     #[test]
     fn test_slotting_minuteria_item() {
         let mut storage = HashMap::new();
-        storage.insert("M-01-01".to_string(), BinInfo { zone: Some("Minuteria".to_string()), level: 1, score: 8, spot: Some("hot".to_string()) });
-        storage.insert("A-01-01".to_string(), BinInfo { zone: Some("Rack".to_string()), level: 1, score: 8, spot: Some("hot".to_string()) });
+        storage.insert("M-01-01".to_string(), BinInfo { zone: Some("Minuteria".to_string()), aisle: Some("01".to_string()), level: 1, score: 8, spot: Some("hot".to_string()) });
+        storage.insert("A-01-01".to_string(), BinInfo { zone: Some("Rack".to_string()), aisle: Some("01".to_string()), level: 1, score: 8, spot: Some("hot".to_string()) });
 
         let turnover = HashMap::new();
         let zone_rules = ZoneRules::default();

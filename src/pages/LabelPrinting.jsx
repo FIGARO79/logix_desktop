@@ -6,7 +6,9 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import SandvikLabel from '../components/labels/SandvikLabel';
 import ScannerModal from '../components/ScannerModal';
+import PrinterSettingsModal from '../components/PrinterSettingsModal';
 import { parseGS1Barcode } from '../utils/gs1Parser';
+import { getPrinterConfig, printSandvikLabelSilent, isTauri } from '../utils/tauriBridge';
 import '../styles/Label.css';
 
 
@@ -21,6 +23,7 @@ const LabelPrinting = () => {
     const [loading, setLoading] = useState(false);
     const [qrImage, setQrImage] = useState(null);
     const [scannerOpen, setScannerOpen] = useState(false);
+    const [printerModalOpen, setPrinterModalOpen] = useState(false);
 
     // Refs
     const itemCodeInputRef = useRef(null);
@@ -38,6 +41,37 @@ const LabelPrinting = () => {
         }
     }, [itemData, itemCode]);
 
+    const printSilentOrFallback = async (dataToPrint, qtyToPrint) => {
+        const cfg = getPrinterConfig();
+        const currentData = dataToPrint || itemData;
+        const currentQty = qtyToPrint || quantity || 1;
+
+        if (!currentData) return;
+
+        const weightCalc = (parseFloat(currentData.weight || 0) * parseInt(currentQty, 10)).toFixed(2);
+
+        if (isTauri() && cfg.auto_print_enabled) {
+            const payload = {
+                itemCode: currentData.itemCode,
+                description: currentData.description,
+                quantity: currentQty,
+                weight: weightCalc,
+                binLocation: currentData.binLocation || '',
+                qrData: currentData.itemCode
+            };
+            const res = await printSandvikLabelSilent(payload, cfg.default_label_printer);
+            if (res.success) {
+                toast.success(`🖨️ Etiqueta enviada a: ${cfg.default_label_printer || 'Predeterminada'}`);
+                return;
+            } else {
+                toast.warn(`Fallo en impresión silenciosa (${res.error}), abriendo diálogo...`);
+            }
+        }
+
+        // Fallback al diálogo react-to-print
+        triggerReactPrint();
+    };
+
     const findItem = async (codeToUse) => {
         let code = (codeToUse || itemCode).trim().toUpperCase();
         if (!code) {
@@ -46,10 +80,12 @@ const LabelPrinting = () => {
         }
 
         const gs1 = parseGS1Barcode(code);
+        let decodedQty = quantity;
         if ((gs1.isGS1 || gs1.isMultiField) && gs1.itemCode) {
             code = gs1.itemCode.trim().toUpperCase();
             setItemCode(code);
             if (gs1.quantity && (!quantity || quantity === 1)) {
+                decodedQty = gs1.quantity;
                 setQuantity(gs1.quantity);
             }
             toast.info(`Código decodificado: ${code}`);
@@ -63,14 +99,23 @@ const LabelPrinting = () => {
             const data = await res.json();
 
             if (res.ok) {
-                setItemData({
+                const foundObj = {
                     itemCode: data.item_code,
                     description: data.description,
                     binLocation: data.bin_location,
                     aditionalBins: data.additional_bins,
                     weight: data.weight_kg
-                });
+                };
+                setItemData(foundObj);
                 toast.success("Item encontrado");
+
+                // Auto-imprimir si está habilitada la opción en configuración
+                const cfg = getPrinterConfig();
+                if (cfg.auto_print_on_scan && cfg.auto_print_enabled) {
+                    setTimeout(() => {
+                        printSilentOrFallback(foundObj, decodedQty);
+                    }, 200);
+                }
             } else {
                 toast.error(data.detail || "Item no encontrado");
             }
@@ -90,12 +135,16 @@ const LabelPrinting = () => {
         }
     };
 
-    const handlePrint = useReactToPrint({
+    const triggerReactPrint = useReactToPrint({
         contentRef: labelComponentRef,
         content: () => labelComponentRef.current,
         documentTitle: itemData ? `Etiqueta_${itemData.itemCode}` : "Etiqueta",
         pageStyle: "@page { size: 70mm 100mm; margin: 0; } body { margin: 0; -webkit-print-color-adjust: exact; }"
     });
+
+    const handlePrintClick = () => {
+        printSilentOrFallback(itemData, quantity);
+    };
 
     const totalWeight = itemData ? (parseFloat(itemData.weight || 0) * parseInt(quantity || 1)).toFixed(2) : '0.00';
 
@@ -103,6 +152,7 @@ const LabelPrinting = () => {
         <div className="container-wrapper px-4 py-4">
             <ToastContainer position="top-right" autoClose={3000} />
             {scannerOpen && <ScannerModal onClose={() => setScannerOpen(false)} onScan={handleScan} />}
+            <PrinterSettingsModal isOpen={printerModalOpen} onClose={() => setPrinterModalOpen(false)} />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
 
@@ -202,16 +252,24 @@ const LabelPrinting = () => {
                         </div>
                     </div>
 
-                    <div className="w-full flex justify-center mt-2">
+                    <div className="w-full flex items-center justify-center gap-2 mt-2">
                         <button
-                            onClick={handlePrint}
+                            type="button"
+                            onClick={() => setPrinterModalOpen(true)}
+                            className="h-[30px] px-2.5 text-[10px] text-zinc-700 bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 rounded-lg shadow-sm flex items-center justify-center gap-1 font-medium transition-colors cursor-pointer"
+                            title="Configurar Impresora Predeterminada e Impresión Silenciosa"
+                        >
+                            ⚙️ Impresora
+                        </button>
+                        <button
+                            onClick={handlePrintClick}
                             disabled={!itemData}
-                            className={`h-[30px] px-6 text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all ${!itemData ? 'opacity-60 cursor-not-allowed' : ''}`}
+                            className={`h-[30px] px-5 text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-1.5 uppercase font-medium active:scale-95 transition-all cursor-pointer ${!itemData ? 'opacity-50 cursor-not-allowed' : ''}`}
                             style={{ background: '#285f94' }}
                             onMouseEnter={e => itemData && (e.currentTarget.style.background = '#1e4a74')}
                             onMouseLeave={e => itemData && (e.currentTarget.style.background = '#285f94')}
                         >
-                            Imprimir Etiqueta
+                            🖨️ Imprimir Etiqueta
                         </button>
                     </div>
                 </div>

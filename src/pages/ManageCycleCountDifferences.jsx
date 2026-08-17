@@ -41,7 +41,7 @@ const ManageCycleCountDifferences = () => {
     };
 
     const sortedData = useMemo(() => {
-        let sortableItems = [...data];
+        let sortableItems = Array.isArray(data) ? [...data] : [];
         if (sortConfig.key !== null) {
             sortableItems.sort((a, b) => {
                 let valA = a[sortConfig.key];
@@ -91,9 +91,10 @@ const ManageCycleCountDifferences = () => {
             const res = await fetch(`/api/planner/cycle_count_differences?${queryParams}`);
             if (!res.ok) throw new Error("Error cargando datos");
             const result = await res.json();
-            setData(result);
+            setData(Array.isArray(result) ? result : (result?.items || []));
         } catch (err) {
             console.error(err);
+            setData([]);
         } finally {
             if (showLoading) setLoading(false);
         }

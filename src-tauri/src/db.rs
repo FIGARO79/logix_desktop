@@ -85,12 +85,14 @@ impl Database {
             "CREATE TABLE IF NOT EXISTS storage_locations (
                 bin_code TEXT PRIMARY KEY,
                 zone TEXT,
+                aisle TEXT DEFAULT '',
                 level INTEGER DEFAULT 0,
                 spot TEXT DEFAULT 'cold',
                 score INTEGER DEFAULT 0
             );",
             [],
         )?;
+        Self::add_column_if_not_exists(&conn, "storage_locations", "aisle", "TEXT DEFAULT ''")?;
 
         // 4. Inbound Logs (Recepciones físicas)
         conn.execute(
@@ -416,6 +418,15 @@ impl Database {
             "CREATE TABLE IF NOT EXISTS app_settings (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
+            );",
+            [],
+        )?;
+
+        // 18. Sync Metadata (Tiempos de última actualización por fuente de datos)
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS sync_metadata (
+                key TEXT PRIMARY KEY,
+                timestamp INTEGER NOT NULL
             );",
             [],
         )?;

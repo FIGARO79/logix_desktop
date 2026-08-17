@@ -11,11 +11,13 @@ mod picking;
 mod spot_check;
 mod planner;
 mod stock;
+mod printer;
 
 use db::Database;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use tauri::State;
 
@@ -316,6 +318,13 @@ fn add_inventory_items_bulk(state: State<'_, AppState>, items: Vec<InventoryItem
             ])
             .map_err(|e| e.to_string())?;
         }
+
+        let now_ts = chrono::Utc::now().timestamp();
+        let _ = tx.execute(
+            "INSERT INTO sync_metadata (key, timestamp) VALUES ('master_items', ?1)
+             ON CONFLICT(key) DO UPDATE SET timestamp = excluded.timestamp",
+            params![now_ts],
+        );
     }
     tx.commit().map_err(|e| e.to_string())?;
 
@@ -694,32 +703,56 @@ fn get_inbound_master_maps(
 }
 
 #[tauri::command]
-fn save_po_lookup_json(json_content: String) -> Result<String, String> {
+fn save_po_lookup_json(state: State<'_, AppState>, json_content: String) -> Result<String, String> {
     let path = get_data_file_path("po_lookup.json");
     if let Some(parent) = path.parent() {
         let _ = std::fs::create_dir_all(parent);
     }
     std::fs::write(&path, json_content).map_err(|e| e.to_string())?;
+    if let Ok(conn) = state.db.get_connection() {
+        let now_ts = chrono::Utc::now().timestamp();
+        let _ = conn.execute(
+            "INSERT INTO sync_metadata (key, timestamp) VALUES ('po_extractor', ?1)
+             ON CONFLICT(key) DO UPDATE SET timestamp = excluded.timestamp",
+            params![now_ts],
+        );
+    }
     Ok("Caché local PO Extractor guardado en data/po_lookup.json".to_string())
 }
 
 #[tauri::command]
-fn save_grn_master_json(json_content: String) -> Result<String, String> {
+fn save_grn_master_json(state: State<'_, AppState>, json_content: String) -> Result<String, String> {
     let path = get_data_file_path("grn_master_data.json");
     if let Some(parent) = path.parent() {
         let _ = std::fs::create_dir_all(parent);
     }
     std::fs::write(&path, json_content).map_err(|e| e.to_string())?;
+    if let Ok(conn) = state.db.get_connection() {
+        let now_ts = chrono::Utc::now().timestamp();
+        let _ = conn.execute(
+            "INSERT INTO sync_metadata (key, timestamp) VALUES ('grn_pending', ?1)
+             ON CONFLICT(key) DO UPDATE SET timestamp = excluded.timestamp",
+            params![now_ts],
+        );
+    }
     Ok("Caché local GRN guardado en data/grn_master_data.json".to_string())
 }
 
 #[tauri::command]
-fn save_xdock_reservations_json(json_content: String) -> Result<String, String> {
+fn save_xdock_reservations_json(state: State<'_, AppState>, json_content: String) -> Result<String, String> {
     let path = get_data_file_path("xdock_reservations.json");
     if let Some(parent) = path.parent() {
         let _ = std::fs::create_dir_all(parent);
     }
     std::fs::write(&path, json_content).map_err(|e| e.to_string())?;
+    if let Ok(conn) = state.db.get_connection() {
+        let now_ts = chrono::Utc::now().timestamp();
+        let _ = conn.execute(
+            "INSERT INTO sync_metadata (key, timestamp) VALUES ('xdock_reservations', ?1)
+             ON CONFLICT(key) DO UPDATE SET timestamp = excluded.timestamp",
+            params![now_ts],
+        );
+    }
     Ok("Caché local de Reservas Xdock guardado en data/xdock_reservations.json".to_string())
 }
 
@@ -935,6 +968,12 @@ fn get_count_stats(state: State<'_, AppState>) -> Result<counts::CountStats, Str
 }
 
 #[tauri::command]
+fn get_inventory_dashboard_stats(state: State<'_, AppState>) -> Result<Value, String> {
+    let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    counts::get_inventory_dashboard_stats(&conn).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn calculate_cycle_count_differences(
     state: State<'_, AppState>,
 ) -> Result<Vec<counts::CycleCountResult>, String> {
@@ -946,6 +985,30 @@ fn calculate_cycle_count_differences(
 fn get_active_recount_list(state: State<'_, AppState>) -> Result<Vec<counts::RecountItem>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     counts::get_active_recount_list(&conn).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn get_planner_cycle_count_differences(
+    state: State<'_, AppState>,
+    year: Option<i32>,
+    month: Option<i32>,
+    only_differences: Option<bool>,
+) -> Result<Vec<counts::PlannerCycleCountDiff>, String> {
+    let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    counts::get_planner_cycle_count_differences(&conn, year, month, only_differences.unwrap_or(true))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn update_planner_cycle_count_diff(
+    state: State<'_, AppState>,
+    rec_id: i64,
+    physical_qty: f64,
+) -> Result<String, String> {
+    let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    counts::update_planner_cycle_count_diff(&conn, rec_id, physical_qty)
+        .map_err(|e| e.to_string())?;
+    Ok("Actualizado correctamente".to_string())
 }
 
 // -------------------------------------------------------------
@@ -1108,6 +1171,12 @@ fn delete_shipment(state: State<'_, AppState>, shipment_id: i64) -> Result<Strin
 fn import_picking_orders_bulk(state: State<'_, AppState>, orders: Vec<picking::PickingOrderImportRow>) -> Result<String, String> {
     let mut conn = state.db.get_connection().map_err(|e| e.to_string())?;
     let count = picking::import_picking_orders_bulk_db(&mut conn, &orders).map_err(|e| e.to_string())?;
+    let now_ts = chrono::Utc::now().timestamp();
+    let _ = conn.execute(
+        "INSERT INTO sync_metadata (key, timestamp) VALUES ('picking', ?1)
+         ON CONFLICT(key) DO UPDATE SET timestamp = excluded.timestamp",
+        params![now_ts],
+    );
     Ok(format!("Se importaron {} registros de picking en SQLite", count))
 }
 
@@ -1238,6 +1307,231 @@ fn get_slotting_summary(state: State<'_, AppState>) -> Result<SlottingSummary, S
     })
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OccupancyDetailRow {
+    pub bin_code: String,
+    pub aisle: String,
+    pub level: i32,
+    pub zone: String,
+    pub spot: String,
+    pub skus: i32,
+    pub occupancy_pct: i32,
+}
+
+#[tauri::command]
+fn get_occupancy_report(state: State<'_, AppState>) -> Result<Value, String> {
+    let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    let slotting_path = get_data_file_path("slotting_parameters.json");
+    let (mut storage, _, _, _) = slotting::load_slotting_config(slotting_path.to_str().unwrap_or("./data/slotting_parameters.json"));
+    let occupancy = slotting::get_occupancy_from_db(&conn);
+
+    if storage.is_empty() {
+        if let Ok(mut stmt) = conn.prepare("SELECT bin_code, zone, aisle, level, spot, score FROM storage_locations") {
+            if let Ok(iter) = stmt.query_map([], |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    slotting::BinInfo {
+                        zone: r.get(1)?,
+                        aisle: r.get(2)?,
+                        level: r.get(3)?,
+                        spot: r.get(4)?,
+                        score: r.get(5)?,
+                    }
+                ))
+            }) {
+                for item in iter.flatten() {
+                    storage.insert(item.0.to_uppercase(), item.1);
+                }
+            }
+        }
+    }
+
+    let mut zones_map: HashMap<String, Value> = HashMap::new();
+    let mut zones_by_items: HashMap<String, i32> = HashMap::new();
+    let mut aisles_by_items: HashMap<String, i32> = HashMap::new();
+    let mut total_items: i32 = 0;
+    let mut filled_bins: i32 = 0;
+    let mut available_bins: i32 = 0;
+
+    for (bin_code, info) in &storage {
+        let zone = info.zone.clone().unwrap_or_else(|| "Unknown".to_string());
+        let level = info.level.clamp(0, 8);
+        let aisle = info.aisle.clone().unwrap_or_else(|| "N/A".to_string());
+
+        let current_skus = *occupancy.get(bin_code).unwrap_or(&0);
+        let limit = if zone == "Minuteria" { 3 } else { 4 };
+        let bin_pct = std::cmp::min(100, ((current_skus as f64 / limit as f64) * 100.0).round() as i32);
+
+        if !zones_map.contains_key(&zone) {
+            let mut levels_map = serde_json::Map::new();
+            for l in 0..=8 {
+                levels_map.insert(l.to_string(), serde_json::json!({
+                    "total": 0,
+                    "occupied_skus": 0,
+                    "full_bins": 0,
+                    "total_occupancy_pct": 0,
+                    "occupied_bins": 0
+                }));
+            }
+            zones_map.insert(zone.clone(), serde_json::json!({
+                "total": 0,
+                "occupied": 0,
+                "levels": levels_map
+            }));
+        }
+
+        if let Some(z_val) = zones_map.get_mut(&zone) {
+            if let Some(z_obj) = z_val.as_object_mut() {
+                if let Some(tot) = z_obj.get_mut("total").and_then(|v| v.as_i64()) {
+                    z_obj.insert("total".to_string(), serde_json::json!(tot + 1));
+                }
+                if current_skus > 0 {
+                    if let Some(occ) = z_obj.get_mut("occupied").and_then(|v| v.as_i64()) {
+                        z_obj.insert("occupied".to_string(), serde_json::json!(occ + 1));
+                    }
+                }
+                if let Some(lvl_map) = z_obj.get_mut("levels").and_then(|v| v.as_object_mut()) {
+                    if let Some(lvl_entry) = lvl_map.get_mut(&level.to_string()).and_then(|v| v.as_object_mut()) {
+                        let l_tot = lvl_entry.get("total").and_then(|v| v.as_i64()).unwrap_or(0);
+                        let l_occ_bins = lvl_entry.get("occupied_bins").and_then(|v| v.as_i64()).unwrap_or(0);
+                        let l_full = lvl_entry.get("full_bins").and_then(|v| v.as_i64()).unwrap_or(0);
+                        let l_skus = lvl_entry.get("occupied_skus").and_then(|v| v.as_i64()).unwrap_or(0);
+                        let l_pct = lvl_entry.get("total_occupancy_pct").and_then(|v| v.as_i64()).unwrap_or(0);
+
+                        lvl_entry.insert("total".to_string(), serde_json::json!(l_tot + 1));
+                        lvl_entry.insert("total_occupancy_pct".to_string(), serde_json::json!(l_pct + bin_pct as i64));
+
+                        if current_skus > 0 {
+                            lvl_entry.insert("occupied_bins".to_string(), serde_json::json!(l_occ_bins + 1));
+                            lvl_entry.insert("occupied_skus".to_string(), serde_json::json!(l_skus + current_skus as i64));
+                            if current_skus >= limit {
+                                lvl_entry.insert("full_bins".to_string(), serde_json::json!(l_full + 1));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if current_skus > 0 {
+            filled_bins += 1;
+            total_items += current_skus;
+            *zones_by_items.entry(zone.clone()).or_insert(0) += current_skus;
+            if aisle != "N/A" {
+                *aisles_by_items.entry(aisle.clone()).or_insert(0) += current_skus;
+            }
+        } else {
+            available_bins += 1;
+        }
+    }
+
+    let total_bins = storage.len() as i32;
+    let occupancy_pct = if total_bins > 0 {
+        ((filled_bins as f64 / total_bins as f64) * 100.0).round() as i32
+    } else {
+        0
+    };
+    let avg_items_per_bin = if filled_bins > 0 {
+        format!("{:.1}", total_items as f64 / filled_bins as f64)
+    } else {
+        "0.0".to_string()
+    };
+
+    let mut sorted_zones_items: Vec<(String, i32)> = zones_by_items.into_iter().collect();
+    sorted_zones_items.sort_by(|a, b| b.1.cmp(&a.1));
+    let top_zones_by_items: HashMap<String, i32> = sorted_zones_items.into_iter().take(5).collect();
+
+    let mut sorted_aisles_items: Vec<(String, i32)> = aisles_by_items.into_iter().collect();
+    sorted_aisles_items.sort_by(|a, b| b.1.cmp(&a.1));
+    let top_aisles: HashMap<String, i32> = sorted_aisles_items.into_iter().take(5).collect();
+
+    let bins_by_zone: HashMap<String, i32> = zones_map.iter().map(|(z, val)| {
+        let count = val.get("total").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+        (z.clone(), count)
+    }).collect();
+
+    Ok(serde_json::json!({
+        "summary": {
+            "total_bins": total_bins,
+            "filled_bins": filled_bins,
+            "available_bins": available_bins,
+            "occupancy_pct": occupancy_pct,
+            "total_items": total_items,
+            "avg_items_per_bin": avg_items_per_bin
+        },
+        "zones": zones_map,
+        "analytics": {
+            "bins_by_zone": bins_by_zone,
+            "zones_by_items": top_zones_by_items,
+            "top_aisles": top_aisles
+        }
+    }))
+}
+
+#[tauri::command]
+fn get_occupancy_detail(
+    state: State<'_, AppState>,
+    zone: String,
+    level: Option<i64>
+) -> Result<Vec<OccupancyDetailRow>, String> {
+    let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    let slotting_path = get_data_file_path("slotting_parameters.json");
+    let (mut storage, _, _, _) = slotting::load_slotting_config(slotting_path.to_str().unwrap_or("./data/slotting_parameters.json"));
+    let occupancy = slotting::get_occupancy_from_db(&conn);
+
+    if storage.is_empty() {
+        if let Ok(mut stmt) = conn.prepare("SELECT bin_code, zone, aisle, level, spot, score FROM storage_locations") {
+            if let Ok(iter) = stmt.query_map([], |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    slotting::BinInfo {
+                        zone: r.get(1)?,
+                        aisle: r.get(2)?,
+                        level: r.get(3)?,
+                        spot: r.get(4)?,
+                        score: r.get(5)?,
+                    }
+                ))
+            }) {
+                for item in iter.flatten() {
+                    storage.insert(item.0.to_uppercase(), item.1);
+                }
+            }
+        }
+    }
+
+    let mut list = Vec::new();
+    let target_zone = zone.trim().to_uppercase();
+
+    for (bin_code, info) in storage {
+        let b_zone = info.zone.unwrap_or_else(|| "Unknown".to_string());
+        let b_level = info.level as i64;
+        let current_zone = b_zone.trim().to_uppercase();
+
+        if current_zone == target_zone && (level.is_none() || level == Some(b_level)) {
+            let sku_count = *occupancy.get(&bin_code).unwrap_or(&0);
+            let limit = if target_zone == "MINUTERIA" { 3 } else { 4 };
+            let occupancy_pct = std::cmp::min(100, ((sku_count as f64 / limit as f64) * 100.0).round() as i32);
+
+            list.push(OccupancyDetailRow {
+                bin_code,
+                aisle: info.aisle.unwrap_or_else(|| "N/A".to_string()),
+                level: b_level as i32,
+                zone: b_zone,
+                spot: info.spot.unwrap_or_else(|| "Cold".to_string()),
+                skus: sku_count,
+                occupancy_pct,
+            });
+        }
+    }
+
+    list.sort_by(|a, b| match a.aisle.cmp(&b.aisle) {
+        std::cmp::Ordering::Equal => a.bin_code.cmp(&b.bin_code),
+        other => other,
+    });
+    Ok(list)
+}
+
 #[tauri::command]
 fn get_slotting_config() -> Result<Value, String> {
     let slotting_path = get_data_file_path("slotting_parameters.json");
@@ -1259,11 +1553,48 @@ fn get_slotting_config() -> Result<Value, String> {
 }
 
 #[tauri::command]
-fn save_slotting_config(config: Value) -> Result<String, String> {
+fn save_slotting_config(state: State<'_, AppState>, config: Value) -> Result<String, String> {
     let slotting_path = get_data_file_path("slotting_parameters.json");
     if let Ok(str_val) = serde_json::to_string_pretty(&config) {
         let _ = std::fs::write(&slotting_path, str_val);
     }
+
+    if let Ok(mut conn) = state.db.get_connection() {
+        if let Some(storage) = config.get("storage").and_then(|s| s.as_object()) {
+            if let Ok(tx) = conn.transaction() {
+                let _ = tx.execute("DELETE FROM storage_locations;", []);
+                if let Ok(mut stmt) = tx.prepare(
+                    "INSERT INTO storage_locations (bin_code, zone, aisle, level, spot, score)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+                     ON CONFLICT(bin_code) DO UPDATE SET
+                        zone = excluded.zone,
+                        aisle = excluded.aisle,
+                        level = excluded.level,
+                        spot = excluded.spot,
+                        score = excluded.score;",
+                ) {
+                    for (bin_code, info) in storage {
+                        let zone = info.get("zone").and_then(|v| v.as_str()).unwrap_or("General");
+                        let aisle = info.get("aisle").and_then(|v| v.as_str()).unwrap_or("");
+                        let level = info.get("level").and_then(|v| v.as_i64()).unwrap_or(0);
+                        let spot = info.get("spot").and_then(|v| v.as_str()).unwrap_or("cold");
+                        let score = info.get("score").and_then(|v| v.as_i64()).unwrap_or(0);
+
+                        let _ = stmt.execute(params![
+                            bin_code.trim().to_uppercase(),
+                            zone,
+                            aisle,
+                            level,
+                            spot,
+                            score
+                        ]);
+                    }
+                }
+                let _ = tx.commit();
+            }
+        }
+    }
+
     Ok("Configuración de slotting guardada".to_string())
 }
 
@@ -1316,6 +1647,144 @@ fn update_planner_difference_cause(state: State<'_, AppState>, exec_id: i64, sta
 fn get_planner_stats(state: State<'_, AppState>) -> Result<planner::PlannerStats, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     planner::get_planner_stats_from_db(&conn).map_err(|e| e.to_string())
+}
+
+// -------------------------------------------------------------
+// 12. IMPRESIÓN DIRECTA & CONFIGURACIÓN DE IMPRESORAS
+// -------------------------------------------------------------
+
+#[tauri::command]
+fn get_system_printers() -> Result<Vec<printer::PrinterInfo>, String> {
+    printer::get_available_printers()
+}
+
+#[tauri::command]
+fn print_sandvik_label_silent(
+    printer_name: Option<String>,
+    label: printer::SandvikLabelPrintPayload,
+) -> Result<String, String> {
+    let zpl = printer::generate_sandvik_zpl(&label);
+    printer::send_raw_to_printer(printer_name, &zpl)
+}
+
+#[tauri::command]
+fn print_raw_zpl(printer_name: Option<String>, zpl_content: String) -> Result<String, String> {
+    printer::send_raw_to_printer(printer_name, &zpl_content)
+}
+
+#[tauri::command]
+fn test_print_label(printer_name: Option<String>) -> Result<String, String> {
+    let test_label = printer::SandvikLabelPrintPayload {
+        item_code: "TEST-ITEM-999".to_string(),
+        description: "ETIQUETA DE PRUEBA LOGIX".to_string(),
+        quantity: 1,
+        weight: "1.25".to_string(),
+        packaging_date: Some(chrono::Local::now().format("%d/%m/%y").to_string()),
+        bin_location: "TEST-BIN-01".to_string(),
+        qr_data: Some("TEST-ITEM-999".to_string()),
+    };
+    let zpl = printer::generate_sandvik_zpl(&test_label);
+    printer::send_raw_to_printer(printer_name, &zpl)
+}
+
+#[tauri::command]
+fn get_sync_status(state: State<'_, AppState>) -> Result<HashMap<String, i64>, String> {
+    let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    let mut map = HashMap::new();
+
+    // 1. Read from sync_metadata
+    if let Ok(mut stmt) = conn.prepare("SELECT key, timestamp FROM sync_metadata") {
+        if let Ok(iter) = stmt.query_map([], |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))) {
+            for item in iter.flatten() {
+                map.insert(item.0, item.1);
+            }
+        }
+    }
+
+    // 2. Fallbacks from table timestamps if key is missing or 0
+    if !map.contains_key("master_items") || map["master_items"] == 0 {
+        if let Ok(mut stmt) = conn.prepare("SELECT MAX(strftime('%s', updated_at)) FROM inventory_items") {
+            if let Ok(Some(ts)) = stmt.query_row([], |r| r.get::<_, Option<i64>>(0)) {
+                map.insert("master_items".to_string(), ts);
+            }
+        }
+    }
+
+    if !map.contains_key("grn_pending") || map["grn_pending"] == 0 {
+        if let Ok(mut stmt) = conn.prepare("SELECT MAX(strftime('%s', timestamp)) FROM inbound_logs") {
+            if let Ok(Some(ts)) = stmt.query_row([], |r| r.get::<_, Option<i64>>(0)) {
+                map.insert("grn_pending".to_string(), ts);
+            }
+        }
+        if !map.contains_key("grn_pending") || map["grn_pending"] == 0 {
+            let grn_path = get_data_file_path("grn_master_data.json");
+            if let Ok(meta) = std::fs::metadata(&grn_path) {
+                if let Ok(mtime) = meta.modified() {
+                    if let Ok(dur) = mtime.duration_since(std::time::UNIX_EPOCH) {
+                        map.insert("grn_pending".to_string(), dur.as_secs() as i64);
+                    }
+                }
+            }
+        }
+    }
+
+    if !map.contains_key("picking") || map["picking"] == 0 {
+        if let Ok(mut stmt) = conn.prepare("SELECT MAX(strftime('%s', timestamp)) FROM picking_orders") {
+            if let Ok(Some(ts)) = stmt.query_row([], |r| r.get::<_, Option<i64>>(0)) {
+                map.insert("picking".to_string(), ts);
+            }
+        }
+    }
+
+    if !map.contains_key("xdock_reservations") || map["xdock_reservations"] == 0 {
+        if let Ok(mut stmt) = conn.prepare("SELECT MAX(strftime('%s', timestamp)) FROM xdock_reservations") {
+            if let Ok(Some(ts)) = stmt.query_row([], |r| r.get::<_, Option<i64>>(0)) {
+                map.insert("xdock_reservations".to_string(), ts);
+            }
+        }
+        if !map.contains_key("xdock_reservations") || map["xdock_reservations"] == 0 {
+            let xdock_path = get_data_file_path("xdock_reservations.json");
+            if let Ok(meta) = std::fs::metadata(&xdock_path) {
+                if let Ok(mtime) = meta.modified() {
+                    if let Ok(dur) = mtime.duration_since(std::time::UNIX_EPOCH) {
+                        map.insert("xdock_reservations".to_string(), dur.as_secs() as i64);
+                    }
+                }
+            }
+        }
+    }
+
+    if !map.contains_key("po_extractor") || map["po_extractor"] == 0 {
+        if let Ok(mut stmt) = conn.prepare("SELECT MAX(strftime('%s', timestamp)) FROM po_lookup") {
+            if let Ok(Some(ts)) = stmt.query_row([], |r| r.get::<_, Option<i64>>(0)) {
+                map.insert("po_extractor".to_string(), ts);
+            }
+        }
+        if !map.contains_key("po_extractor") || map["po_extractor"] == 0 {
+            let po_path = get_data_file_path("po_lookup.json");
+            if let Ok(meta) = std::fs::metadata(&po_path) {
+                if let Ok(mtime) = meta.modified() {
+                    if let Ok(dur) = mtime.duration_since(std::time::UNIX_EPOCH) {
+                        map.insert("po_extractor".to_string(), dur.as_secs() as i64);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(map)
+}
+
+#[tauri::command]
+fn set_sync_status(state: State<'_, AppState>, key: String, timestamp: Option<i64>) -> Result<(), String> {
+    let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    let ts = timestamp.unwrap_or_else(|| chrono::Utc::now().timestamp());
+    conn.execute(
+        "INSERT INTO sync_metadata (key, timestamp) VALUES (?1, ?2)
+         ON CONFLICT(key) DO UPDATE SET timestamp = excluded.timestamp",
+        params![key, ts],
+    ).map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 // -------------------------------------------------------------
@@ -1397,8 +1866,11 @@ fn main() {
             update_count_record,
             update_count_root_cause,
             get_count_stats,
+            get_inventory_dashboard_stats,
             calculate_cycle_count_differences,
             get_active_recount_list,
+            get_planner_cycle_count_differences,
+            update_planner_cycle_count_diff,
 
             // Reconciliation & General Inventory
             get_reconciliation_data,
@@ -1443,6 +1915,8 @@ fn main() {
             get_slotting_summary,
             get_slotting_config,
             save_slotting_config,
+            get_occupancy_report,
+            get_occupancy_detail,
             get_planner_config,
             save_planner_config,
             get_planner_daily_items,
@@ -1450,6 +1924,16 @@ fn main() {
             update_planner_difference_cause,
             save_planner_execution,
             get_planner_stats,
+
+            // Printer & Silent Printing
+            get_system_printers,
+            print_sandvik_label_silent,
+            print_raw_zpl,
+            test_print_label,
+
+            // Sync Status
+            get_sync_status,
+            set_sync_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

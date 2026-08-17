@@ -71,19 +71,53 @@ const ROUTE_MAP = [
     { path: '/inbound/audit', component: InboundAudit },
 ];
 
-const MenuItem = ({ to, label, onClick }) => {
+const MenuItem = ({ to, label, desc, categoryId, onClick }) => {
     const location = useLocation();
     const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to));
 
+    const itemData = {
+        href: to,
+        text: label.toUpperCase(),
+        desc: desc || `Módulo de ${label}`,
+        categoryId: categoryId || 'recepcion'
+    };
+
+    const handleDragStart = (e) => {
+        e.dataTransfer.setData('application/json', JSON.stringify(itemData));
+        e.dataTransfer.effectAllowed = 'copyMove';
+    };
+
+    const handleQuickPin = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        window.dispatchEvent(new CustomEvent('logix_dashboard_pin_item', { detail: itemData }));
+    };
+
     return (
-        <Link
-            to={to}
-            className={`flex items-center px-4 py-1 text-white leading-tight transition-all border-l-[4px] 
-            ${isActive ? 'bg-white/10 border-blue-400 font-medium text-gray-900' : 'hover:bg-white/5 border-transparent hover:border-blue-400/40'}`}
-            onClick={onClick}
-        >
-            <span className="text-[12px] uppercase  ">{label}</span>
-        </Link>
+        <div className="group/item flex items-center justify-between pr-2 hover:bg-white/5 transition-all">
+            <Link
+                to={to}
+                draggable
+                onDragStart={handleDragStart}
+                className={`flex-grow flex items-center px-4 py-1 text-white leading-tight transition-all border-l-[4px] cursor-grab active:cursor-grabbing
+                ${isActive ? 'bg-white/10 border-blue-400 font-medium text-gray-900' : 'border-transparent hover:border-blue-400/40'}`}
+                onClick={onClick}
+                title="Arrastra esta opción al Dashboard para fijarla"
+            >
+                <span className="text-[12px] uppercase select-none">{label}</span>
+            </Link>
+
+            <button
+                onClick={handleQuickPin}
+                className="opacity-0 group-hover/item:opacity-100 p-1 text-slate-400 hover:text-amber-400 hover:bg-white/10 rounded transition-all"
+                title="Fijar en Dashboard"
+                aria-label="Fijar en Dashboard"
+            >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                </svg>
+            </button>
+        </div>
     );
 };
 
@@ -387,7 +421,18 @@ const Layout = () => {
     if (userJson) {
         try {
             const u = JSON.parse(userJson);
-            const perms = u.permissions ? u.permissions.split(',').map(p => p.trim()) : [];
+            const rawPerms = u.permissions;
+            let perms = [];
+            if (Array.isArray(rawPerms)) {
+                perms = rawPerms;
+            } else if (typeof rawPerms === 'string') {
+                const trimmed = rawPerms.trim();
+                if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+                    try { perms = JSON.parse(trimmed); } catch(e) { perms = []; }
+                } else {
+                    perms = trimmed.split(',').map(p => p.trim()).filter(Boolean);
+                }
+            }
             if (u.username === 'admin' || perms.includes('admin')) {
                 hasAdminPerm = true;
             }
@@ -465,42 +510,42 @@ const Layout = () => {
                 <nav className="py-2">
                     <div className="px-4 mb-2">
                         <div className="px-2 text-[12px] font-medium text-gray-900 text-slate-500 uppercase tracking-tight mb-1">Principal</div>
-                        <MenuItem to="/dashboard" label="Inicio" onClick={toggleMenu} />
-                        <MenuItem to="/stock" label="Consultar Stock" onClick={toggleMenu} />
+                        <MenuItem to="/dashboard" label="Inicio" desc="Panel principal y accesos rápidos" categoryId="recepcion" onClick={toggleMenu} />
+                        <MenuItem to="/stock" label="Consultar Stock" desc="Búsqueda global de inventario y saldos" categoryId="recepcion" onClick={toggleMenu} />
                     </div>
                     <div className="px-4 mb-2">
                         <div className="px-2 text-[12px] font-medium text-gray-900 text-slate-500 uppercase tracking-tight mb-1 border-t border-white/5 pt-2">Operaciones Inbound</div>
-                        <MenuItem to="/inbound" label="Recepción" onClick={toggleMenu} />
-                        <MenuItem to="/reconciliation" label="Conciliación" onClick={toggleMenu} />
-                        <MenuItem to="/inbound/audit" label="Auditoría Agente" onClick={toggleMenu} />
-                        <MenuItem to="/view_logs" label="Registros" onClick={toggleMenu} />
-                        <MenuItem to="/ir-reconciliation" label="Dashboard IR" onClick={toggleMenu} />
+                        <MenuItem to="/inbound" label="Recepción" desc="Entrada de mercancía y referencias" categoryId="recepcion" onClick={toggleMenu} />
+                        <MenuItem to="/reconciliation" label="Conciliación" desc="Cruce de documentos y discrepancias" categoryId="recepcion" onClick={toggleMenu} />
+                        <MenuItem to="/inbound/audit" label="Auditoría Agente" desc="Control de calidad y recepción física" categoryId="recepcion" onClick={toggleMenu} />
+                        <MenuItem to="/view_logs" label="Registros" desc="Consulta de registros históricos" categoryId="recepcion" onClick={toggleMenu} />
+                        <MenuItem to="/ir-reconciliation" label="Dashboard IR" desc="Estado general de Import References" categoryId="recepcion" onClick={toggleMenu} />
                     </div>
                     <div className="px-4 mb-2">
                         <div className="px-2 text-[12px] font-medium text-gray-900 text-slate-500 uppercase tracking-tight mb-1 border-t border-white/5 pt-2">Operaciones Outbound</div>
-                        <MenuItem to="/picking" label="Picking" onClick={toggleMenu} />
-                        <MenuItem to="/view_picking_audits" label="Empaque" onClick={toggleMenu} />
-                        <MenuItem to="/shipments" label="Despacho" onClick={toggleMenu} />
-                        <MenuItem to="/label" label="Etiquetado" onClick={toggleMenu} />
+                        <MenuItem to="/picking" label="Picking" desc="Verificación de pedidos y empaque" categoryId="despacho" onClick={toggleMenu} />
+                        <MenuItem to="/view_picking_audits" label="Empaque" desc="Listas de empaque y auditorías" categoryId="despacho" onClick={toggleMenu} />
+                        <MenuItem to="/shipments" label="Despacho" desc="Gestión de despachos y embarques" categoryId="despacho" onClick={toggleMenu} />
+                        <MenuItem to="/label" label="Etiquetado" desc="Impresión de etiquetas operativas" categoryId="despacho" onClick={toggleMenu} />
                     </div>
                     <div className="px-4 mb-2">
                         <div className="px-2 text-[12px] font-medium text-gray-900 text-slate-500 uppercase tracking-tight mb-1 border-t border-white/5 pt-2">Control Inventario</div>
-                        <MenuItem to="/planner" label="Plan Cíclico" onClick={toggleMenu} />
-                        <MenuItem to="/inventory-dashboard" label="Métricas" onClick={toggleMenu} />
-                        <MenuItem to="/view_counts/recordings" label="Históricos" onClick={toggleMenu} />
-                        <MenuItem to="/planner/manage_differences" label="Diferencias" onClick={toggleMenu} />
-                        <MenuItem to="/counts" label="Inventario W2W" onClick={toggleMenu} />
-                        {hasAdminPerm && <MenuItem to="/counts/manage" label="Edición Conteos" onClick={toggleMenu} />}
-                        {hasAdminPerm && <MenuItem to="/view_counts" label="Conteo General" onClick={toggleMenu} />}
-                        <MenuItem to="/express-audit" label="Ciclo Manual" onClick={toggleMenu} />  
-                        <MenuItem to="/spot-check" label="Spot Check" onClick={toggleMenu} />
+                        <MenuItem to="/planner" label="Plan Cíclico" desc="Programación de conteos cíclicos" categoryId="inventario" onClick={toggleMenu} />
+                        <MenuItem to="/inventory-dashboard" label="Métricas" desc="Indicadores de exactitud" categoryId="inventario" onClick={toggleMenu} />
+                        <MenuItem to="/view_counts/recordings" label="Históricos" desc="Grabaciones y trazabilidad" categoryId="inventario" onClick={toggleMenu} />
+                        <MenuItem to="/planner/manage_differences" label="Diferencias" desc="Gestión de ajustes y discrepancias" categoryId="inventario" onClick={toggleMenu} />
+                        <MenuItem to="/counts" label="Inventario W2W" desc="Conteo masivo wall-to-wall" categoryId="inventario" onClick={toggleMenu} />
+                        {hasAdminPerm && <MenuItem to="/counts/manage" label="Edición Conteos" desc="Gestión de registros de conteo" categoryId="inventario" onClick={toggleMenu} />}
+                        {hasAdminPerm && <MenuItem to="/view_counts" label="Conteo General" desc="Consolidado de conteos" categoryId="inventario" onClick={toggleMenu} />}
+                        <MenuItem to="/express-audit" label="Ciclo Manual" desc="Conteo ciego y auditoría rápida" categoryId="inventario" onClick={toggleMenu} />  
+                        <MenuItem to="/spot-check" label="Spot Check" desc="Auditorías rápidas en piso" categoryId="inventario" onClick={toggleMenu} />
                     </div>
                     <div className="px-4 mb-2">
                         <div className="px-2 text-[12px] font-medium text-gray-900 text-slate-500 uppercase tracking-tight mb-1 border-t border-white/5 pt-2">Sistema</div>
-                        <MenuItem to="/admin/inventory" label="Adm. Inventario" onClick={toggleMenu} />
-                        <MenuItem to="/admin/slotting" label="Config. Slotting" onClick={toggleMenu} />
-                        <MenuItem to="/occupancy" label="Ocupación Bodega" onClick={toggleMenu} />
-                        <MenuItem to="/update" label="Carga de Datos" onClick={toggleMenu} />
+                        <MenuItem to="/admin/inventory" label="Adm. Inventario" desc="Control de ciclos de conteo" categoryId="admin" onClick={toggleMenu} />
+                        <MenuItem to="/admin/slotting" label="Config. Slotting" desc="Parámetros de ubicaciones" categoryId="admin" onClick={toggleMenu} />
+                        <MenuItem to="/occupancy" label="Ocupación Bodega" desc="Análisis de espacio y ubicaciones" categoryId="admin" onClick={toggleMenu} />
+                        <MenuItem to="/update" label="Carga de Datos" desc="Actualización masiva vía ficheros" categoryId="admin" onClick={toggleMenu} />
                         <button
                             className="w-full flex items-center justify-start !justify-start px-4 py-1 mt-2 text-red-500 hover:bg-red-500/10 transition-all border-l-[4px] border-transparent uppercase text-[12px] font-semibold tracking-tight text-left cursor-pointer"
                             style={{ justifyContent: 'flex-start' }}

@@ -30,6527 +30,6296 @@
     }
   },
   "storage": {
-    "CA0100": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "0",
-      "spot": "Hot",
-      "score": 6
-    },
-    "CA0101": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "1",
-      "spot": "Hot",
-      "score": 6
-    },
-    "CA0102": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "2",
-      "spot": "Warm",
-      "score": 6
-    },
-    "CA0103": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "3",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA0104": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "4",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA0105": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "5",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA0200": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "0",
-      "spot": "Hot",
-      "score": 6
-    },
-    "CA0300": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "0",
-      "spot": "Hot",
-      "score": 6
-    },
-    "CA0301": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "1",
-      "spot": "Hot",
-      "score": 6
-    },
-    "CA0302": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "2",
-      "spot": "Warm",
-      "score": 6
-    },
-    "CA0303": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "3",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA0304": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "4",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA0305": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "5",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA0500": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "0",
-      "spot": "Hot",
-      "score": 6
-    },
-    "CA0501": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "1",
-      "spot": "Hot",
-      "score": 6
-    },
-    "CA0502": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "2",
-      "spot": "Warm",
-      "score": 6
-    },
-    "CA0503": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "3",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA0504": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "4",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA0505": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "5",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA0601": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "1",
-      "spot": "Hot",
-      "score": 6
-    },
-    "CA0602": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "2",
-      "spot": "Warm",
-      "score": 6
-    },
-    "CA0603": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "3",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA0604": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "4",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA0605": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "5",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA0700": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "0",
-      "spot": "Hot",
-      "score": 6
-    },
-    "CA0701": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "1",
-      "spot": "Hot",
-      "score": 6
-    },
-    "CA0702": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "2",
-      "spot": "Warm",
-      "score": 6
-    },
-    "CA0703": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "3",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA0704": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "4",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA0705": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "5",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA0800": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "0",
-      "spot": "Hot",
-      "score": 6
-    },
-    "CA0801": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "1",
-      "spot": "Hot",
-      "score": 6
-    },
-    "CA0802": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "2",
-      "spot": "Warm",
-      "score": 6
-    },
-    "CA0803": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "3",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA0804": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "4",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA0900": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "0",
-      "spot": "Hot",
-      "score": 6
-    },
-    "CA0901": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "1",
-      "spot": "Hot",
-      "score": 6
-    },
-    "CA0902": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "2",
-      "spot": "Warm",
-      "score": 6
-    },
-    "CA0903": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "3",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA0904": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "4",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA0905": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "5",
-      "spot": "Cold",
-      "score": 6
-    },
     "CA1100": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "0",
+      "level": 0,
       "spot": "Hot",
       "score": 6
     },
     "CA1101": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "1",
+      "level": 1,
       "spot": "Hot",
       "score": 6
     },
     "CA1102": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 6
     },
     "CA1103": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "CA1104": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "4",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA1105": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "5",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "CA1200": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "0",
+      "level": 0,
       "spot": "Hot",
       "score": 6
     },
     "CA1201": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "1",
+      "level": 1,
       "spot": "Hot",
       "score": 6
     },
     "CA1202": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
+      "score": 6
+    },
+    "CA1203": {
+      "zone": "Cantilever",
+      "aisle": "CA",
+      "level": 3,
+      "spot": "Cold",
+      "score": 6
+    },
+    "CA1204": {
+      "zone": "Cantilever",
+      "aisle": "CA",
+      "level": 4,
+      "spot": "Cold",
       "score": 6
     },
     "CA1300": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "0",
+      "level": 0,
       "spot": "Hot",
       "score": 6
     },
     "CA1301": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "1",
+      "level": 1,
       "spot": "Hot",
       "score": 6
     },
     "CA1302": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 6
     },
     "CA1303": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "CA1304": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
-    "CA1305": {
+    "CA1400": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "5",
+      "level": 0,
+      "spot": "Hot",
+      "score": 6
+    },
+    "CA1401": {
+      "zone": "Cantilever",
+      "aisle": "CA",
+      "level": 1,
+      "spot": "Hot",
+      "score": 6
+    },
+    "CA1402": {
+      "zone": "Cantilever",
+      "aisle": "CA",
+      "level": 2,
+      "spot": "Warm",
+      "score": 6
+    },
+    "CA1403": {
+      "zone": "Cantilever",
+      "aisle": "CA",
+      "level": 3,
+      "spot": "Cold",
+      "score": 6
+    },
+    "CA1404": {
+      "zone": "Cantilever",
+      "aisle": "CA",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "CA1500": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "0",
+      "level": 0,
       "spot": "Hot",
       "score": 6
     },
     "CA1501": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "1",
+      "level": 1,
       "spot": "Hot",
       "score": 6
     },
     "CA1502": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 6
     },
     "CA1503": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "CA1504": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
-    "CA1505": {
+    "CA1600": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "5",
+      "level": 0,
+      "spot": "Hot",
+      "score": 6
+    },
+    "CA1601": {
+      "zone": "Cantilever",
+      "aisle": "CA",
+      "level": 1,
+      "spot": "Hot",
+      "score": 6
+    },
+    "CA1602": {
+      "zone": "Cantilever",
+      "aisle": "CA",
+      "level": 2,
+      "spot": "Warm",
+      "score": 6
+    },
+    "CA1603": {
+      "zone": "Cantilever",
+      "aisle": "CA",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "CA1604": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "CA1700": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "0",
+      "level": 0,
       "spot": "Hot",
       "score": 6
     },
     "CA1701": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "1",
+      "level": 1,
       "spot": "Hot",
       "score": 6
     },
     "CA1702": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 6
     },
     "CA1703": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "CA1704": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
-    "CA1705": {
+    "CA1800": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "5",
+      "level": 0,
+      "spot": "Hot",
+      "score": 6
+    },
+    "CA1801": {
+      "zone": "Cantilever",
+      "aisle": "CA",
+      "level": 1,
+      "spot": "Hot",
+      "score": 6
+    },
+    "CA1802": {
+      "zone": "Cantilever",
+      "aisle": "CA",
+      "level": 2,
+      "spot": "Warm",
+      "score": 6
+    },
+    "CA1803": {
+      "zone": "Cantilever",
+      "aisle": "CA",
+      "level": 3,
+      "spot": "Cold",
+      "score": 6
+    },
+    "CA1804": {
+      "zone": "Cantilever",
+      "aisle": "CA",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "CA1900": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "0",
+      "level": 0,
       "spot": "Hot",
       "score": 6
     },
     "CA1901": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "1",
+      "level": 1,
       "spot": "Hot",
       "score": 6
     },
     "CA1902": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 6
     },
     "CA1903": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "CA1904": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
-    "CA1905": {
+    "CA2000": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "5",
+      "level": 0,
+      "spot": "Hot",
+      "score": 6
+    },
+    "CA2001": {
+      "zone": "Cantilever",
+      "aisle": "CA",
+      "level": 1,
+      "spot": "Hot",
+      "score": 6
+    },
+    "CA2002": {
+      "zone": "Cantilever",
+      "aisle": "CA",
+      "level": 2,
+      "spot": "Warm",
+      "score": 6
+    },
+    "CA2003": {
+      "zone": "Cantilever",
+      "aisle": "CA",
+      "level": 3,
+      "spot": "Cold",
+      "score": 6
+    },
+    "CA2004": {
+      "zone": "Cantilever",
+      "aisle": "CA",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "CA2100": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "0",
+      "level": 0,
       "spot": "Hot",
       "score": 6
     },
     "CA2101": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "1",
+      "level": 1,
       "spot": "Hot",
       "score": 6
     },
     "CA2102": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 6
     },
     "CA2103": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "CA2104": {
       "zone": "Cantilever",
       "aisle": "CA",
-      "level": "4",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA2105": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "5",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA2300": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "0",
-      "spot": "Hot",
-      "score": 6
-    },
-    "CA2301": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "1",
-      "spot": "Hot",
-      "score": 6
-    },
-    "CA2302": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "2",
-      "spot": "Warm",
-      "score": 6
-    },
-    "CA2303": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "3",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA2304": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "4",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA2305": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "5",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA2500": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "0",
-      "spot": "Hot",
-      "score": 6
-    },
-    "CA2501": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "1",
-      "spot": "Hot",
-      "score": 6
-    },
-    "CA2503": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "3",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA2504": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "4",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA2505": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "5",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA2700": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "0",
-      "spot": "Hot",
-      "score": 6
-    },
-    "CA2701": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "1",
-      "spot": "Hot",
-      "score": 6
-    },
-    "CA2702": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "2",
-      "spot": "Warm",
-      "score": 6
-    },
-    "CA2703": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "3",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA2704": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "4",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA2705": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "5",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA2900": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "0",
-      "spot": "Hot",
-      "score": 6
-    },
-    "CA2901": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "1",
-      "spot": "Hot",
-      "score": 6
-    },
-    "CA2902": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "2",
-      "spot": "Warm",
-      "score": 6
-    },
-    "CA2903": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "3",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA2904": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "4",
-      "spot": "Cold",
-      "score": 6
-    },
-    "CA2905": {
-      "zone": "Cantilever",
-      "aisle": "CA",
-      "level": "5",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "EB1A": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "EB1B": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "EB1C": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "EB1D": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "EB1E": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "EB1F": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "EB1G": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "EB1H": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "EB2A": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "EB2B": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "EB2C": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "EB2D": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "EB2E": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "EB2F": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "EB2G": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "EB2H": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "EB3A": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 10
     },
     "EB3B": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 10
     },
     "EB3C": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 10
     },
     "EB3D": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 10
     },
     "EB3E": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 10
     },
     "EB3F": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 10
     },
     "EB3G": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 10
     },
     "EB3H": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 10
     },
     "EB4A": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 10
     },
     "EB4B": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 10
     },
     "EB4C": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 10
     },
     "EB4D": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 10
     },
     "EB4E": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 10
     },
     "EB4F": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 10
     },
     "EB4G": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 10
     },
     "EB4H": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 10
     },
     "EB5A": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 10
     },
     "EB5B": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 10
     },
     "EB5C": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 10
     },
     "EB5D": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 10
     },
     "EB5E": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 10
     },
     "EB5F": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 10
     },
     "EB5G": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 10
     },
     "EB5H": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 10
     },
     "EB6A": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "EB6B": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "EB6C": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "EB6D": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "EB6E": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "EB6F": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "EB6G": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "EB6H": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "EB7A": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "EB7B": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "EB7C": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "EB7D": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "EB7E": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "EB7F": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "EB7G": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "EB7H": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "EB8A": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "EB8B": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "EB8C": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "EB8D": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "EB8E": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "EB8F": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "EB8G": {
       "zone": "Minuteria",
       "aisle": "EB",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "EC1A": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "EC1B": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "EC1C": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "EC1D": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "EC1E": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "EC1F": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "EC1G": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "EC1H": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "EC2A": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "EC2B": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "EC2C": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "EC2D": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "EC2E": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "EC2F": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "EC2G": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "EC2H": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "EC3A": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 9
     },
     "EC3B": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 9
     },
     "EC3C": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 9
     },
     "EC3D": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 9
     },
     "EC3E": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 9
     },
     "EC3F": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 9
     },
     "EC3G": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 9
     },
     "EC3H": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 9
     },
     "EC4A": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 9
     },
     "EC4B": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 9
     },
     "EC4C": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 9
     },
     "EC4D": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 9
     },
     "EC4E": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 9
     },
     "EC4F": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 9
     },
     "EC4G": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 9
     },
     "EC4H": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 9
     },
     "EC5A": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 9
     },
     "EC5B": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 9
     },
     "EC5C": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 9
     },
     "EC5D": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 9
     },
     "EC5E": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 9
     },
     "EC5F": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 9
     },
     "EC5G": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 9
     },
     "EC5H": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 9
     },
     "EC6A": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "EC6B": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "EC6C": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "EC6D": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "EC6E": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "EC6F": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "EC6G": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "EC6H": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "EC7A": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "EC7B": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "EC7C": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "EC7D": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "EC7E": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "EC7F": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "EC7G": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "EC7H": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "EC8A": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "EC8B": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "EC8C": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "EC8D": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "EC8E": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "EC8F": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "EC8G": {
       "zone": "Minuteria",
       "aisle": "EC",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "ED1A": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "ED1B": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "ED1C": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "ED1D": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "ED1E": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "ED1F": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "ED1G": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "ED1H": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "ED2A": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "ED2B": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "ED2C": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "ED2D": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "ED2E": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "ED2F": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "ED2G": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "ED2H": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "ED3A": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 10
     },
     "ED3B": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 10
     },
     "ED3C": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 10
     },
     "ED3D": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 10
     },
     "ED3E": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 10
     },
     "ED3F": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 10
     },
     "ED3G": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 10
     },
     "ED3H": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 10
     },
     "ED4A": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 10
     },
     "ED4B": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 10
     },
     "ED4C": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 10
     },
     "ED4D": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 10
     },
     "ED4E": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 10
     },
     "ED4F": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 10
     },
     "ED4G": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 10
     },
     "ED4H": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 10
     },
     "ED5A": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 10
     },
     "ED5B": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 10
     },
     "ED5C": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 10
     },
     "ED5D": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 10
     },
     "ED5E": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 10
     },
     "ED5F": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 10
     },
     "ED5G": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 10
     },
     "ED5H": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 10
     },
     "ED6A": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "ED6B": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "ED6C": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "ED6D": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "ED6E": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "ED6F": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "ED6G": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "ED6H": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "ED7A": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "ED7B": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "ED7C": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "ED7D": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "ED7E": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "ED7F": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "ED7G": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "ED7H": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "ED8A": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "ED8B": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "ED8C": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "ED8D": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "ED8E": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "ED8F": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "ED8G": {
       "zone": "Minuteria",
       "aisle": "ED",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "EE1A": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "EE1B": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "EE1C": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "EE1D": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "EE1E": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "EE1F": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "EE1G": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "EE1H": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "EE2A": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "EE2B": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "EE2C": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "EE2D": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "EE2E": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "EE2F": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "EE2G": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "EE2H": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "2",
+      "level": 2,
       "spot": "Warm",
       "score": 8
     },
     "EE3A": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 9
     },
     "EE3B": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 9
     },
     "EE3C": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 9
     },
     "EE3D": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 9
     },
     "EE3E": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 9
     },
     "EE3F": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 9
     },
     "EE3G": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 9
     },
     "EE3H": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 9
     },
     "EE4A": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 9
     },
     "EE4B": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 9
     },
     "EE4C": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 9
     },
     "EE4D": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 9
     },
     "EE4E": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 9
     },
     "EE4F": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 9
     },
     "EE4G": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 9
     },
     "EE4H": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "4",
+      "level": 4,
       "spot": "Hot",
       "score": 9
     },
     "EE5A": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 9
     },
     "EE5B": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 9
     },
     "EE5C": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 9
     },
     "EE5D": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 9
     },
     "EE5E": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 9
     },
     "EE5F": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 9
     },
     "EE5G": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 9
     },
     "EE5H": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "5",
+      "level": 5,
       "spot": "Hot",
       "score": 9
     },
     "EE6A": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "EE6B": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "EE6C": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "EE6D": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "EE6E": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "EE6F": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "EE6G": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "EE6H": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "6",
+      "level": 6,
       "spot": "Warm",
       "score": 8
     },
     "EE7A": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "EE7B": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "EE7C": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "EE7D": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "EE7E": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "EE7F": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "EE7G": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "EE7H": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "7",
+      "level": 7,
       "spot": "Cold",
       "score": 7
     },
     "EE8A": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "EE8B": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "EE8C": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "EE8D": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "EE8E": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "EE8F": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
     "EE8G": {
       "zone": "Minuteria",
       "aisle": "EE",
-      "level": "8",
+      "level": 8,
       "spot": "Cold",
       "score": 7
     },
-    "ISLA": {
+    "ISLA1": {
       "zone": "Floor",
       "aisle": "Piso",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
+      "score": 5
+    },
+    "ISLA2": {
+      "zone": "Floor",
+      "aisle": "Piso",
+      "level": 0,
+      "spot": "Hot",
+      "score": 5
+    },
+    "ISLA3": {
+      "zone": "Floor",
+      "aisle": "Piso",
+      "level": 0,
+      "spot": "Hot",
+      "score": 5
+    },
+    "ISLA4": {
+      "zone": "Floor",
+      "aisle": "Piso",
+      "level": 0,
+      "spot": "Hot",
+      "score": 5
+    },
+    "ISLA5": {
+      "zone": "Floor",
+      "aisle": "Piso",
+      "level": 0,
+      "spot": "Hot",
+      "score": 5
+    },
+    "ISLA6": {
+      "zone": "Floor",
+      "aisle": "Piso",
+      "level": 0,
+      "spot": "Hot",
+      "score": 5
+    },
+    "ISLA7": {
+      "zone": "Floor",
+      "aisle": "Piso",
+      "level": 0,
+      "spot": "Hot",
+      "score": 5
+    },
+    "ISLA8": {
+      "zone": "Floor",
+      "aisle": "Piso",
+      "level": 0,
+      "spot": "Hot",
+      "score": 5
+    },
+    "PISO1": {
+      "zone": "Floor",
+      "aisle": "Piso",
+      "level": 0,
+      "spot": "Hot",
+      "score": 5
+    },
+    "PISO2": {
+      "zone": "Floor",
+      "aisle": "Piso",
+      "level": 0,
+      "spot": "Hot",
+      "score": 5
+    },
+    "PISO3": {
+      "zone": "Floor",
+      "aisle": "Piso",
+      "level": 0,
+      "spot": "Hot",
+      "score": 5
+    },
+    "PISO4": {
+      "zone": "Floor",
+      "aisle": "Piso",
+      "level": 0,
+      "spot": "Hot",
+      "score": 5
+    },
+    "PISO5": {
+      "zone": "Floor",
+      "aisle": "Piso",
+      "level": 0,
+      "spot": "Hot",
+      "score": 5
+    },
+    "PISO6": {
+      "zone": "Floor",
+      "aisle": "Piso",
+      "level": 0,
+      "spot": "Hot",
+      "score": 5
+    },
+    "PISO7": {
+      "zone": "Floor",
+      "aisle": "Piso",
+      "level": 0,
+      "spot": "Hot",
+      "score": 5
+    },
+    "PISO8": {
+      "zone": "Floor",
+      "aisle": "Piso",
+      "level": 0,
+      "spot": "Hot",
       "score": 5
     },
     "RA100A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 3
     },
     "RA100B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 3
     },
     "RA100C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 3
     },
     "RA101A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 3
     },
     "RA101B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 3
     },
     "RA101C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 3
     },
     "RA102A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 3
     },
     "RA102B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 3
     },
     "RA102C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 3
     },
     "RA103A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 3
     },
     "RA103B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 3
     },
     "RA103C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 3
     },
     "RA104A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 3
     },
     "RA104B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 3
     },
     "RA104C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 3
     },
     "RA105A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RA105B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RA105C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RA110A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 3
     },
     "RA110B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 3
     },
     "RA110C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 3
     },
     "RA111A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 3
     },
     "RA111B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 3
     },
     "RA111C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 3
     },
     "RA112A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 3
     },
     "RA112B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 3
     },
     "RA112C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 3
     },
     "RA113A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 3
     },
     "RA113B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 3
     },
     "RA113C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 3
     },
     "RA114A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 3
     },
     "RA114B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 3
     },
     "RA114C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 3
     },
     "RA115A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RA115B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RA115C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RA120A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 3
     },
     "RA120B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 3
     },
     "RA120C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 3
     },
     "RA121A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 3
     },
     "RA121B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 3
     },
     "RA121C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 3
     },
     "RA122A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 3
     },
     "RA122B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 3
     },
     "RA122C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 3
     },
     "RA123A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 3
     },
     "RA123B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 3
     },
     "RA123C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 3
     },
     "RA124A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 3
     },
     "RA124B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 3
     },
     "RA124C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 3
     },
     "RA125A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RA125B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RA125C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RA12A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Hot",
       "score": 8
     },
     "RA12B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Hot",
       "score": 8
     },
     "RA12C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Hot",
       "score": 8
     },
     "RA130A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 3
     },
     "RA130B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 3
     },
     "RA130C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 3
     },
     "RA131A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 3
     },
     "RA131B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 3
     },
     "RA131C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 3
     },
     "RA132A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 3
     },
     "RA132B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 3
     },
     "RA132C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 3
     },
     "RA133A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 3
     },
     "RA133B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 3
     },
     "RA133C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 3
     },
     "RA134A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 3
     },
     "RA134B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 3
     },
     "RA134C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 3
     },
     "RA135A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RA135B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RA135C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RA13A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 7
     },
     "RA13B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 7
     },
     "RA13C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Hot",
       "score": 7
     },
     "RA14A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "RA14B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "RA14C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "RA15A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 4
     },
     "RA15B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 4
     },
     "RA15C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 4
     },
     "RA22A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Hot",
       "score": 10
     },
     "RA22B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Hot",
       "score": 10
     },
     "RA22C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Hot",
       "score": 10
     },
     "RA23A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Warm",
       "score": 7
     },
     "RA23B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Warm",
       "score": 7
     },
     "RA23C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Warm",
       "score": 7
     },
     "RA24A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "RA24B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "RA24C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "RA25A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 6
     },
     "RA25B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 6
     },
     "RA25C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 6
     },
     "RA30A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Hot",
       "score": 10
     },
     "RA30B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Hot",
       "score": 10
     },
     "RA30C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Hot",
       "score": 10
     },
     "RA31A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Hot",
       "score": 10
     },
     "RA31B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Hot",
       "score": 10
     },
     "RA31C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Hot",
       "score": 10
     },
     "RA32A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 7
     },
     "RA32B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 7
     },
     "RA32C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 7
     },
     "RA33A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 7
     },
     "RA33B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 7
     },
     "RA33C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 7
     },
     "RA34A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 7
     },
     "RA34B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 7
     },
     "RA34C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 7
     },
     "RA35A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 7
     },
     "RA35B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 7
     },
     "RA35C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 7
     },
     "RA40A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Hot",
       "score": 10
     },
     "RA40B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Hot",
       "score": 10
     },
     "RA40C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Hot",
       "score": 10
     },
     "RA41A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Hot",
       "score": 10
     },
     "RA41B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Hot",
       "score": 10
     },
     "RA41C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Hot",
       "score": 10
     },
     "RA42A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 7
     },
     "RA42B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 7
     },
     "RA42C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 7
     },
     "RA43A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 7
     },
     "RA43B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 7
     },
     "RA43C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 7
     },
     "RA44A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 7
     },
     "RA44B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 7
     },
     "RA44C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 7
     },
     "RA45A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 7
     },
     "RA45B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 7
     },
     "RA45C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 7
     },
     "RA50A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Hot",
       "score": 10
     },
     "RA50B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Hot",
       "score": 10
     },
     "RA50C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Hot",
       "score": 10
     },
     "RA51A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Hot",
       "score": 10
     },
     "RA51B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Hot",
       "score": 10
     },
     "RA51C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Hot",
       "score": 10
     },
     "RA52A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 7
     },
     "RA52B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 7
     },
     "RA52C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 7
     },
     "RA53A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 7
     },
     "RA53B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 7
     },
     "RA53C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 7
     },
     "RA54A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 7
     },
     "RA54B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 7
     },
     "RA54C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 7
     },
     "RA55A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 7
     },
     "RA55B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 7
     },
     "RA55C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 7
     },
     "RA60A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 7
     },
     "RA60B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 7
     },
     "RA60C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 7
     },
     "RA61A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "RA61B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "RA61C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 7
     },
     "RA62A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 7
     },
     "RA62B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 7
     },
     "RA62C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 7
     },
     "RA63A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "RA63B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "RA63C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "RA64A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "RA64B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "RA64C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "RA65A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 6
     },
     "RA65B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 6
     },
     "RA65C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 6
     },
     "RA70A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 6
     },
     "RA70B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 6
     },
     "RA70C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 6
     },
     "RA71A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 6
     },
     "RA71B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 6
     },
     "RA71C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 6
     },
     "RA72A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 6
     },
     "RA72B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 6
     },
     "RA72C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 6
     },
     "RA73A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "RA73B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "RA73C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "RA74A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "RA74B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "RA74C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "RA75A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 6
     },
     "RA75B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 6
     },
     "RA75C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 6
     },
     "RA80A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 6
     },
     "RA80B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 6
     },
     "RA80C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 6
     },
     "RA81A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 6
     },
     "RA81B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 6
     },
     "RA81C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 6
     },
     "RA82A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 6
     },
     "RA82B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 6
     },
     "RA82C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 6
     },
     "RA83A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "RA83B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "RA83C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "RA84A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "RA84B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "RA84C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "RA85A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 6
     },
     "RA85B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 6
     },
     "RA85C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 6
     },
     "RA90A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 6
     },
     "RA90B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 6
     },
     "RA90C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 6
     },
     "RA91A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 6
     },
     "RA91B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 6
     },
     "RA91C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 6
     },
     "RA92A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 6
     },
     "RA92B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 6
     },
     "RA92C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 6
     },
     "RA93A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "RA93B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "RA93C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "RA94A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "RA94B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "RA94C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "RA95A": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 6
     },
     "RA95B": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 6
     },
     "RA95C": {
       "zone": "Rack",
       "aisle": "RA",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 6
     },
     "RB10A": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 5
     },
     "RB10B": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 5
     },
     "RB10C": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 5
     },
     "RB11A": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 5
     },
     "RB11B": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 5
     },
     "RB11C": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 5
     },
     "RB12A": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 3
     },
     "RB12B": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 3
     },
     "RB12C": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 3
     },
     "RB13A": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 2
     },
     "RB13C": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 2
     },
     "RB14A": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 1
     },
     "RB14C": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 1
     },
     "RB15A": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 1
     },
     "RB15C": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 1
     },
     "RB20A": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 5
     },
     "RB20B": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 5
     },
     "RB20C": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 5
     },
     "RB21A": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 5
     },
     "RB21B": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 5
     },
     "RB21C": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 5
     },
     "RB22A": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 1
     },
     "RB22B": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 1
     },
     "RB22C": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 1
     },
     "RB23A": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 1
     },
     "RB23B": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 1
     },
     "RB23C": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 1
     },
     "RB24A": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 1
     },
     "RB24B": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 1
     },
     "RB24C": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 1
     },
     "RB25A": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 1
     },
     "RB25B": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 1
     },
     "RB25C": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 1
     },
     "RB30A": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 5
     },
     "RB30B": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 5
     },
     "RB30C": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 5
     },
     "RB31A": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 5
     },
     "RB31B": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 5
     },
     "RB31C": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 5
     },
     "RB32A": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 1
     },
     "RB32B": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 1
     },
     "RB32C": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 1
     },
     "RB33A": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 1
     },
     "RB33B": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 1
     },
     "RB33C": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 1
     },
     "RB34A": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 1
     },
     "RB34B": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 1
     },
     "RB34C": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 1
     },
     "RB35A": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 1
     },
     "RB35B": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 1
     },
     "RB35C": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 1
     },
     "RB40A": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 5
     },
     "RB40B": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 5
     },
     "RB40C": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 5
     },
     "RB41A": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 5
     },
     "RB41B": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 5
     },
     "RB41C": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 5
     },
     "RB42A": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 1
     },
     "RB42B": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 1
     },
     "RB42C": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 1
     },
     "RB43A": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 1
     },
     "RB43B": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 1
     },
     "RB43C": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 1
     },
     "RB44A": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 1
     },
     "RB44B": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 1
     },
     "RB44C": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 1
     },
     "RB45A": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 1
     },
     "RB45B": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 1
     },
     "RB45C": {
       "zone": "Rack",
       "aisle": "RB",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 1
     },
     "RC10A": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 5
     },
     "RC10B": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 5
     },
     "RC10C": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 5
     },
     "RC11A": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 5
     },
     "RC11B": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 5
     },
     "RC11C": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 5
     },
     "RC12A": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 3
     },
     "RC12C": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 3
     },
     "RC13A": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "3",
+      "level": 3,
+      "spot": "Cold",
+      "score": 1
+    },
+    "RC13B": {
+      "zone": "Rack",
+      "aisle": "RC",
+      "level": 3,
       "spot": "Cold",
       "score": 1
     },
     "RC13C": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 1
     },
     "RC14A": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 1
     },
     "RC14C": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 1
     },
     "RC15A": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 1
     },
     "RC15C": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 1
     },
     "RC20A": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 1
     },
     "RC20B": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 1
     },
     "RC20C": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 1
     },
     "RC21A": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 1
     },
     "RC21B": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 1
     },
     "RC21C": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 1
     },
     "RC22A": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 1
     },
     "RC22B": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 1
     },
     "RC22C": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 1
     },
     "RC23A": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 1
     },
     "RC23B": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 1
     },
     "RC23C": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 1
     },
     "RC24A": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 1
     },
     "RC24B": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 1
     },
     "RC24C": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 1
     },
     "RC25A": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 1
     },
     "RC25B": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 1
     },
     "RC25C": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 1
     },
     "RC30A": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 1
     },
     "RC30B": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 1
     },
     "RC30C": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 1
     },
     "RC31A": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 1
     },
     "RC31B": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 1
     },
     "RC31C": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 1
     },
     "RC32A": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 1
     },
     "RC32B": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 1
     },
     "RC32C": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 1
     },
     "RC33A": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 1
     },
     "RC33B": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 1
     },
     "RC33C": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 1
     },
     "RC34A": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 1
     },
     "RC34B": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 1
     },
     "RC34C": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 1
     },
     "RC35A": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 1
     },
     "RC35B": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 1
     },
     "RC35C": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 1
     },
     "RC40A": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 1
     },
     "RC40B": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 1
     },
     "RC40C": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "0",
+      "level": 0,
       "spot": "Cold",
       "score": 1
     },
     "RC41A": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 1
     },
     "RC41B": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 1
     },
     "RC41C": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "1",
+      "level": 1,
       "spot": "Cold",
       "score": 1
     },
     "RC42A": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 1
     },
     "RC42B": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 1
     },
     "RC42C": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "2",
+      "level": 2,
       "spot": "Cold",
       "score": 1
     },
     "RC43A": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 1
     },
     "RC43B": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 1
     },
     "RC43C": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 1
     },
     "RC44A": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 1
     },
     "RC44B": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 1
     },
     "RC44C": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 1
     },
     "RC45A": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 1
     },
     "RC45B": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 1
     },
     "RC45C": {
       "zone": "Rack",
       "aisle": "RC",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 1
     },
     "RD10A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 10
     },
     "RD10B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 10
     },
     "RD10C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 10
     },
     "RD11A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 10
     },
     "RD11B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 10
     },
     "RD11C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 10
     },
     "RD20A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 10
     },
     "RD20B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 10
     },
     "RD20C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 10
     },
     "RD21A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 10
     },
     "RD21B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 10
     },
     "RD21C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 10
     },
     "RD22A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 7
     },
     "RD22B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 7
     },
     "RD22C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 7
     },
     "RD23A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 5
     },
     "RD23B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 5
     },
     "RD23C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 5
     },
     "RD24A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 4
     },
     "RD24B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 4
     },
     "RD24C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 4
     },
     "RD25A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RD25B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RD25C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RD30A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 10
     },
     "RD30B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 10
     },
     "RD30C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 10
     },
     "RD31A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 10
     },
     "RD31B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 10
     },
     "RD31C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 10
     },
     "RD32A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 7
     },
     "RD32B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 7
     },
     "RD32C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 7
     },
     "RD33A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 5
     },
     "RD33B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 5
     },
     "RD33C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 5
     },
     "RD34A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 4
     },
     "RD34B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 4
     },
     "RD34C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 4
     },
     "RD35A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RD35B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RD35C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RD40A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 8
     },
     "RD40B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 8
     },
     "RD40C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 8
     },
     "RD41A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 8
     },
     "RD41B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 8
     },
     "RD41C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 8
     },
     "RD42A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 6
     },
     "RD42B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 6
     },
     "RD42C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 6
     },
     "RD43A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 5
     },
     "RD43B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 5
     },
     "RD43C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 5
     },
     "RD44A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 4
     },
     "RD44B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 4
     },
     "RD44C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 4
     },
     "RD45A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RD45B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RD45C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RD50A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 8
     },
     "RD50B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 8
     },
     "RD50C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 8
     },
     "RD51A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 8
     },
     "RD51B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 8
     },
     "RD51C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 8
     },
     "RD52A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 6
     },
     "RD52B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 6
     },
     "RD52C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 6
     },
     "RD53A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 5
     },
     "RD53B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 5
     },
     "RD53C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 5
     },
     "RD54A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 4
     },
     "RD54B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 4
     },
     "RD54C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 4
     },
     "RD55A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RD55B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RD55C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RD60A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 8
     },
     "RD60B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 8
     },
     "RD60C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 8
     },
     "RD61A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 8
     },
     "RD61B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 8
     },
     "RD61C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 8
     },
     "RD62A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 6
     },
     "RD62B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 6
     },
     "RD62C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 6
     },
     "RD63A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 5
     },
     "RD63B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 5
     },
     "RD63C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 5
     },
     "RD64A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 4
     },
     "RD64B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 4
     },
     "RD64C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 4
     },
     "RD65A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RD65B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RD65C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RD70A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 8
     },
     "RD70B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 8
     },
     "RD70C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 8
     },
     "RD71A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 8
     },
     "RD71B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 8
     },
     "RD71C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 8
     },
     "RD72A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 6
     },
     "RD72B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 6
     },
     "RD72C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 6
     },
     "RD73A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 5
     },
     "RD73B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 5
     },
     "RD73C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 5
     },
     "RD74A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 4
     },
     "RD74B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 4
     },
     "RD74C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 4
     },
     "RD75A": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RD75B": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RD75C": {
       "zone": "Rack",
       "aisle": "RD",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 3
     },
     "RE22A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 8
     },
     "RE22B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 8
     },
     "RE22C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 8
     },
     "RE23A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 7
     },
     "RE23B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 7
     },
     "RE23C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 7
     },
     "RE24A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 7
     },
     "RE24B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 7
     },
     "RE24C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 7
     },
     "RE25A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 7
     },
     "RE25B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 7
     },
     "RE25C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 7
     },
     "RE30A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 9
     },
     "RE30B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 9
     },
     "RE30C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 9
     },
     "RE31A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 9
     },
     "RE31B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 9
     },
     "RE31C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 9
     },
     "RE32A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 7
     },
     "RE32B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 7
     },
     "RE32C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 7
     },
     "RE33A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "RE33B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "RE33C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "RE34A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "RE34B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "RE34C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "RE35A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 6
     },
     "RE35B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 6
     },
     "RE35C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 6
     },
     "RE40A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 9
     },
     "RE40B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 9
     },
     "RE40C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 9
     },
     "RE41A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 9
     },
     "RE41B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 9
     },
     "RE41C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 9
     },
     "RE42A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 7
     },
     "RE42B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 7
     },
     "RE42C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 7
     },
     "RE43A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "RE43B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "RE43C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 6
     },
     "RE44A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "RE44B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "RE44C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 6
     },
     "RE45A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 6
     },
     "RE45B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 6
     },
     "RE45C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 6
     },
     "RE50A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 8
     },
     "RE50B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 8
     },
     "RE50C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 8
     },
     "RE51A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 8
     },
     "RE51B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 8
     },
     "RE51C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 8
     },
     "RE52A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 7
     },
     "RE52B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 7
     },
     "RE52C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 7
     },
     "RE53A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 7
     },
     "RE53B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 7
     },
     "RE53C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 7
     },
     "RE54A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 7
     },
     "RE54B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 7
     },
     "RE54C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 7
     },
     "RE55A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 7
     },
     "RE55B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 7
     },
     "RE55C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 7
     },
     "RE60A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 7
     },
     "RE60B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 7
     },
     "RE60C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 7
     },
     "RE61A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 7
     },
     "RE61B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 7
     },
     "RE61C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 7
     },
     "RE62A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 7
     },
     "RE62B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 7
     },
     "RE62C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 7
     },
     "RE63A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 7
     },
     "RE63B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 7
     },
     "RE63C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 7
     },
     "RE64A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 7
     },
     "RE64B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 7
     },
     "RE64C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 7
     },
     "RE65A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 7
     },
     "RE65B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 7
     },
     "RE65C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 7
     },
     "RE70A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 7
     },
     "RE70B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 7
     },
     "RE70C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "0",
-      "spot": "Cold",
+      "level": 0,
+      "spot": "Hot",
       "score": 7
     },
     "RE71A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 7
     },
     "RE71B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 7
     },
     "RE71C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "1",
-      "spot": "Cold",
+      "level": 1,
+      "spot": "Hot",
       "score": 7
     },
     "RE72A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 7
     },
     "RE72B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 7
     },
     "RE72C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "2",
-      "spot": "Cold",
+      "level": 2,
+      "spot": "Warm",
       "score": 7
     },
     "RE73A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 7
     },
     "RE73B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 7
     },
     "RE73C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "3",
+      "level": 3,
       "spot": "Cold",
       "score": 7
     },
     "RE74A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 7
     },
     "RE74B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 7
     },
     "RE74C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "4",
+      "level": 4,
       "spot": "Cold",
       "score": 7
     },
     "RE75A": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 7
     },
     "RE75B": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 7
     },
     "RE75C": {
       "zone": "Rack",
       "aisle": "RE",
-      "level": "5",
+      "level": 5,
       "spot": "Cold",
       "score": 7
     }

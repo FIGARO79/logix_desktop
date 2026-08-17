@@ -7,10 +7,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { syncPendingInbound, checkAndSyncIfNeeded, downloadMasterData } from '../utils/syncManager';
 import { useOffline } from '../hooks/useOffline';
 import SandvikLabel from '../components/labels/SandvikLabel';
+import PrinterSettingsModal from '../components/PrinterSettingsModal';
 import { useReactToPrint } from 'react-to-print';
 import '../styles/Label.css';
 import { parseGS1Barcode } from '../utils/gs1Parser';
-import { isTauri, callTauriCommand, tauriGetInboundMasterMaps, tauriLookupInboundReference, tauriGetItemDetails, confirmNative } from '../utils/tauriBridge';
+import { isTauri, callTauriCommand, tauriGetInboundMasterMaps, tauriLookupInboundReference, tauriGetItemDetails, confirmNative, getPrinterConfig, printSandvikLabelSilent } from '../utils/tauriBridge';
 
 
 const EMPTY_ARRAY = [];
@@ -102,6 +103,7 @@ const Inbound = () => {
     const [scannerOpen, setScannerOpen] = useState(false);
     const [qrImage, setQrImage] = useState(null);
     const [editId, setEditId] = useState(null);
+    const [printerModalOpen, setPrinterModalOpen] = useState(false);
 
     // --- Estado para el Tablero de Control de la IR ---
     const [irStats, setIrStats] = useState(DEFAULT_IR_STATS);
@@ -1195,14 +1197,34 @@ const Inbound = () => {
     // Cálculo dinámico de Xdock pendiente basado en lo que ya se ha registrado en la tabla
     const effectiveXdockPending = Math.max(0, (itemData?.xdockTotal || 0) - cumulativeQty);
 
-    const handlePrint = useReactToPrint({
+    const triggerReactPrint = useReactToPrint({
         contentRef: labelComponentRef,
         documentTitle: itemData ? `Etiqueta-${itemData.itemCode}` : 'Etiqueta',
         pageStyle: "@page { size: 70mm 100mm; margin: 0; } @media print { body { -webkit-print-color-adjust: exact; } }",
     });
 
+    const handlePrintClick = async () => {
+        const cfg = getPrinterConfig();
+        if (isTauri() && cfg.auto_print_enabled && itemData) {
+            const payload = {
+                itemCode: itemData.itemCode,
+                description: itemData.description,
+                quantity: quantity || 1,
+                weight: totalWeight,
+                binLocation: relocatedBin || itemData.binLocation || '',
+                qrData: itemData.itemCode
+            };
+            const res = await printSandvikLabelSilent(payload, cfg.default_label_printer);
+            if (res.success) {
+                return;
+            }
+        }
+        triggerReactPrint();
+    };
+
     return (
         <>
+            <PrinterSettingsModal isOpen={printerModalOpen} onClose={() => setPrinterModalOpen(false)} />
             <div className="container-wrapper px-4 pt-1 pb-4 lg:h-[calc(100vh-5px)] lg:flex lg:flex-col lg:overflow-hidden" style={{ paddingTop: '0.75rem' }}>
                 <form onSubmit={handleSaveLog} className="lg:flex-shrink-0 mb-0">
 
@@ -1401,20 +1423,30 @@ const Inbound = () => {
                                     </div>
                                 </div>
                             </div>
-                            <button
-                                type="button"
-                                onClick={handlePrint}
-                                className="h-9 w-full text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
-                                style={{ background: '#285f94' }}
-                                onMouseEnter={e => !(!itemData) && (e.currentTarget.style.background = '#1e4a74')}
-                                onMouseLeave={e => !(!itemData) && (e.currentTarget.style.background = '#285f94')}
-                                disabled={!itemData}
-                            >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                </svg>
-                                Imprimir
-                            </button>
+                            <div className="flex items-center gap-1.5 w-full">
+                                <button
+                                    type="button"
+                                    onClick={() => setPrinterModalOpen(true)}
+                                    className="h-9 px-2.5 text-[10px] text-zinc-700 bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 rounded-lg shadow-sm flex items-center justify-center font-medium transition-colors cursor-pointer"
+                                    title="Configurar Impresora de Etiquetas"
+                                >
+                                    ⚙️
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handlePrintClick}
+                                    className="h-9 flex-grow text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold cursor-pointer"
+                                    style={{ background: '#285f94' }}
+                                    onMouseEnter={e => !(!itemData) && (e.currentTarget.style.background = '#1e4a74')}
+                                    onMouseLeave={e => !(!itemData) && (e.currentTarget.style.background = '#285f94')}
+                                    disabled={!itemData}
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                    </svg>
+                                    Imprimir
+                                </button>
+                            </div>
                         </div>
 
                         {/* Columna 4: Tablero de Control de la IR */}

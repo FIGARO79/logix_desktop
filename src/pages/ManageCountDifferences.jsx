@@ -33,16 +33,17 @@ const ManageCountDifferences = () => {
             const res = await fetch('/api/counts/differences');
             if (!res.ok) throw new Error('Error al cargar datos');
             const json = await res.json();
-            setData(json.items || []);
+            setData(Array.isArray(json) ? json : (json?.items || []));
         } catch (err) {
             setError(err.message);
+            setData([]);
         } finally {
             setLoading(false);
         }
     };
 
     const filterTable = useCallback(() => {
-        let res = [...data];
+        let res = Array.isArray(data) ? [...data] : [];
         const search = filterItemCode.trim().toUpperCase();
 
         if (search) {
@@ -54,9 +55,9 @@ const ManageCountDifferences = () => {
             );
         }
 
-        if (filterType === 'negative') res = res.filter(item => item.difference < 0);
-        else if (filterType === 'positive') res = res.filter(item => item.difference > 0);
-        else if (filterType === 'zero') res = res.filter(item => item.difference === 0);
+        if (filterType === 'negative') res = res.filter(item => item.difference < 0 || item.diff_qty < 0);
+        else if (filterType === 'positive') res = res.filter(item => item.difference > 0 || item.diff_qty > 0);
+        else if (filterType === 'zero') res = res.filter(item => item.difference === 0 || item.diff_qty === 0);
 
         setFilteredData(res);
     }, [data, filterItemCode, filterType]);

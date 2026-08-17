@@ -151,14 +151,14 @@ const DashboardInventario = () => {
         </div>
     );
 
-    if (stats?.empty) return (
+    if (!stats || stats?.empty || !stats.eri) return (
         <div className="flex items-center justify-center min-h-[50vh] font-['Segoe_UI',_system-ui,_sans-serif]">
             <div className="text-slate-700 bg-white p-6 rounded-xl border border-slate-200 shadow-sm text-center max-w-sm">
                 <div className="w-10 h-10 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center mx-auto mb-3">
                     <Icons.Boxes />
                 </div>
                 <h3 className="text-sm font-semibold text-slate-900 mb-1">Sin Registros de Conteos Cíclicos</h3>
-                <p className="text-xs text-slate-600 font-normal">Realice auditorías de inventario para visualizar los 18 KPIs en tiempo real.</p>
+                <p className="text-xs text-slate-600 font-normal">Realice auditorías o conteos cíclicos para visualizar los 18 KPIs en tiempo real.</p>
             </div>
         </div>
     );

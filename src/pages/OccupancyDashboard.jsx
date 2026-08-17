@@ -73,7 +73,7 @@ const OccupancyDashboard = () => {
     );
 
     const allLevels = [0, 1, 2, 3, 4, 5, 6, 7, 8];
-    const zones = Object.keys(data.zones).sort();
+    const zones = Object.keys(data.zones || {}).sort();
 
     return (
         <div className="max-w-[1600px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-black text-[12px] antialiased">
@@ -91,12 +91,12 @@ const OccupancyDashboard = () => {
             {/* Global Utilization Summary */}
             <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-4">
                 {[
-                    { label: 'Total Bins', val: data.summary.total_bins, color: 'text-black' },
-                    { label: 'Filled Capacity', val: data.summary.filled_bins, color: 'text-black' },
-                    { label: 'Available', val: data.summary.available_bins, color: 'text-black' },
-                    { label: 'Utilization %', val: `${data.summary.occupancy_pct}%`, color: data.summary.occupancy_pct > 85 ? 'text-red-750' : 'text-black' },
-                    { label: 'Active SKUs', val: data.summary.total_items, color: 'text-black' },
-                    { label: 'Density (SKU/Bin)', val: data.summary.avg_items_per_bin, color: 'text-black' }
+                    { label: 'Total Bins', val: data?.summary?.total_bins ?? 0, color: 'text-black' },
+                    { label: 'Filled Capacity', val: data?.summary?.filled_bins ?? 0, color: 'text-black' },
+                    { label: 'Available', val: data?.summary?.available_bins ?? 0, color: 'text-black' },
+                    { label: 'Utilization %', val: `${data?.summary?.occupancy_pct ?? 0}%`, color: (data?.summary?.occupancy_pct ?? 0) > 85 ? 'text-red-750' : 'text-black' },
+                    { label: 'Active SKUs', val: data?.summary?.total_items ?? 0, color: 'text-black' },
+                    { label: 'Density (SKU/Bin)', val: data?.summary?.avg_items_per_bin ?? '0.0', color: 'text-black' }
                 ].map((s, i) => (
                     <div key={i} className="bg-white px-3 py-1.5 border border-zinc-200 shadow-sm text-black">
                         <label className="text-[12px] uppercase text-black font-normal tracking-tight block mb-0.5 leading-tight">{s.label}</label>
@@ -126,7 +126,7 @@ const OccupancyDashboard = () => {
                         </thead>
                         <tbody className="divide-y divide-zinc-200">
                             {zones.map(zoneName => {
-                                const zoneData = data.zones[zoneName];
+                                const zoneData = data.zones[zoneName] || { total: 0, occupied: 0, levels: {} };
                                 const zoneOccupancyPct = zoneData.total > 0
                                     ? Math.round((zoneData.occupied / zoneData.total) * 100)
                                     : 0;
@@ -149,7 +149,7 @@ const OccupancyDashboard = () => {
                                             </div>
                                         </td>
                                         {allLevels.map(level => {
-                                            const levelData = zoneData.levels[level] || { total: 0, full_bins: 0, occupied_skus: 0, total_occupancy_pct: 0, occupied_bins: 0 };
+                                            const levelData = zoneData.levels?.[level] || { total: 0, full_bins: 0, occupied_skus: 0, total_occupancy_pct: 0, occupied_bins: 0 };
                                             const occupancyPercent = levelData.total > 0
                                                 ? (levelData.total_occupancy_pct !== undefined
                                                     ? Math.round(levelData.total_occupancy_pct / levelData.total)
@@ -319,8 +319,8 @@ const OccupancyDashboard = () => {
                     </h3>
                     <div className="space-y-4">
                         {(() => {
-                            const totalBins = Object.values(data.analytics.bins_by_zone).reduce((acc, val) => acc + val, 0);
-                            return Object.entries(data.analytics.bins_by_zone).map(([zone, count]) => {
+                            const totalBins = Object.values(data?.analytics?.bins_by_zone || {}).reduce((acc, val) => acc + val, 0);
+                            return Object.entries(data?.analytics?.bins_by_zone || {}).map(([zone, count]) => {
                                 const percentage = totalBins > 0 ? ((count / totalBins) * 100).toFixed(1) : 0;
                                 return (
                                     <div key={zone} className="flex justify-between items-end border-b border-zinc-50 pb-1.5">
@@ -345,9 +345,9 @@ const OccupancyDashboard = () => {
                     </h3>
                     <div className="space-y-4">
                         {(() => {
-                            const totalItems = Object.values(data.analytics.zones_by_items).reduce((acc, val) => acc + val, 0);
-                            return Object.entries(data.analytics.zones_by_items).map(([zone, count]) => {
-                                const maxVal = Object.values(data.analytics.zones_by_items)[0] || 1;
+                            const totalItems = Object.values(data?.analytics?.zones_by_items || {}).reduce((acc, val) => acc + val, 0);
+                            return Object.entries(data?.analytics?.zones_by_items || {}).map(([zone, count]) => {
+                                const maxVal = Object.values(data?.analytics?.zones_by_items || {})[0] || 1;
                                 const pct = Math.round((count / maxVal) * 100);
                                 const itemPct = totalItems > 0 ? ((count / totalItems) * 100).toFixed(1) : 0;
                                 return (
@@ -375,8 +375,8 @@ const OccupancyDashboard = () => {
                         Densidad Crítica (Pasillos Principales)
                     </h3>
                     <div className="space-y-4">
-                        {Object.entries(data.analytics.top_aisles).map(([aisle, count], idx) => {
-                            const maxVal = Object.values(data.analytics.top_aisles)[0] || 1;
+                        {Object.entries(data?.analytics?.top_aisles || {}).map(([aisle, count], idx) => {
+                            const maxVal = Object.values(data?.analytics?.top_aisles || {})[0] || 1;
                             const pct = Math.round((count / maxVal) * 100);
                             return (
                                 <div key={aisle}>

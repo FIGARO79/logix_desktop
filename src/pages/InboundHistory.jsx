@@ -50,17 +50,13 @@ const InboundHistory = () => {
     const loadLogs = async (version = '', isSilent = false) => {
         if (!isSilent) setLoading(true);
         setCurrentVersion(version);
+        setError(null);
         try {
             let serverData = [];
             const url = version ? `/api/get_logs?version_date=${version}` : `/api/get_logs`;
             const res = await fetch(url, { credentials: 'include' }).catch(() => null);
             if (res && res.ok) {
                 serverData = await res.json().catch(() => []);
-                if (!version && serverData.length > 0) {
-                    await cacheData('last_inbound_logs', serverData);
-                }
-            } else if (!version) {
-                serverData = await getCachedData('last_inbound_logs') || [];
             }
 
             // --- Cargar registros locales directos de IndexedDB ---
@@ -68,46 +64,54 @@ const InboundHistory = () => {
             if (!version) {
                 try {
                     const db = await getDB();
-                    const directInbound = await db.getAll('local_inbound') || [];
-                    const allPending = await db.getAll('pending_sync') || [];
-                    const legacyPending = allPending
-                        .filter(p => p.collection === 'inbound')
-                        .map(p => ({
-                            id: p.id,
-                            ...p.payload,
-                            username: 'Local',
-                            timestamp: p.timestamp || new Date().toISOString()
-                        }));
+                    if (db) {
+                        const directInbound = await db.getAll('local_inbound') || [];
+                        const allPending = await db.getAll('pending_sync') || [];
+                        const legacyPending = allPending
+                            .filter(p => p.collection === 'inbound')
+                            .map(p => ({
+                                id: p.id,
+                                ...p.payload,
+                                username: 'Local',
+                                timestamp: p.timestamp || new Date().toISOString()
+                            }));
 
-                    localLogs = [...directInbound, ...legacyPending];
-                } catch (e) { console.error("Error loading local inbound logs", e); }
+                        localLogs = [...directInbound, ...legacyPending];
+                    }
+                } catch (e) {
+                    console.warn("Info loading local inbound logs:", e);
+                }
             }
 
-            const combinedData = [...localLogs, ...serverData];
+            const rawList = Array.isArray(serverData) ? [...localLogs, ...serverData] : [...localLogs];
 
             // Ordenar por fecha (más reciente primero)
-            const sortedData = combinedData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            const sortedData = rawList.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
 
             // Obtener datos de cantidades esperadas desde IndexedDB (Cache local) de forma masiva
             let grnMap = {};
             try {
                 const db = await getDB();
-                const itemsToQuery = sortedData.map(log => ({
-                    itemCode: log.itemCode,
-                    importRef: log.importReference || log.importRef || ''
-                }));
-                grnMap = await getGRNExpectedQtyBulk(db, itemsToQuery);
-            } catch (e) { console.error("Offline GRN error", e); }
+                if (db) {
+                    const itemsToQuery = sortedData.map(log => ({
+                        itemCode: log.itemCode || log.item_code,
+                        importRef: log.importReference || log.import_reference || log.importRef || ''
+                    }));
+                    grnMap = await getGRNExpectedQtyBulk(db, itemsToQuery);
+                }
+            } catch (e) {
+                console.warn("Offline GRN expected bulk:", e);
+            }
 
             // Calcular totales recibidos por ítem y por IR
             const totalsMap = {};
             const latestEntryMap = {};
 
             sortedData.forEach(log => {
-                const code = log.itemCode;
-                const ir = log.importReference || log.importRef || '';
+                const code = log.itemCode || log.item_code || '';
+                const ir = log.importReference || log.import_reference || log.importRef || '';
                 const key = `${code}|${ir}`;
-                const qty = parseInt(log.qtyReceived) || 0;
+                const qty = parseInt(log.qtyReceived ?? log.qty_received ?? log.quantity ?? 0, 10) || 0;
                 totalsMap[key] = (totalsMap[key] || 0) + qty;
                 if (!latestEntryMap[key]) {
                     latestEntryMap[key] = log.id;
@@ -115,23 +119,31 @@ const InboundHistory = () => {
             });
 
             const enrichedLogs = sortedData.map(log => {
-                const code = log.itemCode;
-                const ir = log.importReference || log.importRef || '';
+                const code = log.itemCode || log.item_code || '';
+                const ir = log.importReference || log.import_reference || log.importRef || '';
                 const key = `${code}|${ir}`;
-                const expected = log.qtyGrn || grnMap[key] || 0;
+                const expected = log.qtyGrn !== undefined && log.qtyGrn !== null ? log.qtyGrn : (log.qty_grn !== undefined && log.qty_grn !== null ? log.qty_grn : (grnMap[key] || 0));
                 const totalReceived = totalsMap[key] || 0;
                 const isLatest = latestEntryMap[key] === log.id;
 
                 return {
                     ...log,
+                    itemCode: code,
+                    itemDescription: log.itemDescription || log.item_description || log.description || '',
+                    importReference: ir,
+                    waybill: log.waybill || '',
+                    binLocation: log.binLocation || log.bin_location || '',
+                    relocatedBin: log.relocatedBin || log.relocated_bin || '',
+                    qtyReceived: log.qtyReceived ?? log.qty_received ?? log.quantity ?? 0,
                     expected_qty: expected,
-                    calculatedDifference: isLatest ? (totalReceived - expected) : 0
+                    calculatedDifference: isLatest ? (totalReceived - expected) : (log.difference !== undefined ? log.difference : 0)
                 };
             });
 
             setLogs(enrichedLogs);
         } catch (err) {
-            setError(err.message);
+            console.error("Error al cargar historial:", err);
+            setError(err.message || "Error al cargar historial de inbound");
         } finally {
             setLoading(false);
         }
@@ -139,27 +151,28 @@ const InboundHistory = () => {
 
     useEffect(() => {
         loadLogs();
-        // Intervalo para refrescar y ver si los pendientes ya se sincronizaron
         const interval = setInterval(() => {
-            // Solo si no estamos viendo una versión archivada
             if (!currentVersion) loadLogs('', true);
         }, 15000);
         return () => clearInterval(interval);
     }, [currentVersion]);
 
-    // Recargar datos automáticamente cuando la pestaña de Historial/Registros vuelve a estar activa
     useEffect(() => {
         if (location.pathname === '/view_logs' && !currentVersion) {
-            loadLogs('', true); // Recarga silenciosa (sin loader) conservando filtros de búsqueda
+            loadLogs('', true);
         }
     }, [location.pathname, currentVersion]);
 
-    const filteredLogs = logs.filter(log =>
-        (log.itemCode && log.itemCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (log.waybill && log.waybill.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (log.importReference && log.importReference.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (log.username && log.username.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const filteredLogs = logs.filter(log => {
+        const search = searchTerm.trim().toLowerCase();
+        if (!search) return true;
+        const code = (log.itemCode || log.item_code || '').toLowerCase();
+        const wb = (log.waybill || '').toLowerCase();
+        const ir = (log.importReference || log.import_reference || '').toLowerCase();
+        const user = (log.username || '').toLowerCase();
+        const desc = (log.itemDescription || log.item_description || '').toLowerCase();
+        return code.includes(search) || wb.includes(search) || ir.includes(search) || user.includes(search) || desc.includes(search);
+    });
 
     return (
         <div className="w-full px-4 py-3">
@@ -231,15 +244,15 @@ const InboundHistory = () => {
                             {loading && <tr><td colSpan="11" className="py-4 text-center text-black/60">Cargando...</td></tr>}
                             {!loading && filteredLogs.length === 0 && <tr><td colSpan="11" className="py-4 text-center text-black/60">No se encontraron registros.</td></tr>}
                             {filteredLogs.map((log, idx) => (
-                                <tr key={log.id} className={`${log.is_pending ? 'bg-amber-50 animate-pulse' : (idx % 2 === 0 ? 'bg-white' : 'bg-gray-50')} hover:bg-blue-50 transition-colors`}>
+                                <tr key={log.id || idx} className={`${log.is_pending ? 'bg-amber-50 animate-pulse' : (idx % 2 === 0 ? 'bg-white' : 'bg-gray-50')} hover:bg-blue-50 transition-colors`}>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black">{formatDate(log.timestamp)}</td>
-                                    <td className={`px-2 py-1.5 whitespace-nowrap font-normal text-sm ${log.is_pending ? 'text-amber-700' : 'text-black'} uppercase`}>{log.username}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black">{log.importReference}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black">{log.waybill}</td>
+                                    <td className={`px-2 py-1.5 whitespace-nowrap font-normal text-sm ${log.is_pending ? 'text-amber-700' : 'text-black'} uppercase`}>{log.username || 'admin'}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black">{log.importReference || '-'}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black">{log.waybill || '-'}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black font-normal">{log.itemCode}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black truncate max-w-md" title={log.itemDescription}>{log.itemDescription}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black">{log.binLocation}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black">{log.relocatedBin}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black truncate max-w-md" title={log.itemDescription}>{log.itemDescription || '-'}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black">{log.binLocation || '-'}</td>
+                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black">{log.relocatedBin || '-'}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-sm text-center font-normal">{log.qtyReceived}</td>
                                     <td className="px-2 py-1.5 whitespace-nowrap text-sm text-center text-black font-normal">{log.expected_qty}</td>
                                     <td className={`px-2 py-1.5 whitespace-nowrap text-sm text-center font-normal ${log.calculatedDifference < 0 ? 'text-red-600' : log.calculatedDifference > 0 ? 'text-blue-600' : ''}`}>

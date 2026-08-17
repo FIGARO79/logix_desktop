@@ -209,7 +209,9 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
 
         if (pathname.startsWith('/api/admin/permissions/')) {
             const userId = parseInt(pathname.replace('/api/admin/permissions/', '')) || 0;
-            const permissions = typeof body?.permissions === 'string' ? body.permissions : JSON.stringify(body?.permissions || {});
+            const permissions = Array.isArray(body?.permissions)
+                ? body.permissions.join(',')
+                : (typeof body?.permissions === 'string' ? body.permissions : '');
             if (isTauri()) {
                 await callTauriCommand('update_user_permissions_admin', { userId, permissions });
             }
@@ -839,24 +841,255 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
             return createJsonResponse(Array.from(binsSet));
         }
 
-        if (pathname === '/api/views/occupancy_stats' || pathname === '/api/views/occupancy_detail') {
+        if (pathname === '/api/views/occupancy_stats') {
             if (isTauri()) {
                 try {
-                    const occ = await callTauriCommand('get_occupancy_stats');
-                    if (occ) return createJsonResponse(occ);
+                    const report = await callTauriCommand('get_occupancy_report');
+                    if (report) {
+                        return createJsonResponse(report);
+                    }
                 } catch (e) {
-                    console.warn("Error getting occupancy stats:", e);
+                    console.warn("Error calling get_occupancy_report in Tauri:", e);
                 }
             }
+        }
+
+        if (pathname === '/api/views/occupancy_detail') {
+            if (isTauri()) {
+                try {
+                    const targetZone = searchParams.get('zone') || '';
+                    const rawLevel = searchParams.get('level');
+                    const targetLevel = rawLevel !== null && rawLevel !== undefined && rawLevel !== '' ? parseInt(rawLevel, 10) : null;
+                    const detail = await callTauriCommand('get_occupancy_detail', { zone: targetZone, level: targetLevel });
+                    if (detail) {
+                        return createJsonResponse(detail);
+                    }
+                } catch (e) {
+                    console.warn("Error calling get_occupancy_detail in Tauri:", e);
+                }
+            }
+        }
+
+        if (pathname === '/api/views/occupancy_stats' || pathname === '/api/views/occupancy_detail') {
             const allItems = db ? (await db.getAll('master_items') || []) : [];
+
+            // Map bin_code -> count of SKUs (solo ítems con stock físico > 0)
+            const binItemMap = new Map();
+            allItems.forEach(item => {
+                const qty = Number(item.Physical_Qty ?? item.physical_qty ?? item.System_Qty ?? item.system_qty ?? 0);
+                if (qty > 0) {
+                    const bin = (item.Bin_Location || item.Bin_1 || item.bin_location || '').trim().toUpperCase();
+                    if (bin && bin !== 'N/A' && bin !== 'SIN UBICACION') {
+                        binItemMap.set(bin, (binItemMap.get(bin) || 0) + 1);
+                    }
+                }
+            });
+
+            // Obtener el layout de ubicaciones maestro (Slotting Storage)
+            let layoutStorage = {};
+            if (isTauri()) {
+                try {
+                    const slottingConfig = await callTauriCommand('get_slotting_config');
+                    if (slottingConfig && slottingConfig.storage && Object.keys(slottingConfig.storage).length > 0) {
+                        layoutStorage = slottingConfig.storage;
+                    }
+                } catch (e) {
+                    console.warn("Could not retrieve slotting layout config:", e);
+                }
+            }
+
+            // Helper para parsear metadatos en caso de bins fuera del layout
+            const classifyBin = (binCode) => {
+                const cleanB = binCode.trim().toUpperCase();
+                const parts = cleanB.split(/[-_/\s]+/);
+                let zone = 'General';
+                let aisle = '01';
+                let level = 1;
+
+                if (parts.length >= 3) {
+                    zone = parts[0];
+                    aisle = parts[1];
+                    const parsedLvl = parseInt(parts[2], 10);
+                    level = !isNaN(parsedLvl) ? Math.min(Math.max(parsedLvl, 0), 8) : 1;
+                } else if (parts.length === 2) {
+                    zone = parts[0];
+                    aisle = parts[1];
+                    level = 1;
+                } else if (cleanB.length > 2) {
+                    zone = cleanB.substring(0, 2);
+                    aisle = '01';
+                    level = 1;
+                } else {
+                    zone = cleanB || 'General';
+                }
+                return { zone, aisle, level, spot: 'Standard' };
+            };
+
+            const parseBinMeta = (binCode) => {
+                if (layoutStorage[binCode]) {
+                    const l = layoutStorage[binCode];
+                    const def = classifyBin(binCode);
+                    return {
+                        zone: l.zone || def.zone,
+                        aisle: l.aisle || def.aisle,
+                        level: l.level !== undefined ? Number(l.level) : def.level,
+                        spot: l.spot || 'Standard'
+                    };
+                }
+                return classifyBin(binCode);
+            };
+
+            // Construir universo completo de ubicaciones (Layout Maestro + ítems con stock)
+            const allWarehouseBins = new Map();
+            if (Object.keys(layoutStorage).length > 0) {
+                Object.entries(layoutStorage).forEach(([bCode, info]) => {
+                    const cleanB = bCode.trim().toUpperCase();
+                    allWarehouseBins.set(cleanB, {
+                        zone: info.zone || 'General',
+                        aisle: info.aisle || '01',
+                        level: info.level !== undefined ? Number(info.level) : 0,
+                        spot: info.spot || 'Cold',
+                        score: info.score || 0
+                    });
+                });
+            }
+
+            // Agregar cualquier bin con stock que no esté en el layout
+            binItemMap.forEach((_, bCode) => {
+                if (!allWarehouseBins.has(bCode)) {
+                    allWarehouseBins.set(bCode, parseBinMeta(bCode));
+                }
+            });
+
+            // Si no hay layout ni ítems
+            if (allWarehouseBins.size === 0) {
+                const defaultZones = ['A', 'B', 'C', 'D'];
+                defaultZones.forEach(z => {
+                    for (let a = 1; a <= 2; a++) {
+                        for (let l = 0; l <= 3; l++) {
+                            const bCode = `${z}-0${a}-${l}-01`;
+                            allWarehouseBins.set(bCode, { zone: `Zona ${z}`, aisle: `0${a}`, level: l, spot: 'Cold' });
+                        }
+                    }
+                });
+            }
+
+            // If pathname is /api/views/occupancy_detail
+            if (pathname === '/api/views/occupancy_detail') {
+                const targetZone = searchParams.get('zone');
+                const rawLevel = searchParams.get('level');
+                const targetLevel = rawLevel !== null && rawLevel !== undefined && rawLevel !== '' ? parseInt(rawLevel, 10) : null;
+
+                const detailList = [];
+                allWarehouseBins.forEach((meta, binCode) => {
+                    if (!targetZone || meta.zone.toUpperCase() === targetZone.toUpperCase()) {
+                        if (targetLevel === null || isNaN(targetLevel) || meta.level === targetLevel) {
+                            const skuCount = binItemMap.get(binCode) || 0;
+                            const limit = (meta.zone || '').toLowerCase().includes('minut') ? 3 : 4;
+                            const occupancy_pct = Math.min(100, Math.round((skuCount / limit) * 100));
+                            detailList.push({
+                                bin_code: binCode,
+                                aisle: meta.aisle,
+                                level: meta.level,
+                                zone: meta.zone,
+                                spot: meta.spot || (skuCount > 3 ? 'Hot' : 'Standard'),
+                                skus: skuCount,
+                                occupancy_pct: occupancy_pct
+                            });
+                        }
+                    }
+                });
+                return createJsonResponse(detailList);
+            }
+
+            // Calculate occupancy_stats
             const totalItems = allItems.length;
-            const occupiedBins = new Set(allItems.map(it => it.Bin_Location || it.Bin_1).filter(Boolean)).size;
+            const totalBinsCount = allWarehouseBins.size;
+            let filledBinsCount = 0;
+            let availableBinsCount = 0;
+
+            const zonesMap = {};
+            const binsByZone = {};
+            const zonesByItems = {};
+            const aisleItems = {};
+
+            allWarehouseBins.forEach((meta, binCode) => {
+                const skuCount = binItemMap.get(binCode) || 0;
+                const zone = meta.zone || 'General';
+                const aisle = meta.aisle || '01';
+                const level = meta.level !== undefined && !isNaN(meta.level) ? Math.min(Math.max(meta.level, 0), 8) : 1;
+
+                if (!zonesMap[zone]) {
+                    zonesMap[zone] = {
+                        total: 0,
+                        occupied: 0,
+                        levels: {}
+                    };
+                    for (let l = 0; l <= 8; l++) {
+                        zonesMap[zone].levels[l] = {
+                            total: 0,
+                            occupied_bins: 0,
+                            full_bins: 0,
+                            occupied_skus: 0,
+                            total_occupancy_pct: 0
+                        };
+                    }
+                }
+
+                zonesMap[zone].total += 1;
+                const limit = zone.toLowerCase().includes('minut') ? 3 : 4;
+                const binPct = Math.min(100, Math.round((skuCount / limit) * 100));
+
+                const lvlObj = zonesMap[zone].levels[level] || zonesMap[zone].levels[1];
+                lvlObj.total += 1;
+                lvlObj.total_occupancy_pct += binPct;
+
+                if (skuCount > 0) {
+                    filledBinsCount += 1;
+                    zonesMap[zone].occupied += 1;
+                    lvlObj.occupied_bins += 1;
+                    lvlObj.occupied_skus += skuCount;
+                    if (skuCount >= limit) {
+                        lvlObj.full_bins += 1;
+                    }
+                    zonesByItems[zone] = (zonesByItems[zone] || 0) + skuCount;
+                    if (aisle && aisle !== 'N/A') {
+                        aisleItems[aisle] = (aisleItems[aisle] || 0) + skuCount;
+                    }
+                } else {
+                    availableBinsCount += 1;
+                }
+
+                binsByZone[zone] = (binsByZone[zone] || 0) + 1;
+            });
+
+            const occupancyPct = totalBinsCount > 0 ? Math.round((filledBinsCount / totalBinsCount) * 100) : 0;
+
+            const sortedZonesByItems = Object.fromEntries(
+                Object.entries(zonesByItems).sort((a, b) => b[1] - a[1]).slice(0, 5)
+            );
+            const sortedTopAisles = Object.fromEntries(
+                Object.entries(aisleItems).sort((a, b) => b[1] - a[1]).slice(0, 5)
+            );
+            const sortedBinsByZone = Object.fromEntries(
+                Object.entries(binsByZone).sort((a, b) => b[1] - a[1])
+            );
+
             return createJsonResponse({
-                total_bins: Math.max(occupiedBins, 100),
-                occupied_bins: occupiedBins,
-                occupancy_rate: occupiedBins > 0 ? (occupiedBins / Math.max(occupiedBins, 100)) * 100 : 0,
-                total_skus: totalItems,
-                categories: []
+                summary: {
+                    total_bins: totalBinsCount,
+                    filled_bins: filledBinsCount,
+                    available_bins: availableBinsCount,
+                    occupancy_pct: occupancyPct,
+                    total_items: totalItems,
+                    avg_items_per_bin: (totalItems / Math.max(1, filledBinsCount)).toFixed(1)
+                },
+                zones: zonesMap,
+                analytics: {
+                    bins_by_zone: sortedBinsByZone,
+                    zones_by_items: sortedZonesByItems,
+                    top_aisles: sortedTopAisles
+                }
             });
         }
 
@@ -1339,7 +1572,19 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
             return createJsonResponse(counts);
         }
 
-        if (pathname === '/api/counts/stats' || pathname === '/api/counts/dashboard_stats') {
+        if (pathname === '/api/counts/dashboard_stats') {
+            if (isTauri()) {
+                try {
+                    const stats = await callTauriCommand('get_inventory_dashboard_stats');
+                    if (stats) return createJsonResponse(stats);
+                } catch (e) {
+                    console.warn("Error getting inventory dashboard stats from Tauri:", e);
+                }
+            }
+            return createJsonResponse({ empty: true });
+        }
+
+        if (pathname === '/api/counts/stats') {
             if (isTauri()) {
                 try {
                     const stats = await callTauriCommand('get_count_stats');
@@ -1841,6 +2086,150 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
             return createJsonResponse({});
         }
 
+        if (pathname === '/api/admin/slotting-upload') {
+            try {
+                let file = null;
+                if (options?.body instanceof FormData) {
+                    file = options.body.get('file');
+                } else if (body && body.file) {
+                    file = body.file;
+                }
+
+                if (!file) {
+                    return createErrorResponse("No se recibió ningún archivo para procesar.", 400);
+                }
+
+                const buffer = await file.arrayBuffer();
+                const workbook = XLSX.read(buffer, {
+                    type: 'array',
+                    raw: true,
+                    cellText: true,
+                    cellDates: false,
+                    codepage: 65001
+                });
+
+                if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) {
+                    return createErrorResponse("El archivo Excel está vacío o es inválido.", 400);
+                }
+
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rawRows = XLSX.utils.sheet_to_json(sheet, {
+                    header: 1,
+                    defval: '',
+                    raw: true,
+                    rawNumbers: false,
+                    blankrows: false
+                });
+
+                const rows = (rawRows || []).map(row => Array.isArray(row) ? row.map(cell => cell !== null && cell !== undefined ? String(cell).trim() : '') : []);
+
+                if (!rows || rows.length === 0) {
+                    return createErrorResponse("El archivo no contiene filas procesables.", 400);
+                }
+
+                // Identificar fila de encabezados
+                let headerRowIdx = 0;
+                let colIdx = { bin: -1, zone: -1, aisle: -1, level: -1, spot: -1, score: -1 };
+
+                for (let r = 0; r < Math.min(rows.length, 10); r++) {
+                    const nh = rows[r].map(h => String(h || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, ''));
+                    const bIdx = nh.findIndex(h => ['BIN', 'BINCODE', 'UBICACION', 'CODIGO', 'LOCATION'].includes(h));
+                    if (bIdx !== -1) {
+                        headerRowIdx = r;
+                        colIdx.bin = bIdx;
+                        colIdx.zone = nh.findIndex(h => ['ZONA', 'ZONE', 'AREA'].includes(h));
+                        colIdx.aisle = nh.findIndex(h => ['PASILLO', 'AISLE', 'CALLE'].includes(h));
+                        colIdx.level = nh.findIndex(h => ['NIVEL', 'LEVEL', 'PISO'].includes(h));
+                        colIdx.spot = nh.findIndex(h => ['SPOT', 'TIPO', 'CATEGORIA'].includes(h));
+                        colIdx.score = nh.findIndex(h => ['SCORE', 'PUNTAJE', 'PRIORIDAD'].includes(h));
+                        break;
+                    }
+                }
+
+                if (colIdx.bin === -1) {
+                    colIdx.bin = 0;
+                    colIdx.zone = 1;
+                    colIdx.aisle = 2;
+                    colIdx.level = 3;
+                    colIdx.spot = 4;
+                    colIdx.score = 5;
+                }
+
+                const newStorage = {};
+                for (let r = headerRowIdx + 1; r < rows.length; r++) {
+                    const row = rows[r];
+                    if (!row || row.length === 0) continue;
+                    const binCode = String(row[colIdx.bin] || '').trim().toUpperCase();
+                    if (!binCode || ['BIN', 'BIN_CODE', 'UBICACION', 'NAN', 'NULL', 'NONE', 'N/A'].includes(binCode)) continue;
+
+                    let zone = colIdx.zone !== -1 && row[colIdx.zone] ? String(row[colIdx.zone]).trim() : 'General';
+                    let aisle = colIdx.aisle !== -1 && row[colIdx.aisle] ? String(row[colIdx.aisle]).trim() : '';
+                    let rawLvl = colIdx.level !== -1 ? row[colIdx.level] : 0;
+                    let level = parseInt(String(rawLvl).replace(/[^0-9]/g, ''), 10);
+                    if (isNaN(level)) level = 0;
+
+                    let spot = colIdx.spot !== -1 && row[colIdx.spot] ? String(row[colIdx.spot]).trim() : 'Cold';
+                    let rawScore = colIdx.score !== -1 ? row[colIdx.score] : 0;
+                    let score = parseInt(String(rawScore).replace(/[^0-9]/g, ''), 10);
+                    if (isNaN(score)) score = 0;
+
+                    newStorage[binCode] = {
+                        zone: zone || 'General',
+                        aisle: aisle || '',
+                        level,
+                        spot: spot || 'Cold',
+                        score
+                    };
+                }
+
+                let currentConfig = {};
+                if (isTauri()) {
+                    try {
+                        currentConfig = (await callTauriCommand('get_slotting_config')) || {};
+                    } catch (e) {
+                        console.warn("Could not load current slotting config:", e);
+                    }
+                }
+
+                const updatedConfig = {
+                    ...currentConfig,
+                    storage: newStorage
+                };
+
+                if (isTauri()) {
+                    await callTauriCommand('save_slotting_config', { config: updatedConfig });
+                }
+
+                return createJsonResponse({
+                    success: true,
+                    message: `Cargadas ${Object.keys(newStorage).length} ubicaciones correctamente en el layout de almacén.`
+                });
+            } catch (err) {
+                console.error("Error al procesar slotting-upload:", err);
+                return createErrorResponse(`Error al procesar archivo de layout: ${err.message || err}`, 500);
+            }
+        }
+
+        if (pathname === '/api/admin/slotting-template') {
+            const templateData = [
+                { BIN: 'A-01-1-01', ZONA: 'Rack', PASILLO: '01', NIVEL: 1, SPOT: 'Hot', SCORE: 10 },
+                { BIN: 'A-01-2-01', ZONA: 'Rack', PASILLO: '01', NIVEL: 2, SPOT: 'Warm', SCORE: 6 },
+                { BIN: 'M-01-1-01', ZONA: 'Minuteria', PASILLO: 'M1', NIVEL: 1, SPOT: 'Hot', SCORE: 10 },
+                { BIN: 'C-01-1-01', ZONA: 'Cantilever', PASILLO: 'C1', NIVEL: 1, SPOT: 'Cold', SCORE: 2 }
+            ];
+            const ws = XLSX.utils.json_to_sheet(templateData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Layout");
+            const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+            return new Response(buf, {
+                status: 200,
+                headers: {
+                    'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'Content-Disposition': 'attachment; filename="layout_slotting_template.xlsx"'
+                }
+            });
+        }
+
         if (pathname.startsWith('/api/suggest_bin/') || pathname.startsWith('/api/suggest_slotting_bin/')) {
             const itemCode = decodeURIComponent(pathname.split('/').pop() || '').trim().toUpperCase();
             if (isTauri() && itemCode) {
@@ -1941,11 +2330,33 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
             return createJsonResponse([]);
         }
 
+        if (pathname === '/api/planner/cycle_count_differences') {
+            if (isTauri()) {
+                const y = searchParams.get('year') ? parseInt(searchParams.get('year'), 10) : null;
+                const m = searchParams.get('month') ? parseInt(searchParams.get('month'), 10) : null;
+                const onlyDiff = searchParams.get('only_differences') === 'false' ? false : true;
+                const diffs = await callTauriCommand('get_planner_cycle_count_differences', {
+                    year: y,
+                    month: m,
+                    onlyDifferences: onlyDiff
+                });
+                return createJsonResponse(diffs || []);
+            }
+            return createJsonResponse([]);
+        }
+
         if (pathname.startsWith('/api/planner/cycle_count_differences/')) {
             const recId = parseInt(pathname.replace('/api/planner/cycle_count_differences/', '')) || 0;
-            const status = body?.status || body?.root_cause || 'Investigado';
-            if (isTauri() && recId > 0) {
-                await callTauriCommand('update_planner_difference_cause', { execId: recId, status });
+            if (req.method === 'PUT') {
+                const physicalQty = body?.physical_qty !== undefined ? Number(body.physical_qty) : null;
+                if (isTauri() && recId > 0 && physicalQty !== null) {
+                    await callTauriCommand('update_planner_cycle_count_diff', { recId, physicalQty });
+                    return createJsonResponse({ message: 'Actualizado correctamente', id: recId, physical_qty: physicalQty });
+                }
+                const status = body?.status || body?.root_cause || 'Investigado';
+                if (isTauri() && recId > 0) {
+                    await callTauriCommand('update_planner_difference_cause', { execId: recId, status });
+                }
             }
             return createJsonResponse({ success: true });
         }
@@ -2009,11 +2420,31 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
         // 10. SINCRONIZACIÓN, CARGAS & UTILIDADES
         // -------------------------------------------------------------
         if (pathname === '/api/sync/status') {
-            return createJsonResponse({
-                last_sync: new Date().toISOString(),
-                is_synced: true,
-                pending_count: 0
-            });
+            if (isTauri()) {
+                try {
+                    const statusMap = await callTauriCommand('get_sync_status');
+                    if (statusMap && Object.keys(statusMap).length > 0) {
+                        return createJsonResponse(statusMap);
+                    }
+                } catch (e) {
+                    console.warn("Error getting sync status from Rust:", e);
+                }
+            }
+            if (db) {
+                try {
+                    const allMeta = await db.getAll('sync_metadata');
+                    const statusMap = {};
+                    allMeta.forEach(m => {
+                        if (m.key && m.value) {
+                            statusMap[m.key] = typeof m.value === 'number' && m.value > 10000000000 ? Math.floor(m.value / 1000) : m.value;
+                        }
+                    });
+                    return createJsonResponse(statusMap);
+                } catch (e) {
+                    console.warn("Error reading sync_metadata from IDB:", e);
+                }
+            }
+            return createJsonResponse({});
         }
 
         if (pathname === '/api/sync/master_data') {
@@ -2028,12 +2459,33 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
             if (isTauri()) {
                 try {
                     const refs = await callTauriCommand('get_unique_grn_references');
-                    return createJsonResponse((refs || []).map(r => ({ reference: r })));
+                    return createJsonResponse(refs || []);
                 } catch (e) {
                     console.warn("Error getting unique GRN references:", e);
                 }
             }
             return createJsonResponse([]);
+        }
+
+        if (pathname === '/api/grn/delete_bulk') {
+            const grnsToDelete = body?.grn_numbers || body?.grns || [];
+            if (db && grnsToDelete.length > 0) {
+                try {
+                    const allPending = await db.getAll('grn_pending');
+                    for (const item of allPending) {
+                        if (grnsToDelete.includes(item.GRN || item.grn_number || item.reference)) {
+                            await db.delete('grn_pending', item.id || item.GRN);
+                        }
+                    }
+                } catch (dbErr) {
+                    console.warn("Error deleting GRNs from indexedDB:", dbErr);
+                }
+            }
+            return createJsonResponse({
+                success: true,
+                message: `Se eliminaron ${grnsToDelete.length} GRNs exitosamente`,
+                deleted_count: grnsToDelete.length
+            });
         }
 
         if (pathname === '/api/clear_database') {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import * as XLSX from 'xlsx';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 
 const SlottingConfig = () => {
@@ -107,6 +108,8 @@ const SlottingConfig = () => {
         if (!selectedFile) return;
         if (!window.confirm("¿Está seguro de reemplazar TODO el layout actual?")) return;
         setSaving(true);
+        setError(null);
+        setSuccess(null);
         const formData = new FormData();
         formData.append('file', selectedFile);
         try {
@@ -117,13 +120,35 @@ const SlottingConfig = () => {
             });
             const data = await res.json();
             if (res.ok) {
-                setSuccess(data.message);
+                setSuccess(data.message || 'Layout de almacén actualizado correctamente.');
                 setShowUpload(false);
                 setSelectedFile(null);
-                fetchConfig();
+                await fetchConfig();
+            } else {
+                setError(data.error || 'No se pudo cargar el archivo de layout.');
             }
-        } catch (err) { setError(err.message); }
-        finally { setSaving(false); }
+        } catch (err) {
+            setError(err.message || 'Error al subir el archivo.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDownloadTemplate = () => {
+        try {
+            const templateData = [
+                { BIN: 'A-01-1-01', ZONA: 'Rack', PASILLO: '01', NIVEL: 1, SPOT: 'Hot', SCORE: 10 },
+                { BIN: 'A-01-2-01', ZONA: 'Rack', PASILLO: '01', NIVEL: 2, SPOT: 'Warm', SCORE: 6 },
+                { BIN: 'M-01-1-01', ZONA: 'Minuteria', PASILLO: 'M1', NIVEL: 1, SPOT: 'Hot', SCORE: 10 },
+                { BIN: 'C-01-1-01', ZONA: 'Cantilever', PASILLO: 'C1', NIVEL: 1, SPOT: 'Cold', SCORE: 2 }
+            ];
+            const ws = XLSX.utils.json_to_sheet(templateData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Layout");
+            XLSX.writeFile(wb, "layout_slotting_plantilla.xlsx");
+        } catch (e) {
+            console.error("Error descargando plantilla:", e);
+        }
     };
 
     const updateBin = (binCode, field, value) => {
@@ -217,14 +242,14 @@ const SlottingConfig = () => {
                         <div className="bg-zinc-50 border border-zinc-200 rounded p-6 shadow-sm animate-fadeIn mb-8 text-black">
                             <div className="flex justify-between items-center mb-4">
                                 <h2 className="text-[12px] text-black font-normal uppercase tracking-wider">Carga Masiva de Layout</h2>
-                                <button onClick={() => window.location.href = '/api/admin/slotting-template'} className="text-[12px] font-normal text-black hover:underline uppercase tracking-widest">Descargar Plantilla</button>
+                                <button type="button" onClick={handleDownloadTemplate} className="text-[12px] font-normal text-black hover:underline uppercase tracking-widest">Descargar Plantilla</button>
                             </div>
                             <div
                                 className="border-2 border-dashed border-zinc-200 rounded-lg p-8 text-center cursor-pointer hover:bg-white transition-colors bg-white/50"
-                                onClick={() => fileInputRef.current.click()}
+                                onClick={() => fileInputRef.current && fileInputRef.current.click()}
                             >
-                                <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx" onChange={e => setSelectedFile(e.target.files[0])} />
-                                <p className="text-[12px] text-black font-normal uppercase tracking-widest">{selectedFile ? `Seleccionado: ${selectedFile.name}` : 'Haga clic para seleccionar archivo Excel'}</p>
+                                <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx,.xls,.csv" onChange={e => setSelectedFile(e.target.files[0])} />
+                                <p className="text-[12px] text-black font-normal uppercase tracking-widest">{selectedFile ? `Seleccionado: ${selectedFile.name}` : 'Haga clic para seleccionar archivo Excel o CSV (.xlsx, .xls, .csv)'}</p>
                             </div>
                             <div className="mt-4 flex justify-end gap-3">
                                 <button onClick={() => { setShowUpload(false); setSelectedFile(null); }} className="text-[12px] font-normal text-black px-4 py-2 uppercase tracking-widest">Cancelar</button>

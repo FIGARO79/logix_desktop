@@ -79,16 +79,30 @@ const AdminUsers = () => {
         } catch (e) { setError("Error al restablecer contraseña"); }
     };
 
+    const parsePermissions = (permissions) => {
+        if (!permissions) return [];
+        if (Array.isArray(permissions)) return permissions.map(p => String(p).trim()).filter(Boolean);
+        if (typeof permissions === 'string') {
+            const trimmed = permissions.trim();
+            if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+                try {
+                    const parsed = JSON.parse(trimmed);
+                    if (Array.isArray(parsed)) return parsed.map(p => String(p).trim()).filter(Boolean);
+                } catch (e) {}
+            }
+            return trimmed.split(',').map(p => p.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+        }
+        return [];
+    };
+
     const MODULES = ['stock', 'inbound', 'picking', 'inventory', 'planner', 'counts', 'admin'];
 
     const handlePermissionChange = async (userId, module) => {
         const user = users.find(u => u.id === userId);
         if (!user) return;
 
-        // Clean split: handle null, undefined, and empty strings correctly
-        const currentPerms = user.permissions
-            ? user.permissions.split(',').map(p => p.trim()).filter(p => p !== '')
-            : [];
+        // Robust parse of existing permissions
+        const currentPerms = parsePermissions(user.permissions);
 
         let newPerms;
         if (currentPerms.includes(module)) {
@@ -97,14 +111,28 @@ const AdminUsers = () => {
             newPerms = [...currentPerms, module];
         }
 
+        const newPermsStr = newPerms.join(',');
+
         // Optimistic update
         const updatedUsers = users.map(u => {
             if (u.id === userId) {
-                return { ...u, permissions: newPerms.join(',') };
+                return { ...u, permissions: newPermsStr };
             }
             return u;
         });
         setUsers(updatedUsers);
+
+        // Synchronize currently logged-in user in localStorage if matching
+        try {
+            const currentLoggedIn = localStorage.getItem('user');
+            if (currentLoggedIn) {
+                const parsed = JSON.parse(currentLoggedIn);
+                if (parsed.id === userId || parsed.username === user.username) {
+                    parsed.permissions = newPermsStr;
+                    localStorage.setItem('user', JSON.stringify(parsed));
+                }
+            }
+        } catch (e) {}
 
         try {
             const res = await fetch(`/api/admin/permissions/${userId}`, {
@@ -183,9 +211,7 @@ const AdminUsers = () => {
                                         )}
                                     </td>
                                     {MODULES.map(m => {
-                                        const perms = u.permissions
-                                            ? u.permissions.split(',').map(p => p.trim()).filter(p => p !== '')
-                                            : [];
+                                        const perms = parsePermissions(u.permissions);
                                         const hasPerm = perms.includes(m);
                                         return (
                                             <td key={m} className="px-2 py-4 text-center">
@@ -193,7 +219,7 @@ const AdminUsers = () => {
                                                     type="checkbox"
                                                     checked={hasPerm}
                                                     onChange={() => handlePermissionChange(u.id, m)}
-                                                    className="rounded border-gray-300 text-[#285f94] shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                                    className="rounded border-gray-300 text-[#285f94] shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 cursor-pointer"
                                                 />
                                             </td>
                                         );

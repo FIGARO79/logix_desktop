@@ -68,7 +68,18 @@ const ProtectedRoute = ({ children, requiredPermission }) => {
             // If admin, allow everything
             if (user.username === 'admin') return children;
 
-            const perms = user.permissions ? user.permissions.split(',') : [];
+            const rawPerms = user.permissions;
+            let perms = [];
+            if (Array.isArray(rawPerms)) {
+                perms = rawPerms;
+            } else if (typeof rawPerms === 'string') {
+                const trimmed = rawPerms.trim();
+                if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+                    try { perms = JSON.parse(trimmed); } catch(e) { perms = []; }
+                } else {
+                    perms = trimmed.split(',').map(p => p.trim()).filter(Boolean);
+                }
+            }
             const hasPermission = Array.isArray(requiredPermission)
                 ? requiredPermission.some(p => perms.includes(p))
                 : perms.includes(requiredPermission);

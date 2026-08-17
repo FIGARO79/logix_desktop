@@ -3,6 +3,8 @@ import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { useLocation } from 'react-router-dom';
 import { cacheData, getCachedData } from '../utils/offlineDb';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import * as XLSX from 'xlsx';
+import { exportExcelFileNative } from '../utils/tauriBridge';
 
 const Reconciliation = () => {
     const { setTitle } = useOutletContext();
@@ -228,7 +230,7 @@ const Reconciliation = () => {
         let diffLines = 0;
         let justifiedLines = 0;
 
-        filteredBySelectors.forEach(r => {
+        finalDisplayData.forEach(r => {
             totalExp += (r.Cant_Esperada || 0);
             totalRec += (r.Cant_Recibida || 0);
             if (Math.abs(r.Diferencia || 0) > 0.0001) {
@@ -240,14 +242,14 @@ const Reconciliation = () => {
         });
 
         return {
-            totalLines: filteredBySelectors.length,
+            totalLines: finalDisplayData.length,
             totalExp,
             totalRec,
             totalDiff: totalRec - totalExp,
             diffLines,
             justifiedLines
         };
-    }, [filteredBySelectors]);
+    }, [finalDisplayData]);
 
     const requestSort = (key) => {
         let direction = 'ascending';
@@ -260,6 +262,41 @@ const Reconciliation = () => {
     const getSortIcon = (name) => {
         if (sortConfig.key !== name) return <span className="ml-1 opacity-30">↕</span>;
         return sortConfig.direction === 'ascending' ? <span className="ml-1">↑</span> : <span className="ml-1">↓</span>;
+    };
+
+    const handleExport = async () => {
+        const dataToExport = finalDisplayData.length > 0 ? finalDisplayData : (filteredBySelectors.length > 0 ? filteredBySelectors : rawData);
+        if (!dataToExport || dataToExport.length === 0) {
+            alert("No hay datos cargados para exportar.");
+            return;
+        }
+
+        const formattedData = dataToExport.map(row => ({
+            'Import Ref (I.R.)': row.Import_Reference || '',
+            'Waybill': row.Waybill || '',
+            'GRN': row.GRN || '',
+            'Línea PO': row.Order_Line || '',
+            'Código Ítem': row.Codigo_Item || '',
+            'Descripción': row.Descripcion || '',
+            'Ubicación': row.Ubicacion || '',
+            'Reubicado': row.Reubicado || '',
+            'Cant. Esperada': row.Cant_Esperada ?? 0,
+            'Cant. Recibida': row.Cant_Recibida ?? 0,
+            'Diferencia': row.Diferencia ?? 0,
+            'Motivo Discrepancia': row.Motivo_Diferencia || '',
+            'Observación Operador': row.Observacion_Operador || '',
+            'Fecha': row.Timestamp ? formatDateShort(row.Timestamp) : ''
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(formattedData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Conciliación');
+
+        const prefix = selectedGRN ? `GRN_${selectedGRN}` : (selectedIR ? `IR_${selectedIR}` : 'General');
+        const dateStr = new Date().toISOString().slice(0, 10);
+        const fileName = `Conciliacion_${prefix}_${dateStr}.xlsx`;
+
+        await exportExcelFileNative(workbook, fileName);
     };
 
     // Apertura del modal de edición de diferencia
@@ -305,22 +342,27 @@ const Reconciliation = () => {
 
     // Guardar snapshot de conciliación permanente
     const handleConfirmSaveReconciliation = async () => {
-        if (filteredBySelectors.length === 0) {
+        const targetData = finalDisplayData.length > 0 ? finalDisplayData : filteredBySelectors;
+        if (targetData.length === 0) {
             alert("No hay registros filtrados para conciliar y guardar.");
             return;
         }
 
         setIsSaving(true);
         try {
-            const grnToSave = selectedGRN || filteredBySelectors[0]?.GRN || 'VARIAS';
-            const irToSave = selectedIR || filteredBySelectors[0]?.Import_Reference || 'VARIAS';
-            const wbToSave = filteredBySelectors[0]?.Waybill || '';
+            const uniqueGRNs = Array.from(new Set(targetData.map(r => r.GRN).filter(Boolean)));
+            const uniqueIRs = Array.from(new Set(targetData.map(r => r.Import_Reference).filter(Boolean)));
+            const uniqueWBs = Array.from(new Set(targetData.map(r => r.Waybill).filter(Boolean)));
+
+            const grnToSave = selectedGRN || (uniqueGRNs.length === 1 ? uniqueGRNs[0] : (uniqueGRNs.length > 1 ? 'VARIAS' : 'SIN GRN'));
+            const irToSave = selectedIR || (uniqueIRs.length === 1 ? uniqueIRs[0] : (uniqueIRs.length > 1 ? 'VARIAS' : 'SIN IR'));
+            const wbToSave = uniqueWBs.length === 1 ? uniqueWBs[0] : (uniqueWBs.length > 1 ? 'VARIOS' : '');
 
             const payload = {
                 grn_number: grnToSave,
                 import_reference: irToSave,
                 waybill: wbToSave,
-                items: filteredBySelectors.map(r => ({
+                items: targetData.map(r => ({
                     grn_number: r.GRN,
                     import_reference: r.Import_Reference,
                     waybill: r.Waybill,
@@ -417,6 +459,61 @@ const Reconciliation = () => {
         }
     };
 
+    // Exportar detalle de conciliación guardada en el historial
+    const handleExportSavedDetail = async (detail) => {
+        if (!detail || !detail.items || detail.items.length === 0) {
+            alert("No hay ítems para exportar en esta conciliación histórica.");
+            return;
+        }
+
+        const header = detail.header || {};
+        const formattedData = detail.items.map(it => ({
+            'Línea PO': it.order_line || '',
+            'Código Ítem': it.item_code || '',
+            'Descripción': it.description || '',
+            'Ubicación': it.location || '',
+            'Reubicado': it.relocated_bin || '',
+            'Cant. Esperada': it.qty_expected ?? 0,
+            'Cant. Recibida': it.qty_received ?? 0,
+            'Diferencia': it.difference ?? 0,
+            'Motivo Discrepancia': it.difference_reason || '',
+            'Observación Operador': it.operator_comment || '',
+            'I.R.': it.import_reference || header.import_reference || '',
+            'Waybill': it.waybill || header.waybill || '',
+            'GRN': it.grn_number || header.grn_number || '',
+            'Fecha Guardado': header.reconciled_at ? formatDateShort(header.reconciled_at) : '',
+            'Operador': header.reconciled_by || ''
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(formattedData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, `GRN_${header.grn_number || 'Historial'}`);
+
+        const dateStr = (header.reconciled_at || new Date().toISOString()).slice(0, 10);
+        const fileName = `Conciliacion_Historica_GRN_${header.grn_number || 'Snapshot'}_${dateStr}.xlsx`;
+
+        await exportExcelFileNative(workbook, fileName);
+    };
+
+    const handleExportSavedFromList = async (id) => {
+        try {
+            const res = await fetch(`/api/inbound/saved_grn_reconciliations/${id}`);
+            if (res.ok) {
+                const detail = await res.json();
+                if (detail) {
+                    await handleExportSavedDetail(detail);
+                } else {
+                    alert("No se encontró el detalle de la conciliación para exportar.");
+                }
+            } else {
+                alert("Error al obtener los datos de la conciliación.");
+            }
+        } catch (e) {
+            console.error("Error al exportar conciliación desde historial:", e);
+            alert(`Error al exportar: ${e.message || e}`);
+        }
+    };
+
     return (
         <div className="flex flex-col h-full bg-[#fcfcfc] text-zinc-900 font-sans font-normal">
             {/* Barra de Filtros y Acciones */}
@@ -506,14 +603,14 @@ const Reconciliation = () => {
 
                     {/* Botón Limpiar Filtros */}
                     {(selectedIR || selectedGRN || filterText) && (
-                        <div className="flex flex-col justify-end">
+                        <div className="self-end">
                             <button
                                 onClick={() => {
                                     setSelectedIR('');
                                     setSelectedGRN('');
                                     setFilterText('');
                                 }}
-                                className="h-8 px-2.5 text-[11px] text-zinc-600 bg-zinc-200 hover:bg-zinc-300 rounded-lg transition-colors font-medium active:scale-95"
+                                className="h-8 px-2.5 text-[11px] text-zinc-600 bg-zinc-200 hover:bg-zinc-300 rounded-lg transition-colors font-medium active:scale-95 flex items-center justify-center"
                             >
                                 Limpiar
                             </button>
@@ -541,17 +638,14 @@ const Reconciliation = () => {
 
                         {/* Botón Exportar */}
                         <button
-                            onClick={() => {
-                                const params = new URLSearchParams();
-                                params.append('timezone_offset', new Date().getTimezoneOffset());
-                                window.location.href = `/api/export_reconciliation?${params.toString()}`;
-                            }}
-                            className="h-8 px-3 text-[11px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase font-medium active:scale-95 whitespace-nowrap"
+                            onClick={handleExport}
+                            disabled={loading || rawData.length === 0}
+                            className="h-8 px-3 text-[11px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase font-medium active:scale-95 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
                             style={{ background: '#285f94' }}
                             onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'}
                             onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
                         >
-                            Exportar
+                            📊 Exportar Excel
                         </button>
                     </div>
                 </div>
@@ -1004,6 +1098,13 @@ const Reconciliation = () => {
                                             <span className={`px-2.5 py-1 rounded text-[10px] font-bold ${viewingDetail.header.status === 'CONCILIADO_OK' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
                                                 {viewingDetail.header.status}
                                             </span>
+                                            <button
+                                                onClick={() => handleExportSavedDetail(viewingDetail)}
+                                                className="px-2.5 py-1 text-[10px] font-medium text-white rounded-lg shadow-sm bg-[#285f94] hover:bg-[#1e4a74] transition-colors flex items-center gap-1 cursor-pointer"
+                                                title="Exportar esta conciliación a Excel"
+                                            >
+                                                📊 Exportar Excel
+                                            </button>
                                         </div>
                                     </div>
 
@@ -1091,13 +1192,21 @@ const Reconciliation = () => {
                                                             <td className="px-3 py-2 text-center space-x-1 whitespace-nowrap">
                                                                 <button
                                                                     onClick={() => handleViewSavedDetail(rec.id)}
-                                                                    className="px-2 py-1 text-[10px] font-medium text-white rounded shadow-sm bg-[#285f94] hover:bg-[#1e4a74]"
+                                                                    className="px-2 py-1 text-[10px] font-medium text-white rounded shadow-sm bg-[#285f94] hover:bg-[#1e4a74] cursor-pointer"
                                                                 >
                                                                     Ver Detalle
                                                                 </button>
                                                                 <button
+                                                                    onClick={() => handleExportSavedFromList(rec.id)}
+                                                                    className="px-2 py-1 text-[10px] font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded shadow-sm cursor-pointer"
+                                                                    title="Exportar esta conciliación histórica a Excel"
+                                                                >
+                                                                    📊 Exportar
+                                                                </button>
+                                                                <button
                                                                     onClick={() => handleDeleteSavedRecon(rec.id, rec.grn_number)}
-                                                                    className="px-2 py-1 text-[10px] font-medium text-red-600 hover:bg-red-50 rounded"
+                                                                    className="px-2 py-1 text-[10px] font-medium text-red-600 hover:bg-red-50 rounded cursor-pointer"
+                                                                    title="Eliminar"
                                                                 >
                                                                     🗑️
                                                                 </button>

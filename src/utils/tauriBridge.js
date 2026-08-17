@@ -219,6 +219,64 @@ const buildColumnMap = (rows) => {
 };
 
 /**
+ * Clasificador determinista de archivos maestros Sandvik/Logix.
+ * Previene cruces, colisiones y falsos positivos entre los 5 tipos de archivos.
+ */
+export const classifyUploadedFile = (fileName, rawHeaders) => {
+    const fn = (fileName || '').toLowerCase();
+    const hasHeader = (...keys) => rawHeaders.some(h => keys.some(k => h.includes(k.toLowerCase()) || h === k.toLowerCase()));
+
+    // 1. Reporte 240 (Salidas Picking / Despachos)
+    // Firmas: Despatch Number, Pick List Printed Time, RP Status Time
+    if (
+        fn.includes('240') || fn.includes('aurrsglbd0240') || fn.includes('picking') || fn.includes('despacho') ||
+        hasHeader('despatchnumber', 'despatch', 'despacho', 'notaentrega', 'picklistprintedtime', 'rpstatustime', 'despatch_') ||
+        (hasHeader('ordernumber', 'order', 'pedido', 'order_') && hasHeader('customer', 'cliente', 'customername') && !hasHeader('bin1', 'physicalqty', 'grn', 'waybill'))
+    ) {
+        return '240';
+    }
+
+    // 2. Reporte 280 (Entradas GRN / Goods Received)
+    // Firmas: GRN Number, Goods Received
+    if (
+        fn.includes('280') || fn.includes('aurrsglbd0280') || fn.includes('goods received') || fn.includes('goodsreceived') ||
+        (hasHeader('grn', 'grnnumber', 'referenciaimportacion', 'importreference') && !hasHeader('bin1', 'physicalqty', 'despatch', 'despacho'))
+    ) {
+        return '280';
+    }
+
+    // 3. Reporte 0006 (Reservas Xdock / Cross-Dock)
+    // Firmas: Quantity Reserved, Total Reserved, Action Qty
+    if (
+        fn.includes('0006') || fn.includes('aurrslamp0006') || fn.includes('xdock') || fn.includes('crossdock') ||
+        hasHeader('quantityreserved', 'totalreserved', 'actionqty', 'action_qty', 'reservedqty')
+    ) {
+        return '0006';
+    }
+
+    // 4. PO Extractor (Relaciones Waybill - Import Reference)
+    // Firmas: Waybill + Import Ref Code
+    if (
+        fn.includes('extractor') || fn.includes('purchase order') || fn.includes('po_lookup') || fn.includes('po lookup') ||
+        (hasHeader('waybill', 'wb') && (hasHeader('import', 'ir') || hasHeader('import_ref_code', 'importreference', 'import_reference')))
+    ) {
+        return 'po_extractor';
+    }
+
+    // 5. Reporte 250 (Maestro de Ítems / Stockroom Master)
+    // Firmas: Bin 1, Physical Qty, Cost per Unit, SIC/ABC Code
+    if (
+        fn.includes('250') || fn.includes('aurrsglbd0250') || fn.includes('stockroom') || fn.includes('balance') || fn.includes('master') || fn.includes('maestro') ||
+        hasHeader('bin1', 'binlocation', 'physicalqty', 'costperunit', 'totalweight', 'abccodestockroom', 'siccodestockroom', 'frozenqty') ||
+        (hasHeader('itemcode', 'item', 'material', 'sku', 'codigo') && hasHeader('bin1', 'binlocation', 'physicalqty', 'ubicacion'))
+    ) {
+        return '250';
+    }
+
+    return null;
+};
+
+/**
  * Parsea un archivo CSV/TSV/TXT/XLSX local e inserta los datos masivamente en SQLite local / almacenamiento.
  */
 export const processLocalCSVUpload = async (file, selectedGrns = [], updateOption = 'combine') => {
@@ -240,32 +298,13 @@ export const processLocalCSVUpload = async (file, selectedGrns = [], updateOptio
                 return;
             }
 
-            // Identificación precisa del tipo de archivo (de lo más específico a lo general)
-            const isPoLookupFile = fileName.includes('extractor') || fileName.includes('purchase') || fileName.includes('po_lookup') || fileName.includes('po lookup') ||
-                (rawHeaders.some(h => h.includes('waybill') || h === 'wb') && rawHeaders.some(h => h.includes('import') || h === 'ir'));
+            const fileType = classifyUploadedFile(file.name, rawHeaders);
 
-            const isXdockFile = !isPoLookupFile && (
-                fileName.includes('0006') || fileName.includes('aurrslamp0006') || fileName.includes('xdock') || fileName.includes('crossdock') || fileName.includes('reserva') || fileName.includes('reservation') ||
-                rawHeaders.some(h => ['reservedqty', 'quantityreserved', 'totalreserved', 'actionqty', 'sonumber', 'orderref'].includes(h))
-            );
-
-            const isPickingFile = !isPoLookupFile && !isXdockFile && (
-                fileName.includes('240') || fileName.includes('aurrsglbd0240') || fileName.includes('picking') || fileName.includes('salida') || fileName.includes('unconfirmed') || fileName.includes('despacho') ||
-                rawHeaders.some(h => ['despatchnumber', 'despatch', 'despacho', 'notaentrega', 'picklistprintedtime', 'rpstatustime'].includes(h)) ||
-                (rawHeaders.some(h => ['ordernumber', 'order', 'pedido'].includes(h)) && rawHeaders.some(h => ['customer', 'cliente', 'customername'].includes(h)))
-            );
-
-            const isGrnFile = !isPoLookupFile && !isXdockFile && !isPickingFile && (
-                fileName.includes('280') || fileName.includes('aurrsglbd0280') || fileName.includes('goods received') || fileName.includes('goodsreceived') || fileName.includes('grn') || fileName.includes('entrada') || fileName.includes('recepcion') || fileName.includes('receipt') ||
-                (rawHeaders.some(h => ['grn', 'grnnumber', 'referenciaimportacion', 'importreference'].includes(h)) && !rawHeaders.includes('bin1') && !rawHeaders.includes('physicalqty'))
-            );
-
-            const isItemMasterFile = !isPoLookupFile && !isXdockFile && !isPickingFile && !isGrnFile && (
-                fileName.includes('250') || fileName.includes('aurrsglbd0250') || fileName.includes('stockroom') || fileName.includes('balance') || fileName.includes('master') || fileName.includes('maestro') || fileName.includes('item_master') ||
-                rawHeaders.some(h => ['bin1', 'binlocation', 'physicalqty', 'stockroom', 'costperunit', 'totalweight'].includes(h)) ||
-                (rawHeaders.some(h => ['itemcode', 'item', 'material', 'sku', 'codigo'].includes(h)) &&
-                 rawHeaders.some(h => ['description', 'descripcion', 'itemdescription', 'denominacion', 'bin1', 'binlocation', 'ubicacion'].includes(h)))
-            );
+            const isItemMasterFile = fileType === '250';
+            const isPickingFile = fileType === '240';
+            const isGrnFile = fileType === '280';
+            const isXdockFile = fileType === '0006';
+            const isPoLookupFile = fileType === 'po_extractor';
 
             // 1. REPORTE 250 (Maestro de Ítems / Stockroom Master)
             if (isItemMasterFile) {
@@ -300,12 +339,39 @@ export const processLocalCSVUpload = async (file, selectedGrns = [], updateOptio
                 }
 
                 if (itemsToInsert.length > 0) {
+                    try {
+                        const db = await getDB();
+                        if (db) {
+                            const tx = db.transaction(['master_items', 'sync_metadata'], 'readwrite');
+                            const store = tx.objectStore('master_items');
+                            for (const it of itemsToInsert) {
+                                store.put({
+                                    Item_Code: it.item_code,
+                                    Item_Description: it.description,
+                                    Bin_1: it.bin_location,
+                                    Aditional_Bin_Location: it.additional_bins,
+                                    Physical_Qty: it.system_qty,
+                                    Cost_per_Unit: it.unit_cost,
+                                    Weight_per_Unit: it.weight_per_unit,
+                                    SIC_Code_stockroom: it.sic_code,
+                                    ABC_Code_stockroom: it.abc_code,
+                                });
+                            }
+                            const metaStore = tx.objectStore('sync_metadata');
+                            metaStore.put({ key: 'master_items', value: Math.floor(Date.now() / 1000) });
+                            await tx.done;
+                        }
+                    } catch (idbErr) {
+                        console.warn("Error actualizando IndexedDB master_items:", idbErr);
+                    }
+
                     if (isTauri()) {
+                        await invoke('set_sync_status', { key: 'master_items', timestamp: Math.floor(Date.now() / 1000) });
                         const resMsg = await invoke('add_inventory_items_bulk', { items: itemsToInsert });
-                        resolve(resMsg || `Se cargaron ${itemsToInsert.length} registros en el Maestro de Ítems (SQLite).`);
+                        resolve(resMsg || `Se cargaron ${itemsToInsert.length} registros en el Maestro de Ítems (250).`);
                         return;
                     }
-                    resolve(`Se procesaron ${itemsToInsert.length} registros del Maestro de Ítems localmente.`);
+                    resolve(`Se procesaron ${itemsToInsert.length} registros del Maestro de Ítems (250) localmente.`);
                     return;
                 }
             }
@@ -381,15 +447,17 @@ export const processLocalCSVUpload = async (file, selectedGrns = [], updateOptio
                     }
                 }
 
-                // Sincronizar con IndexedDB (limpiar primero para reescribir completamente)
+                // Sincronizar con IndexedDB
                 try {
                     const db = await getDB();
                     if (db) {
                         await db.clear('picking_orders');
                         await db.clear('picking_tracking');
+                        const tx = db.transaction(['picking_orders', 'sync_metadata'], 'readwrite');
+                        const store = tx.objectStore('picking_orders');
                         for (const key of keys) {
                             const orderData = ordersMap[key];
-                            await db.put('picking_orders', {
+                            store.put({
                                 id: `${orderData.order_number}_${orderData.despatch_number}`,
                                 order: orderData.order_number,
                                 despatch: orderData.despatch_number,
@@ -397,17 +465,21 @@ export const processLocalCSVUpload = async (file, selectedGrns = [], updateOptio
                                 timestamp: Date.now()
                             });
                         }
+                        const metaStore = tx.objectStore('sync_metadata');
+                        metaStore.put({ key: 'picking', value: Math.floor(Date.now() / 1000) });
+                        await tx.done;
                     }
                 } catch (errDb) {
                     console.warn("Error updating local IndexedDB picking_orders:", errDb);
                 }
 
                 if (isTauri()) {
+                    await invoke('set_sync_status', { key: 'picking', timestamp: Math.floor(Date.now() / 1000) });
                     const resMsg = await invoke('import_picking_orders_bulk', { orders: ordersToInsert });
-                    resolve(resMsg || `Se actualizaron ${keys.length} pedidos de picking en SQLite (base reemplazada).`);
+                    resolve(resMsg || `Se actualizaron ${keys.length} pedidos de picking en SQLite (240).`);
                     return;
                 }
-                resolve(`Se procesaron ${keys.length} pedidos de picking localmente (base reemplazada).`);
+                resolve(`Se procesaron ${keys.length} pedidos de picking localmente (240).`);
                 return;
             }
 
@@ -444,7 +516,27 @@ export const processLocalCSVUpload = async (file, selectedGrns = [], updateOptio
                     });
                 }
 
+                try {
+                    const db = await getDB();
+                    if (db) {
+                        const tx = db.transaction(['grn_pending', 'sync_metadata'], 'readwrite');
+                        const store = tx.objectStore('grn_pending');
+                        for (const g of grnArray) {
+                            store.put({
+                                id: `${g.GRN_Number}_${g.Item_Code}_${g.Order_Line || '1'}`,
+                                ...g
+                            });
+                        }
+                        const metaStore = tx.objectStore('sync_metadata');
+                        metaStore.put({ key: 'grn_pending', value: Math.floor(Date.now() / 1000) });
+                        await tx.done;
+                    }
+                } catch (idbGrnErr) {
+                    console.warn("Error updating local IndexedDB grn_pending:", idbGrnErr);
+                }
+
                 if (isTauri()) {
+                    await invoke('set_sync_status', { key: 'grn_pending', timestamp: Math.floor(Date.now() / 1000) });
                     await invoke('save_grn_master_json', { jsonContent: JSON.stringify(grnArray, null, 2) });
                     resolve(`Se guardaron ${grnArray.length} líneas de GRN (280) en el almacenamiento local.`);
                     return;
@@ -472,7 +564,30 @@ export const processLocalCSVUpload = async (file, selectedGrns = [], updateOptio
                     if (customer) xdockMap[cleanCode].customers.add(customer.trim());
                 }
 
+                try {
+                    const db = await getDB();
+                    if (db) {
+                        const tx = db.transaction(['xdock_reservations', 'sync_metadata'], 'readwrite');
+                        const store = tx.objectStore('xdock_reservations');
+                        for (const [code, data] of Object.entries(xdockMap)) {
+                            store.put({
+                                item_code: code,
+                                total: data.total,
+                                reserved_qty: data.reserved_qty,
+                                customers: Array.from(data.customers),
+                                po_number: data.po_number
+                            });
+                        }
+                        const metaStore = tx.objectStore('sync_metadata');
+                        metaStore.put({ key: 'xdock_reservations', value: Math.floor(Date.now() / 1000) });
+                        await tx.done;
+                    }
+                } catch (idbXErr) {
+                    console.warn("Error updating local IndexedDB xdock_reservations:", idbXErr);
+                }
+
                 if (isTauri()) {
+                    await invoke('set_sync_status', { key: 'xdock_reservations', timestamp: Math.floor(Date.now() / 1000) });
                     const jsonToSave = {};
                     for (const [code, data] of Object.entries(xdockMap)) {
                         jsonToSave[code] = {
@@ -520,7 +635,27 @@ export const processLocalCSVUpload = async (file, selectedGrns = [], updateOptio
                     irMap[import_ref].items.push(itemObj);
                 }
 
+                try {
+                    const db = await getDB();
+                    if (db) {
+                        const tx = db.transaction(['po_lookup', 'sync_metadata'], 'readwrite');
+                        const store = tx.objectStore('po_lookup');
+                        for (const [wb, val] of Object.entries(wbMap)) {
+                            store.put(val);
+                        }
+                        for (const [ir, val] of Object.entries(irMap)) {
+                            store.put(val);
+                        }
+                        const metaStore = tx.objectStore('sync_metadata');
+                        metaStore.put({ key: 'po_extractor', value: Math.floor(Date.now() / 1000) });
+                        await tx.done;
+                    }
+                } catch (idbPoErr) {
+                    console.warn("Error updating local IndexedDB po_lookup:", idbPoErr);
+                }
+
                 if (isTauri()) {
+                    await invoke('set_sync_status', { key: 'po_extractor', timestamp: Math.floor(Date.now() / 1000) });
                     const poJsonData = {
                         wb_to_data: wbMap,
                         ir_to_data: irMap,
@@ -678,6 +813,157 @@ export const tauriLookupInboundReference = async (waybill = null, importRef = nu
         }
     }
     return null;
+};
+
+/**
+ * Guarda y exporta un archivo Excel (.xlsx) compatible tanto con Tauri nativo (Linux/Windows)
+ * como con navegadores web estándar.
+ */
+export const exportExcelFileNative = async (workbook, defaultFileName = 'export.xlsx') => {
+    try {
+        const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        const uint8Array = new Uint8Array(wbout);
+
+        if (isTauri()) {
+            try {
+                const { save } = await import('@tauri-apps/api/dialog');
+                const { writeBinaryFile } = await import('@tauri-apps/api/fs');
+
+                const selectedPath = await save({
+                    defaultPath: defaultFileName,
+                    filters: [{
+                        name: 'Libro de Excel (*.xlsx)',
+                        extensions: ['xlsx']
+                    }]
+                });
+
+                if (!selectedPath) {
+                    // Usuario canceló la selección de ruta
+                    return false;
+                }
+
+                await writeBinaryFile(selectedPath, uint8Array);
+                alert(`✅ Archivo exportado exitosamente:\n${selectedPath}`);
+                return true;
+            } catch (tauriErr) {
+                console.warn("Error guardando con Tauri dialog/fs, usando fallback de navegador:", tauriErr);
+            }
+        }
+
+        // Fallback estándar en navegador
+        const blob = new Blob([uint8Array], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = defaultFileName;
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }, 500);
+        return true;
+    } catch (err) {
+        console.error("Error al exportar archivo Excel:", err);
+        alert(`❌ Error al exportar archivo: ${err.message || err}`);
+        return false;
+    }
+};
+
+/**
+ * Obtiene la lista de impresoras disponibles en el sistema operativo
+ */
+export const getSystemPrinters = async () => {
+    if (isTauri()) {
+        try {
+            const list = await invoke('get_system_printers');
+            return list || [];
+        } catch (e) {
+            console.warn("Error obteniendo impresoras desde Tauri:", e);
+            return [];
+        }
+    }
+    // Entorno de prueba en navegador
+    return [
+        { name: 'Impresora Predeterminada del Sistema', is_default: true, status: 'En línea' }
+    ];
+};
+
+/**
+ * Envía una etiqueta Sandvik para impresión silenciosa automática
+ */
+export const printSandvikLabelSilent = async (labelData, printerName = null) => {
+    if (isTauri()) {
+        try {
+            const payload = {
+                item_code: labelData.itemCode || labelData.item_code || '',
+                description: labelData.description || '',
+                quantity: Number(labelData.quantity || 1),
+                weight: String(labelData.weight || '0.00'),
+                packaging_date: labelData.packagingDate || labelData.packaging_date || null,
+                bin_location: labelData.binLocation || labelData.bin_location || labelData.relocatedBin || '',
+                qr_data: labelData.qrData || labelData.qr_data || labelData.itemCode || labelData.item_code || ''
+            };
+
+            const msg = await invoke('print_sandvik_label_silent', {
+                printerName: printerName || null,
+                label: payload
+            });
+            return { success: true, message: msg };
+        } catch (e) {
+            console.error("Error en impresión silenciosa:", e);
+            return { success: false, error: e.message || String(e) };
+        }
+    }
+    return { success: false, error: 'La impresión silenciosa requiere la app de escritorio Tauri.' };
+};
+
+/**
+ * Envía una etiqueta de prueba a la impresora seleccionada
+ */
+export const testPrintLabelNative = async (printerName = null) => {
+    if (isTauri()) {
+        try {
+            const msg = await invoke('test_print_label', {
+                printerName: printerName || null
+            });
+            return { success: true, message: msg };
+        } catch (e) {
+            return { success: false, error: e.message || String(e) };
+        }
+    }
+    return { success: false, error: 'Requiere Tauri Desktop' };
+};
+
+/**
+ * Obtiene las preferencias locales de impresora de etiquetas
+ */
+export const getPrinterConfig = () => {
+    try {
+        const saved = localStorage.getItem('logix_printer_config');
+        if (saved) return JSON.parse(saved);
+    } catch (e) {
+        console.warn("Error leyendo configuración de impresora:", e);
+    }
+    return {
+        default_label_printer: '',
+        auto_print_enabled: false,
+        auto_print_on_scan: false,
+        print_mode: 'zpl'
+    };
+};
+
+/**
+ * Guarda las preferencias locales de impresora de etiquetas
+ */
+export const savePrinterConfig = (config) => {
+    try {
+        localStorage.setItem('logix_printer_config', JSON.stringify(config));
+        return true;
+    } catch (e) {
+        console.error("Error guardando configuración de impresora:", e);
+        return false;
+    }
 };
 
 
