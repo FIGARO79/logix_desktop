@@ -7676,7 +7676,8 @@
     "reserved_qty": 1,
     "customers": [
       "Cliente General",
-      "CONTINENTAL GOLD LIMITED SUCURSAL C"
+      "CONTINENTAL GOLD LIMITED SUCURSAL C",
+      "O/C CON-00018328"
     ],
     "po_number": "M028963"
   },
@@ -21419,7 +21420,8 @@
     "total": 0,
     "reserved_qty": 0,
     "customers": [
-      "Cliente General"
+      "Cliente General",
+      "L02 7020811 020 001"
     ],
     "po_number": "N027636"
   },
@@ -32857,7 +32859,7 @@
     "total": 30,
     "reserved_qty": 30,
     "customers": [
-      "Cliente General",
+      "L02 7020811 020 001",
       "ARIS MINING MARMATO S.A.S"
     ],
     "po_number": "R027616"

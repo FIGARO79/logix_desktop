@@ -116,14 +116,14 @@ export const tauriResetPasswordAdmin = async (userId, newPassword) => {
 /**
  * Lee y extrae cualquier archivo (.xlsx, .xls, .csv, .tsv, .txt) utilizando SheetJS
  * respetando el estándar RFC 4180 (comillas dobles, comas internas, caracteres de escape).
- * Devuelve un array de filas: Array<Array<string>>.
+ * Devuelve un array de filas: Array<Array<string>> buscando la primera hoja que contenga datos reales.
  */
 export const readTableFromFile = async (file) => {
     try {
         const buffer = await file.arrayBuffer();
         const workbook = XLSX.read(buffer, {
             type: 'array',
-            raw: true,
+            raw: false,
             cellText: true,
             cellDates: false,
             codepage: 65001
@@ -131,15 +131,27 @@ export const readTableFromFile = async (file) => {
         if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) {
             return [];
         }
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rawRows = XLSX.utils.sheet_to_json(sheet, {
-            header: 1,
-            defval: '',
-            raw: true,
-            rawNumbers: false,
-            blankrows: false
-        });
-        return (rawRows || []).map(row => Array.isArray(row) ? row.map(cell => cell !== null && cell !== undefined ? String(cell).trim() : '') : []);
+
+        // Buscar entre las hojas la primera que contenga filas con datos
+        for (const sheetName of workbook.SheetNames) {
+            const sheet = workbook.Sheets[sheetName];
+            if (!sheet) continue;
+            const rawRows = XLSX.utils.sheet_to_json(sheet, {
+                header: 1,
+                defval: '',
+                raw: false,
+                rawNumbers: false,
+                blankrows: false
+            });
+            const validRows = (rawRows || [])
+                .map(row => Array.isArray(row) ? row.map(cell => cell !== null && cell !== undefined ? String(cell).trim() : '') : [])
+                .filter(row => row.some(cell => cell !== ''));
+
+            if (validRows.length > 0) {
+                return validRows;
+            }
+        }
+        return [];
     } catch (err) {
         console.error("Error al leer archivo estructurado con SheetJS:", err);
         return [];
@@ -159,22 +171,23 @@ const normalizeHeaderKey = (h) => {
 };
 
 /**
- * Encuentra la fila de encabezados y construye el mapa de columnas a índices.
+ * Encuentra la fila de encabezados y construye el mapa de columnas a índices con coincidencia difusa.
  */
 const buildColumnMap = (rows) => {
-    const maxSearch = Math.min(rows.length, 15);
+    const maxSearch = Math.min(rows.length, 20);
     let headerRowIdx = 0;
     let bestMatchCount = -1;
 
     const knownKeywords = [
-        'item', 'itemcode', 'codigo', 'sku', 'material',
+        'item', 'itemcode', 'codigo', 'sku', 'material', 'articulo',
         'description', 'descripcion', 'desc', 'texto',
         'bin', 'bin1', 'binlocation', 'ubicacion',
-        'quantity', 'qty', 'cantidad', 'physicalqty',
-        'grn', 'grnnumber', 'pedido', 'order', 'ordernumber',
-        'waybill', 'wb', 'importref', 'importrefcode', 'importreference',
-        'customer', 'cliente', 'customername', 'despatch', 'despatchnumber',
-        'reservedqty', 'quantityreserved', 'totalreserved'
+        'quantity', 'qty', 'cantidad', 'physicalqty', 'systemqty', 'despatchedqty',
+        'grn', 'grnnumber', 'pedido', 'order', 'ordernumber', 'purchaseorder', 'po',
+        'waybill', 'wb', 'awb', 'airwaybill', 'guia', 'importref', 'importrefcode', 'importreference',
+        'customer', 'cliente', 'customername', 'customerref', 'customerreference',
+        'despatch', 'despatchnumber', 'picklistprintedtime', 'rpstatustime',
+        'reservedqty', 'quantityreserved', 'totalreserved', 'actionqty'
     ];
 
     for (let r = 0; r < maxSearch; r++) {
@@ -183,7 +196,7 @@ const buildColumnMap = (rows) => {
         let matchCount = 0;
         row.forEach(cell => {
             const norm = normalizeHeaderKey(cell);
-            if (norm && knownKeywords.some(k => norm.includes(k) || k.includes(norm))) {
+            if (norm && knownKeywords.some(k => norm === k || norm.includes(k) || k.includes(norm))) {
                 matchCount++;
             }
         });
@@ -203,12 +216,31 @@ const buildColumnMap = (rows) => {
     });
 
     const getCol = (row, ...aliases) => {
+        if (!row || row.length === 0) return '';
+
+        // 1. Coincidencia exacta de alias normalizado
         for (const alias of aliases) {
             const norm = normalizeHeaderKey(alias);
-            if (colMap[norm] !== undefined && colMap[norm] < row.length) {
+            if (norm && colMap[norm] !== undefined && colMap[norm] < row.length) {
                 const val = row[colMap[norm]];
                 if (val !== undefined && val !== null && String(val).trim() !== '') {
                     return String(val).trim();
+                }
+            }
+        }
+
+        // 2. Coincidencia parcial (el nombre de columna contiene el alias o viceversa)
+        for (const alias of aliases) {
+            const norm = normalizeHeaderKey(alias);
+            if (!norm || norm.length < 2) continue;
+            for (const [colName, colIdx] of Object.entries(colMap)) {
+                if (colName === norm || colName.includes(norm) || (norm.length >= 4 && norm.includes(colName))) {
+                    if (colIdx < row.length) {
+                        const val = row[colIdx];
+                        if (val !== undefined && val !== null && String(val).trim() !== '') {
+                            return String(val).trim();
+                        }
+                    }
                 }
             }
         }
@@ -222,55 +254,91 @@ const buildColumnMap = (rows) => {
  * Clasificador determinista de archivos maestros Sandvik/Logix.
  * Previene cruces, colisiones y falsos positivos entre los 5 tipos de archivos.
  */
-export const classifyUploadedFile = (fileName, rawHeaders) => {
+export const classifyUploadedFile = (fileName, rawHeaders = []) => {
     const fn = (fileName || '').toLowerCase();
-    const hasHeader = (...keys) => rawHeaders.some(h => keys.some(k => h.includes(k.toLowerCase()) || h === k.toLowerCase()));
+    const cleanFn = fn.replace(/[^a-z0-9]/g, '');
+    const cleanHeaders = (rawHeaders || []).map(h => normalizeHeaderKey(h));
 
-    // 1. Reporte 240 (Salidas Picking / Despachos)
-    // Firmas: Despatch Number, Pick List Printed Time, RP Status Time
+    const hasHeader = (...keys) => {
+        return cleanHeaders.some(h =>
+            keys.some(k => {
+                const normK = normalizeHeaderKey(k);
+                return h === normK || h.includes(normK) || (normK.length >= 4 && normK.includes(h));
+            })
+        );
+    };
+
+    // PRIORIDAD 1: Identificación precisa por Nombre de Archivo Específico
     if (
-        fn.includes('240') || fn.includes('aurrsglbd0240') || fn.includes('picking') || fn.includes('despacho') ||
-        hasHeader('despatchnumber', 'despatch', 'despacho', 'notaentrega', 'picklistprintedtime', 'rpstatustime', 'despatch_') ||
-        (hasHeader('ordernumber', 'order', 'pedido', 'order_') && hasHeader('customer', 'cliente', 'customername') && !hasHeader('bin1', 'physicalqty', 'grn', 'waybill'))
+        cleanFn.includes('extractor') ||
+        cleanFn.includes('purchaseorder') ||
+        cleanFn.includes('purchase') ||
+        cleanFn.includes('polookup') ||
+        cleanFn.includes('poextractor') ||
+        cleanFn.includes('waybill') ||
+        cleanFn.includes('guia') ||
+        cleanFn.includes('ordencompra') ||
+        cleanFn.includes('ordenescompra')
     ) {
-        return '240';
+        return 'po_extractor';
     }
 
-    // 2. Reporte 280 (Entradas GRN / Goods Received)
-    // Firmas: GRN Number, Goods Received
-    if (
-        fn.includes('280') || fn.includes('aurrsglbd0280') || fn.includes('goods received') || fn.includes('goodsreceived') ||
-        (hasHeader('grn', 'grnnumber', 'referenciaimportacion', 'importreference') && !hasHeader('bin1', 'physicalqty', 'despatch', 'despacho'))
-    ) {
+    if (cleanFn.includes('0006') || cleanFn.includes('lamp0006') || cleanFn.includes('xdock') || cleanFn.includes('crossdock')) {
+        return '0006';
+    }
+
+    if (cleanFn.includes('280') || cleanFn.includes('0280') || cleanFn.includes('goodsreceived') || (cleanFn.includes('grn') && !cleanFn.includes('po'))) {
         return '280';
     }
 
-    // 3. Reporte 0006 (Reservas Xdock / Cross-Dock)
-    // Firmas: Quantity Reserved, Total Reserved, Action Qty
+    if (cleanFn.includes('240') || cleanFn.includes('0240') || cleanFn.includes('picking') || cleanFn.includes('despacho') || cleanFn.includes('despachos')) {
+        return '240';
+    }
+
+    if (cleanFn.includes('250') || cleanFn.includes('0250') || cleanFn.includes('stockroom') || cleanFn.includes('balance') || cleanFn.includes('master') || cleanFn.includes('maestro') || cleanFn.includes('item')) {
+        return '250';
+    }
+
+    // PRIORIDAD 2: Identificación Determinista por Firmas Fuertes de Encabezados
+
+    // A. PO Extractor (Relaciones Waybill - Import Reference - PO)
     if (
-        fn.includes('0006') || fn.includes('aurrslamp0006') || fn.includes('xdock') || fn.includes('crossdock') ||
+        hasHeader('waybill', 'wb', 'awb', 'airwaybill', 'guia') ||
+        hasHeader('importrefcode', 'importreference', 'importref', 'referenciaimportacion') ||
+        (hasHeader('customerreference', 'customerref', 'purchaseorder', 'ponumber') && hasHeader('despatchedqty', 'grnnumber'))
+    ) {
+        return 'po_extractor';
+    }
+
+    // B. Reporte 0006 (Reservas Xdock / Cross-Dock)
+    if (
         hasHeader('quantityreserved', 'totalreserved', 'actionqty', 'action_qty', 'reservedqty')
     ) {
         return '0006';
     }
 
-    // 4. PO Extractor (Relaciones Waybill - Import Reference)
-    // Firmas: Waybill + Import Ref Code
+    // C. Reporte 250 (Maestro de Ítems / Stockroom Master)
     if (
-        fn.includes('extractor') || fn.includes('purchase order') || fn.includes('po_lookup') || fn.includes('po lookup') ||
-        (hasHeader('waybill', 'wb') && (hasHeader('import', 'ir') || hasHeader('import_ref_code', 'importreference', 'import_reference')))
-    ) {
-        return 'po_extractor';
-    }
-
-    // 5. Reporte 250 (Maestro de Ítems / Stockroom Master)
-    // Firmas: Bin 1, Physical Qty, Cost per Unit, SIC/ABC Code
-    if (
-        fn.includes('250') || fn.includes('aurrsglbd0250') || fn.includes('stockroom') || fn.includes('balance') || fn.includes('master') || fn.includes('maestro') ||
-        hasHeader('bin1', 'binlocation', 'physicalqty', 'costperunit', 'totalweight', 'abccodestockroom', 'siccodestockroom', 'frozenqty') ||
+        hasHeader('bin1', 'binlocation', 'costperunit', 'totalweight', 'abccodestockroom', 'siccodestockroom', 'frozenqty') ||
         (hasHeader('itemcode', 'item', 'material', 'sku', 'codigo') && hasHeader('bin1', 'binlocation', 'physicalqty', 'ubicacion'))
     ) {
         return '250';
+    }
+
+    // D. Reporte 280 (Entradas GRN / Goods Received)
+    if (
+        (hasHeader('grn', 'grnnumber') && (hasHeader('goodsreceived', 'referenciaimportacion', 'importreference') || hasHeader('totalexpected', 'expectedqty'))) ||
+        (hasHeader('grn', 'grnnumber') && !hasHeader('despatchnumber', 'despatch', 'despacho', 'picklistprintedtime', 'waybill', 'wb'))
+    ) {
+        return '280';
+    }
+
+    // E. Reporte 240 (Salidas Picking / Despachos)
+    if (
+        hasHeader('despatchnumber', 'despatch', 'despacho', 'notaentrega', 'picklistprintedtime', 'rpstatustime', 'despatch_') ||
+        (hasHeader('ordernumber', 'order_', 'pedido') && hasHeader('customer', 'cliente', 'customername') && hasHeader('picklistprintedtime', 'despatch', 'carrier'))
+    ) {
+        return '240';
     }
 
     return null;
@@ -605,46 +673,97 @@ export const processLocalCSVUpload = async (file, selectedGrns = [], updateOptio
                 return;
             }
 
-            // 5. PO Extractor / PO Lookup (Excel / CSV)
+            // 5. PO Extractor / PO Lookup (Excel / CSV) - Estructura idéntica a logix_react
             if (isPoLookupFile) {
-                const wbMap = {};
-                const irMap = {};
+                const wbLookup = {};
+                const irLookup = {};
+                const customerRefToGrn = {};
 
                 for (const row of dataRows) {
-                    let waybill = getCol(row, 'waybill', 'waybill_number', 'wb').toUpperCase();
-                    let import_ref = getCol(row, 'import_ref_code', 'import_ref', 'import_reference', 'ir').toUpperCase();
-                    let item_code = getCol(row, 'item_code', 'item', 'sku', 'material').toUpperCase();
-                    let qty = getCol(row, 'despatched_qty', 'qty', 'quantity', 'cantidad') || '0';
-                    let grn = getCol(row, 'grn_number', 'grn').toUpperCase().replace(/\//g, ',');
-                    let customer_ref = getCol(row, 'customer_reference', 'customer_ref', 'referencia_cliente').toUpperCase();
+                    let waybill = getCol(row, 'waybill', 'waybill_number', 'waybill_no', 'waybillno', 'wb', 'awb', 'airwaybill', 'air_waybill', 'guia', 'guia_aerea', 'no_guia', 'tracking').toUpperCase().trim();
+                    let import_ref = getCol(row, 'import_ref_code', 'import_ref', 'import_reference', 'import_ref_no', 'ir', 'referencia_importacion', 'ref_importacion', 'ref_import', 'import_code', 'referencia').toUpperCase().trim();
+                    let item_code = getCol(row, 'item_code', 'item', 'item_no', 'sku', 'material', 'codigo', 'codigo_articulo', 'articulo', 'itemcode').toUpperCase().trim();
+                    let qty = getCol(row, 'despatched_qty', 'despatched_quantity', 'qty', 'quantity', 'cantidad', 'cant', 'despachado', 'qty_despachada') || '0';
+                    let grn = getCol(row, 'grn_number', 'grn', 'grn_no', 'pedido_grn', 'recepcion', 'grnnumber').toUpperCase().replace(/\//g, ',').trim();
+                    let customer_ref = getCol(row, 'customer_reference', 'customer_ref', 'customer_po', 'purchase_order', 'po_number', 'po', 'order_number', 'order', 'pedido', 'referencia_cliente', 'ref_cliente', 'orden_compra', 'oc').toUpperCase().trim();
 
-                    if (!waybill || !import_ref || waybill === 'WAYBILL' || import_ref === 'IMPORT REF CODE') {
+                    // Limpieza idéntica a process_po_extractor_logic en logix_react:
+                    // Requiere que Waybill y Import Ref Code no sean vacíos ni encabezados
+                    if (!waybill || !import_ref || waybill === 'WAYBILL' || import_ref === 'IMPORT REF CODE' || item_code === 'ITEM CODE') {
                         continue;
                     }
 
                     const itemObj = { item_code, qty, grn, customer_ref };
 
-                    if (!wbMap[waybill]) {
-                        wbMap[waybill] = { id: `wb_${waybill}`, type: 'wb', value: waybill, waybill, import_ref, items: [] };
+                    // 1. Agrupado por Waybill (wb_to_data)
+                    if (!wbLookup[waybill]) {
+                        wbLookup[waybill] = {
+                            import_ref: import_ref,
+                            items: []
+                        };
                     }
-                    wbMap[waybill].items.push(itemObj);
+                    wbLookup[waybill].items.push(itemObj);
 
-                    if (!irMap[import_ref]) {
-                        irMap[import_ref] = { id: `ir_${import_ref}`, type: 'ir', value: import_ref, waybill, import_ref, items: [] };
+                    // 2. Agrupado por Import Ref Code (ir_to_data)
+                    if (!irLookup[import_ref]) {
+                        irLookup[import_ref] = {
+                            waybill: waybill,
+                            items: []
+                        };
                     }
-                    irMap[import_ref].items.push(itemObj);
+                    irLookup[import_ref].items.push(itemObj);
+
+                    // 3. Mapeo por Customer Reference (customer_ref_to_data)
+                    if (customer_ref) {
+                        if (!customerRefToGrn[customer_ref]) {
+                            customerRefToGrn[customer_ref] = {
+                                import_ref: import_ref,
+                                waybill: waybill,
+                                grns: new Set()
+                            };
+                        }
+                        if (grn) {
+                            const splitGrns = grn.split(',').map(g => g.trim().toUpperCase()).filter(Boolean);
+                            splitGrns.forEach(g => customerRefToGrn[customer_ref].grns.add(g));
+                        }
+                    }
                 }
+
+                const totalWb = Object.keys(wbLookup).length;
+                const totalIr = Object.keys(irLookup).length;
+
+                if (totalWb === 0 && totalIr === 0) {
+                    resolve(`No se encontraron registros válidos de PO Extractor en '${file.name}' (verifique que contenga columnas Waybill e Import Ref Code).`);
+                    return;
+                }
+
+                // Serializar customer_ref_to_data convirtiendo Sets a Arrays
+                const serializedCustomerRefMap = {};
+                for (const [ref, data] of Object.entries(customerRefToGrn)) {
+                    serializedCustomerRefMap[ref] = {
+                        import_ref: data.import_ref,
+                        waybill: data.waybill,
+                        grns: Array.from(data.grns)
+                    };
+                }
+
+                const lookupData = {
+                    wb_to_data: wbLookup,
+                    ir_to_data: irLookup,
+                    customer_ref_to_data: serializedCustomerRefMap,
+                    updated_at: new Date().toISOString()
+                };
 
                 try {
                     const db = await getDB();
                     if (db) {
                         const tx = db.transaction(['po_lookup', 'sync_metadata'], 'readwrite');
                         const store = tx.objectStore('po_lookup');
-                        for (const [wb, val] of Object.entries(wbMap)) {
-                            store.put(val);
+                        for (const [wb, val] of Object.entries(wbLookup)) {
+                            store.put({ id: `wb_${wb}`, type: 'wb', value: wb, ...val });
                         }
-                        for (const [ir, val] of Object.entries(irMap)) {
-                            store.put(val);
+                        for (const [ir, val] of Object.entries(irLookup)) {
+                            store.put({ id: `ir_${ir}`, type: 'ir', value: ir, ...val });
                         }
                         const metaStore = tx.objectStore('sync_metadata');
                         metaStore.put({ key: 'po_extractor', value: Math.floor(Date.now() / 1000) });
@@ -656,23 +775,19 @@ export const processLocalCSVUpload = async (file, selectedGrns = [], updateOptio
 
                 if (isTauri()) {
                     await invoke('set_sync_status', { key: 'po_extractor', timestamp: Math.floor(Date.now() / 1000) });
-                    const poJsonData = {
-                        wb_to_data: wbMap,
-                        ir_to_data: irMap,
-                        updated_at: new Date().toISOString()
-                    };
-                    await invoke('save_po_lookup_json', { jsonContent: JSON.stringify(poJsonData, null, 2) });
-                    resolve(`Se guardaron las relaciones de PO Extractor en data/po_lookup.json.`);
+                    await invoke('save_po_lookup_json', { jsonContent: JSON.stringify(lookupData, null, 2) });
+                    resolve(`Archivo '${file.name}' procesado con éxito como PO Extractor (${totalWb} Waybills, ${totalIr} Ref. de Importación).`);
                     return;
                 }
-                resolve(`Se procesaron ${Object.keys(wbMap).length} waybills de PO Extractor.`);
+                resolve(`Archivo '${file.name}' procesado localmente como PO Extractor (${totalWb} Waybills, ${totalIr} Ref. de Importación).`);
                 return;
             }
 
-            resolve("Tipo de archivo no reconocido o sin registros procesables.");
+            const detectedHeadersStr = rawHeaders && rawHeaders.length > 0 ? rawHeaders.slice(0, 10).join(', ') : 'ninguno';
+            resolve(`Tipo de archivo no reconocido para '${file.name}'. Encabezados detectados: [${detectedHeadersStr}]. Asegúrese de que corresponda a uno de los maestros admitidos (250, 280, 240, 0006 o PO Extractor).`);
         } catch (err) {
             console.error("Error al procesar archivo estructurado:", err);
-            resolve(`Error al procesar el archivo: ${err.message || err}`);
+            resolve(`Error al procesar el archivo '${file.name}': ${err.message || err}`);
         }
     });
 };

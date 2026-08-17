@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
-import { isTauri, processLocalCSVUpload, previewLocalGRNFile } from '../utils/tauriBridge';
+import { isTauri, callTauriCommand, processLocalCSVUpload, previewLocalGRNFile } from '../utils/tauriBridge';
 import { getDB } from '../utils/offlineDb';
 
 const Update = () => {
@@ -29,6 +29,13 @@ const Update = () => {
 
     const fetchSyncStatus = async () => {
         try {
+            if (isTauri()) {
+                const statusMap = await callTauriCommand('get_sync_status');
+                if (statusMap && typeof statusMap === 'object') {
+                    setSyncStatus(statusMap);
+                    return;
+                }
+            }
             const res = await fetch('/api/sync/status').catch(() => null);
             if (res && res.ok) {
                 const data = await res.json();
@@ -159,32 +166,39 @@ const Update = () => {
         }
 
         try {
-            let processedMsg = '';
+            const successMsgs = [];
+            const errorMsgs = [];
+
             for (const file of files) {
                 const name = file.name.toLowerCase();
                 if (name.endsWith('.csv') || name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.txt')) {
                     const result = await processLocalCSVUpload(file, selectedGrns, updateOption);
-                    processedMsg += result + '. ';
+                    const isErr = typeof result === 'string' && (
+                        result.startsWith('Error') ||
+                        result.startsWith('Tipo de archivo no reconocido') ||
+                        result.startsWith('No se encontraron') ||
+                        result.startsWith('El archivo')
+                    );
+                    if (isErr) {
+                        errorMsgs.push(result);
+                    } else {
+                        successMsgs.push(result);
+                    }
+                } else {
+                    errorMsgs.push(`Archivo '${file.name}': Formato no compatible. Seleccione archivos .csv o .xlsx`);
                 }
             }
 
-            if (!processedMsg && !isTauri()) {
-                const formData = new FormData();
-                files.forEach(file => {
-                    formData.append('file', file);
-                });
-                const res = await fetch('/api/update', { method: 'POST', body: formData }).catch(() => null);
-                if (res && res.ok) {
-                    const data = await res.json();
-                    processedMsg = data.message || "Archivos cargados exitosamente.";
-                }
+            if (errorMsgs.length > 0 && successMsgs.length === 0) {
+                setMessages({ success: '', error: errorMsgs.join(' | ') });
+            } else if (errorMsgs.length > 0 && successMsgs.length > 0) {
+                setMessages({ success: successMsgs.join(' | '), error: errorMsgs.join(' | ') });
+            } else if (successMsgs.length > 0) {
+                setMessages({ success: successMsgs.join(' | '), error: '' });
+            } else {
+                setMessages({ success: `Se procesaron ${files.length} archivo(s).`, error: '' });
             }
 
-            if (!processedMsg) {
-                processedMsg = `Se cargaron ${files.length} archivo(s) localmente en la base de datos SQLite`;
-            }
-
-            setMessages({ success: processedMsg, error: '' });
             setFiles([]);
             await fetchSyncStatus();
         } catch (err) {
