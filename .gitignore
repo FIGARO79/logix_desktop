@@ -21,6 +21,8 @@ pnpm-debug.log*
 *.sqlite
 *.sqlite3
 data/*.db
+data/*.json
+public/static/json/
 
 # Environment variables
 .env
