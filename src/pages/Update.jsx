@@ -126,18 +126,28 @@ const Update = () => {
     const createFileFromPath = async (filePath) => {
         try {
             const fileName = filePath.split(/[/\\]/).pop();
+            let bytes = null;
+
             if (isTauri()) {
-                const bytes = await callTauriCommand('read_file_binary', { path: filePath });
-                if (bytes) {
-                    const blob = new Blob([new Uint8Array(bytes)]);
-                    return new File([blob], fileName);
+                try {
+                    const fs = await import('@tauri-apps/api/fs').catch(() => null);
+                    if (fs && fs.readBinaryFile) {
+                        bytes = await fs.readBinaryFile(filePath);
+                    } else if (window.__TAURI__?.fs?.readBinaryFile) {
+                        bytes = await window.__TAURI__.fs.readBinaryFile(filePath);
+                    }
+                } catch (err) {
+                    console.warn("Tauri fs.readBinaryFile error:", err);
                 }
             }
-            const resp = await fetch('file://' + filePath);
-            const blob = await resp.blob();
-            return new File([blob], fileName);
+
+            if (bytes) {
+                const blob = new Blob([new Uint8Array(bytes)]);
+                return new File([blob], fileName);
+            }
+            return null;
         } catch (e) {
-            console.error("Error creando archivo nativo desde ruta:", e);
+            console.error("Error creando archivo desde ruta:", e);
             return null;
         }
     };
@@ -146,43 +156,53 @@ const Update = () => {
         let unlistenDrop = null;
         let unlistenHover = null;
         let unlistenCancel = null;
+        let isMounted = true;
 
         if (isTauri()) {
-            import('@tauri-apps/api/event').then(({ listen }) => {
-                listen('tauri://file-drop', async (event) => {
-                    setDragActive(false);
-                    dropHappenedRef.current = true;
-                    setTimeout(() => { dropHappenedRef.current = false; }, 300);
+            const setupListeners = async () => {
+                try {
+                    const eventApi = await import('@tauri-apps/api/event').catch(() => null);
+                    if (eventApi && eventApi.listen && isMounted) {
+                        unlistenDrop = await eventApi.listen('tauri://file-drop', async (event) => {
+                            setDragActive(false);
+                            dropHappenedRef.current = true;
+                            setTimeout(() => { dropHappenedRef.current = false; }, 300);
 
-                    const paths = event.payload;
-                    if (Array.isArray(paths) && paths.length > 0) {
-                        const loadedFiles = [];
-                        for (const p of paths) {
-                            const f = await createFileFromPath(p);
-                            if (f) loadedFiles.push(f);
-                        }
-                        if (loadedFiles.length > 0) {
-                            handleFiles(loadedFiles);
-                        }
+                            const paths = event.payload;
+                            if (Array.isArray(paths) && paths.length > 0) {
+                                const loadedFiles = [];
+                                for (const p of paths) {
+                                    const f = await createFileFromPath(p);
+                                    if (f) loadedFiles.push(f);
+                                }
+                                if (loadedFiles.length > 0 && isMounted) {
+                                    handleFiles(loadedFiles);
+                                }
+                            }
+                        }).catch(() => null);
+
+                        unlistenHover = await eventApi.listen('tauri://file-drop-hover', () => {
+                            if (isMounted) setDragActive(true);
+                        }).catch(() => null);
+
+                        unlistenCancel = await eventApi.listen('tauri://file-drop-cancelled', () => {
+                            if (isMounted) setDragActive(false);
+                        }).catch(() => null);
                     }
-                }).then(fn => { unlistenDrop = fn; });
-
-                listen('tauri://file-drop-hover', () => {
-                    setDragActive(true);
-                }).then(fn => { unlistenHover = fn; });
-
-                listen('tauri://file-drop-cancelled', () => {
-                    setDragActive(false);
-                }).then(fn => { unlistenCancel = fn; });
-            }).catch(e => console.warn("Tauri event listen error:", e));
+                } catch (e) {
+                    console.warn("Tauri event listen error:", e);
+                }
+            };
+            setupListeners();
         }
 
         return () => {
-            if (unlistenDrop) unlistenDrop();
-            if (unlistenHover) unlistenHover();
-            if (unlistenCancel) unlistenCancel();
+            isMounted = false;
+            if (typeof unlistenDrop === 'function') unlistenDrop();
+            if (typeof unlistenHover === 'function') unlistenHover();
+            if (typeof unlistenCancel === 'function') unlistenCancel();
         };
-    }, []);
+    }, [handleFiles]);
 
     // Temporizador de 10 segundos para ocultar notificaciones automáticamente
     useEffect(() => {
