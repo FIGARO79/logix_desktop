@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useLocation } from 'react-router-dom';
 import { cacheData, getCachedData } from '../utils/offlineDb';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -8,8 +9,9 @@ import { exportExcelFileNative } from '../utils/tauriBridge';
 
 const Reconciliation = () => {
     const { setTitle } = useOutletContext();
+    const { t, language } = useLanguage();
     const location = useLocation();
-    useEffect(() => { setTitle("Conciliación"); }, [setTitle]);
+    useEffect(() => { setTitle(t('nav.reconciliation', 'Conciliación')); }, [setTitle, t, language]);
     const queryClient = useQueryClient();
 
     // Filtros de navegación

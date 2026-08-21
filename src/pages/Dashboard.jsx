@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export const CATEGORIES_CONFIG = [
     { id: 'recepcion', title: 'Gestión de Recepción', accent: 'bg-blue-600', dropBg: 'bg-blue-50/60' },
@@ -61,6 +62,7 @@ const STORAGE_KEY = 'logix_dashboard_layout_v2';
 
 const Dashboard = () => {
     const { setTitle } = useOutletContext();
+    const { t, language } = useLanguage();
     const [categories, setCategories] = useState(() => {
         try {
             const saved = localStorage.getItem(STORAGE_KEY);
@@ -79,8 +81,8 @@ const Dashboard = () => {
     const [feedbackMessage, setFeedbackMessage] = useState(null);
 
     useEffect(() => {
-        setTitle("Dashboard");
-    }, [setTitle]);
+        setTitle(t('dashboard.title', 'Dashboard'));
+    }, [setTitle, t, language]);
 
     // Guardar en localStorage
     const saveCategories = (newCats) => {
@@ -247,13 +249,13 @@ const Dashboard = () => {
                             >
                                 <div className="flex items-center gap-3 mb-4">
                                     <div className={`h-4 w-1 ${category.accent || config.accent} rounded-full`}></div>
-                                    <h2 className="text-sm font-normal text-black uppercase tracking-normal">{category.title}</h2>
+                                    <h2 className="text-sm font-normal text-black uppercase tracking-normal">{t(category.title)}</h2>
                                 </div>
 
                                 <div className="space-y-3 min-h-[140px] flex flex-col">
                                     {category.items.length === 0 ? (
                                         <div className="flex-1 flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-lg text-center bg-white/50">
-                                            <p className="text-[11px] text-slate-400 font-normal">Arrastra opciones aquí para fijarlas</p>
+                                            <p className="text-[11px] text-slate-400 font-normal">{t('dashboard.drag_hint', 'Arrastra opciones aquí para fijarlas')}</p>
                                         </div>
                                     ) : (
                                         category.items.map((item, idx) => (
@@ -265,10 +267,10 @@ const Dashboard = () => {
                                             >
                                                 <Link to={item.href} className="block pr-5">
                                                     <div className="text-xs font-normal text-black group-hover:text-blue-700 transition-colors tracking-normal">
-                                                        {item.text}
+                                                        {t(item.text)}
                                                     </div>
                                                     <div className="text-[11px] text-black font-normal mt-1 uppercase tracking-normal">
-                                                        {item.desc}
+                                                        {t(item.desc)}
                                                     </div>
                                                 </Link>
 

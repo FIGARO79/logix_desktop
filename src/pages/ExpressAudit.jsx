@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import { useLanguage } from '../context/LanguageContext';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ScannerModal from '../components/ScannerModal';
 
 const ExpressAudit = () => {
     const { setTitle } = useOutletContext();
-    useEffect(() => { setTitle("Ciclo Manual"); }, [setTitle]);
+    const { t, language } = useLanguage();
+    useEffect(() => { setTitle(t('nav.manual_cycle', 'Ciclo Manual')); }, [setTitle, t, language]);
 
     const [binLocation, setBinLocation] = useState('');
     const [itemCode, setItemCode] = useState('');

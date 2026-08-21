@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import { useLanguage } from '../context/LanguageContext';
 import QRCode from 'qrcode';
 import ScannerModal from '../components/ScannerModal';
 import { getDB, savePendingSync, cacheData, getCachedData, getGRNExpectedQty, getGRNExpectedQtyBulk, matchRef } from '../utils/offlineDb';
@@ -74,9 +75,10 @@ const Dial = ({ percent, label, valueText, strokeColor = "#1679E0", strokeWidth 
 const Inbound = () => {
     const { setTitle } = useOutletContext();
     const { pendingCount, syncPendingData } = useOffline();
+    const { t, language } = useLanguage();
     const queryClient = useQueryClient();
 
-    useEffect(() => { setTitle("Recepción"); }, [setTitle]);
+    useEffect(() => { setTitle(t('nav.inbound', 'Recepción')); }, [setTitle, t, language]);
 
 
 

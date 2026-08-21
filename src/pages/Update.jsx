@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import { useLanguage } from '../context/LanguageContext';
 import { isTauri, callTauriCommand, processLocalCSVUpload, previewLocalGRNFile } from '../utils/tauriBridge';
 import { getDB } from '../utils/offlineDb';
 
 const Update = () => {
     const { setTitle } = useOutletContext();
+    const { t, language } = useLanguage();
     const [messages, setMessages] = useState({ success: '', error: '', info: '' });
     const [isLoading, setIsLoading] = useState(false);
     const [dragActive, setDragActive] = useState(false);
@@ -74,9 +76,9 @@ const Update = () => {
     };
 
     useEffect(() => {
-        setTitle("Datos Maestros");
+        if (setTitle) setTitle(t('nav.update_data', 'Carga de Datos'));
         fetchSyncStatus();
-    }, [setTitle]);
+    }, [setTitle, t, language]);
 
     // Temporizador de 10 segundos para ocultar notificaciones automáticamente
     useEffect(() => {

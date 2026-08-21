@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTabContext } from '../hooks/useTabContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -13,10 +14,11 @@ const SpotCheck = () => {
     const setTitle = context ? context.setTitle : null;
     const navigate = useNavigate();
     const { isOnline } = useOffline();
+    const { t, language } = useLanguage();
 
     useEffect(() => {
-        if (setTitle) setTitle("Conteo por Ubicación");
-    }, [setTitle]);
+        if (setTitle) setTitle(t('nav.spot_check', 'Spot Check'));
+    }, [setTitle, t, language]);
 
     const [binLocation, setBinLocation] = useState('');
     const [itemCode, setItemCode] = useState('');

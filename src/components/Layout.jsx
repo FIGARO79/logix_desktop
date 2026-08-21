@@ -4,6 +4,7 @@ import { useOffline } from '../hooks/useOffline';
 import { checkAndSyncIfNeeded } from '../utils/syncManager';
 import '../styles/Layout.css';
 import { TabProvider } from '../hooks/useTabContext';
+import { useLanguage } from '../context/LanguageContext';
 
 // Importación de componentes para Keep-Alive
 import Dashboard from '../pages/Dashboard';
@@ -192,6 +193,7 @@ const Layout = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [title, setTitle] = useState('Inicio');
     const { isOnline, pendingCount, syncPendingData, refreshPendingCount } = useOffline();
+    const { language, setLanguage, t } = useLanguage();
     const [showPendingModal, setShowPendingModal] = useState(false);
     const [pendingList, setPendingList] = useState([]);
 
@@ -473,12 +475,12 @@ const Layout = () => {
                                     onClick={() => switchTab(tab.id)}
                                     className={`tab-item ${activeTabId === tab.id ? 'active' : ''} ${isDragging ? 'dragging' : ''} ${dropPositionClass}`}
                                 >
-                                    <span className="tab-label">{tab.label}</span>
+                                    <span className="tab-label">{t(tab.label)}</span>
                                     <div className="tab-actions flex items-center gap-1 ml-2">
                                         <button
                                             onClick={(e) => refreshTab(e, tab.id)}
                                             className={`tab-refresh-btn p-1 rounded hover:bg-white/10 transition-all ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-                                            title="Refrescar datos"
+                                            title={t('header.refresh_data', 'Refrescar datos')}
                                         >
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -507,54 +509,94 @@ const Layout = () => {
                 className={`fixed left-0 w-64 bg-[var(--sap-shell-bg)] shadow-2xl z-[999] overflow-y-auto transform transition-transform duration-300 ease-in-out print:hidden no-print ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
                 style={{ top: '48px', height: 'calc(100vh - 48px)' }}
             >
-                <nav className="py-2">
-                    <div className="px-4 mb-2">
-                        <div className="px-2 text-[12px] font-medium text-gray-900 text-slate-500 uppercase tracking-tight mb-1">Principal</div>
-                        <MenuItem to="/dashboard" label="Inicio" desc="Panel principal y accesos rápidos" categoryId="recepcion" onClick={toggleMenu} />
-                        <MenuItem to="/stock" label="Consultar Stock" desc="Búsqueda global de inventario y saldos" categoryId="recepcion" onClick={toggleMenu} />
+                <nav className="py-2 flex flex-col min-h-full">
+                    <div className="flex-grow">
+                        <div className="px-4 mb-2">
+                            <div className="px-2 text-[12px] font-medium text-slate-500 uppercase tracking-tight mb-1">{t('menu.main', 'Principal')}</div>
+                            <MenuItem to="/dashboard" label={t('nav.home', 'Inicio')} desc={t('nav.home_desc', 'Panel principal y accesos rápidos')} categoryId="recepcion" onClick={toggleMenu} />
+                            <MenuItem to="/stock" label={t('nav.stock', 'Consultar Stock')} desc={t('nav.stock_desc', 'Búsqueda global de inventario y saldos')} categoryId="recepcion" onClick={toggleMenu} />
+                        </div>
+                        <div className="px-4 mb-2">
+                            <div className="px-2 text-[12px] font-medium text-slate-500 uppercase tracking-tight mb-1 border-t border-white/5 pt-2">{t('menu.inbound', 'Operaciones Inbound')}</div>
+                            <MenuItem to="/inbound" label={t('nav.inbound', 'Recepción')} desc={t('nav.inbound_desc', 'Entrada de mercancía y referencias')} categoryId="recepcion" onClick={toggleMenu} />
+                            <MenuItem to="/reconciliation" label={t('nav.reconciliation', 'Conciliación')} desc={t('nav.reconciliation_desc', 'Cruce de documentos y discrepancias')} categoryId="recepcion" onClick={toggleMenu} />
+                            <MenuItem to="/inbound/audit" label={t('nav.inbound_audit', 'Auditoría Agente')} desc={t('nav.inbound_audit_desc', 'Control de calidad y recepción física')} categoryId="recepcion" onClick={toggleMenu} />
+                            <MenuItem to="/view_logs" label={t('nav.view_logs', 'Registros')} desc={t('nav.view_logs_desc', 'Consulta de registros históricos')} categoryId="recepcion" onClick={toggleMenu} />
+                            <MenuItem to="/ir-reconciliation" label={t('nav.ir_dashboard', 'Dashboard IR')} desc={t('nav.ir_dashboard_desc', 'Estado general de Import References')} categoryId="recepcion" onClick={toggleMenu} />
+                        </div>
+                        <div className="px-4 mb-2">
+                            <div className="px-2 text-[12px] font-medium text-slate-500 uppercase tracking-tight mb-1 border-t border-white/5 pt-2">{t('menu.outbound', 'Operaciones Outbound')}</div>
+                            <MenuItem to="/picking" label={t('nav.picking', 'Picking')} desc={t('nav.picking_desc', 'Verificación de pedidos y empaque')} categoryId="despacho" onClick={toggleMenu} />
+                            <MenuItem to="/view_picking_audits" label={t('nav.packing', 'Empaque')} desc={t('nav.packing_desc', 'Listas de empaque y auditorías')} categoryId="despacho" onClick={toggleMenu} />
+                            <MenuItem to="/shipments" label={t('nav.shipments', 'Despacho')} desc={t('nav.shipments_desc', 'Gestión de despachos y embarques')} categoryId="despacho" onClick={toggleMenu} />
+                            <MenuItem to="/label" label={t('nav.label', 'Etiquetado')} desc={t('nav.label_desc', 'Impresión de etiquetas operativas')} categoryId="despacho" onClick={toggleMenu} />
+                        </div>
+                        <div className="px-4 mb-2">
+                            <div className="px-2 text-[12px] font-medium text-slate-500 uppercase tracking-tight mb-1 border-t border-white/5 pt-2">{t('menu.inventory', 'Control Inventario')}</div>
+                            <MenuItem to="/planner" label={t('nav.planner', 'Plan Cíclico')} desc={t('nav.planner_desc', 'Programación de conteos cíclicos')} categoryId="inventario" onClick={toggleMenu} />
+                            <MenuItem to="/inventory-dashboard" label={t('nav.metrics', 'Métricas')} desc={t('nav.metrics_desc', 'Indicadores de exactitud')} categoryId="inventario" onClick={toggleMenu} />
+                            <MenuItem to="/view_counts/recordings" label={t('nav.recordings', 'Históricos')} desc={t('nav.recordings_desc', 'Grabaciones y trazabilidad')} categoryId="inventario" onClick={toggleMenu} />
+                            <MenuItem to="/planner/manage_differences" label={t('nav.differences', 'Diferencias')} desc={t('nav.differences_desc', 'Gestión de ajustes y discrepancias')} categoryId="inventario" onClick={toggleMenu} />
+                            <MenuItem to="/counts" label={t('nav.w2w', 'Inventario W2W')} desc={t('nav.w2w_desc', 'Conteo masivo wall-to-wall')} categoryId="inventario" onClick={toggleMenu} />
+                            {hasAdminPerm && <MenuItem to="/counts/manage" label={t('nav.manage_counts', 'Edición Conteos')} desc={t('nav.manage_counts_desc', 'Gestión de registros de conteo')} categoryId="inventario" onClick={toggleMenu} />}
+                            {hasAdminPerm && <MenuItem to="/view_counts" label={t('nav.general_count', 'Conteo General')} desc={t('nav.general_count_desc', 'Consolidado de conteos')} categoryId="inventario" onClick={toggleMenu} />}
+                            <MenuItem to="/express-audit" label={t('nav.manual_cycle', 'Ciclo Manual')} desc={t('nav.manual_cycle_desc', 'Conteo ciego y auditoría rápida')} categoryId="inventario" onClick={toggleMenu} />  
+                            <MenuItem to="/spot-check" label={t('nav.spot_check', 'Spot Check')} desc={t('nav.spot_check_desc', 'Auditorías rápidas en piso')} categoryId="inventario" onClick={toggleMenu} />
+                        </div>
+                        <div className="px-4 mb-2">
+                            <div className="px-2 text-[12px] font-medium text-slate-500 uppercase tracking-tight mb-1 border-t border-white/5 pt-2">{t('menu.system', 'Sistema')}</div>
+                            <MenuItem to="/admin/inventory" label={t('nav.admin_inventory', 'Adm. Inventario')} desc={t('nav.admin_inventory_desc', 'Control de ciclos de conteo')} categoryId="admin" onClick={toggleMenu} />
+                            <MenuItem to="/admin/slotting" label={t('nav.slotting_config', 'Config. Slotting')} desc={t('nav.slotting_config_desc', 'Parámetros de ubicaciones')} categoryId="admin" onClick={toggleMenu} />
+                            <MenuItem to="/occupancy" label={t('nav.occupancy', 'Ocupación Bodega')} desc={t('nav.occupancy_desc', 'Análisis de espacio y ubicaciones')} categoryId="admin" onClick={toggleMenu} />
+                            <MenuItem to="/update" label={t('nav.update_data', 'Carga de Datos')} desc={t('nav.update_data_desc', 'Actualización masiva vía ficheros')} categoryId="admin" onClick={toggleMenu} />
+                        </div>
                     </div>
-                    <div className="px-4 mb-2">
-                        <div className="px-2 text-[12px] font-medium text-gray-900 text-slate-500 uppercase tracking-tight mb-1 border-t border-white/5 pt-2">Operaciones Inbound</div>
-                        <MenuItem to="/inbound" label="Recepción" desc="Entrada de mercancía y referencias" categoryId="recepcion" onClick={toggleMenu} />
-                        <MenuItem to="/reconciliation" label="Conciliación" desc="Cruce de documentos y discrepancias" categoryId="recepcion" onClick={toggleMenu} />
-                        <MenuItem to="/inbound/audit" label="Auditoría Agente" desc="Control de calidad y recepción física" categoryId="recepcion" onClick={toggleMenu} />
-                        <MenuItem to="/view_logs" label="Registros" desc="Consulta de registros históricos" categoryId="recepcion" onClick={toggleMenu} />
-                        <MenuItem to="/ir-reconciliation" label="Dashboard IR" desc="Estado general de Import References" categoryId="recepcion" onClick={toggleMenu} />
-                    </div>
-                    <div className="px-4 mb-2">
-                        <div className="px-2 text-[12px] font-medium text-gray-900 text-slate-500 uppercase tracking-tight mb-1 border-t border-white/5 pt-2">Operaciones Outbound</div>
-                        <MenuItem to="/picking" label="Picking" desc="Verificación de pedidos y empaque" categoryId="despacho" onClick={toggleMenu} />
-                        <MenuItem to="/view_picking_audits" label="Empaque" desc="Listas de empaque y auditorías" categoryId="despacho" onClick={toggleMenu} />
-                        <MenuItem to="/shipments" label="Despacho" desc="Gestión de despachos y embarques" categoryId="despacho" onClick={toggleMenu} />
-                        <MenuItem to="/label" label="Etiquetado" desc="Impresión de etiquetas operativas" categoryId="despacho" onClick={toggleMenu} />
-                    </div>
-                    <div className="px-4 mb-2">
-                        <div className="px-2 text-[12px] font-medium text-gray-900 text-slate-500 uppercase tracking-tight mb-1 border-t border-white/5 pt-2">Control Inventario</div>
-                        <MenuItem to="/planner" label="Plan Cíclico" desc="Programación de conteos cíclicos" categoryId="inventario" onClick={toggleMenu} />
-                        <MenuItem to="/inventory-dashboard" label="Métricas" desc="Indicadores de exactitud" categoryId="inventario" onClick={toggleMenu} />
-                        <MenuItem to="/view_counts/recordings" label="Históricos" desc="Grabaciones y trazabilidad" categoryId="inventario" onClick={toggleMenu} />
-                        <MenuItem to="/planner/manage_differences" label="Diferencias" desc="Gestión de ajustes y discrepancias" categoryId="inventario" onClick={toggleMenu} />
-                        <MenuItem to="/counts" label="Inventario W2W" desc="Conteo masivo wall-to-wall" categoryId="inventario" onClick={toggleMenu} />
-                        {hasAdminPerm && <MenuItem to="/counts/manage" label="Edición Conteos" desc="Gestión de registros de conteo" categoryId="inventario" onClick={toggleMenu} />}
-                        {hasAdminPerm && <MenuItem to="/view_counts" label="Conteo General" desc="Consolidado de conteos" categoryId="inventario" onClick={toggleMenu} />}
-                        <MenuItem to="/express-audit" label="Ciclo Manual" desc="Conteo ciego y auditoría rápida" categoryId="inventario" onClick={toggleMenu} />  
-                        <MenuItem to="/spot-check" label="Spot Check" desc="Auditorías rápidas en piso" categoryId="inventario" onClick={toggleMenu} />
-                    </div>
-                    <div className="px-4 mb-2">
-                        <div className="px-2 text-[12px] font-medium text-gray-900 text-slate-500 uppercase tracking-tight mb-1 border-t border-white/5 pt-2">Sistema</div>
-                        <MenuItem to="/admin/inventory" label="Adm. Inventario" desc="Control de ciclos de conteo" categoryId="admin" onClick={toggleMenu} />
-                        <MenuItem to="/admin/slotting" label="Config. Slotting" desc="Parámetros de ubicaciones" categoryId="admin" onClick={toggleMenu} />
-                        <MenuItem to="/occupancy" label="Ocupación Bodega" desc="Análisis de espacio y ubicaciones" categoryId="admin" onClick={toggleMenu} />
-                        <MenuItem to="/update" label="Carga de Datos" desc="Actualización masiva vía ficheros" categoryId="admin" onClick={toggleMenu} />
+
+                    {/* Selector de Idioma Simplificado */}
+                    <div className="px-4 py-2 border-t border-white/10 bg-black/15 mt-2">
+                        <div className="grid grid-cols-2 gap-2 px-1">
+                            <button
+                                type="button"
+                                onClick={() => setLanguage('es')}
+                                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded text-[12px] font-bold transition-all cursor-pointer ${
+                                    language === 'es'
+                                        ? 'bg-blue-600 text-white border border-blue-400 shadow-md scale-[1.02]'
+                                        : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-transparent'
+                                }`}
+                                title="Español"
+                            >
+                                <span className="text-base leading-none">🇪🇸</span>
+                                <span>Español</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setLanguage('pt')}
+                                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded text-[12px] font-bold transition-all cursor-pointer ${
+                                    language === 'pt'
+                                        ? 'bg-emerald-600 text-white border border-emerald-400 shadow-md scale-[1.02]'
+                                        : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-transparent'
+                                }`}
+                                title="Português"
+                            >
+                                <span className="text-base leading-none">🇧🇷</span>
+                                <span>Português</span>
+                            </button>
+                        </div>
+
                         <button
-                            className="w-full flex items-center justify-start !justify-start px-4 py-1 mt-2 text-red-500 hover:bg-red-500/10 transition-all border-l-[4px] border-transparent uppercase text-[12px] font-semibold tracking-tight text-left cursor-pointer"
+                            className="w-full flex items-center justify-start !justify-start px-2 py-1.5 mt-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-all uppercase text-[11px] font-semibold tracking-tight text-left cursor-pointer"
                             style={{ justifyContent: 'flex-start' }}
                             onClick={async () => {
+                                localStorage.removeItem('user');
+                                localStorage.removeItem('admin_authenticated');
                                 try { await fetch('/api/logout', { method: 'POST', credentials: 'include' }); }
                                 finally { window.location.href = '/login'; }
                             }}
                         >
-                            Cerrar Sesión
+                            <svg className="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                            {t('menu.logout', 'Cerrar Sesión')}
                         </button>
                     </div>
                 </nav>

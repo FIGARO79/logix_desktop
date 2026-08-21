@@ -3,6 +3,7 @@ import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import ScannerModal from '../components/ScannerModal';
 import DimensionScanner from '../components/DimensionScanner';
 import { useOffline } from '../hooks/useOffline';
+import { useLanguage } from '../context/LanguageContext';
 import { getDB, savePendingSync } from '../utils/offlineDb';
 import { downloadPickingTracking, downloadPickingOrder } from '../utils/syncManager';
 import { savePickingAudit as tauriSavePickingAudit } from '../utils/tauriApi';
@@ -49,6 +50,11 @@ const formatDateLabel = (dateStr) => {
 const PickingAudit = () => {
     const { setTitle } = useOutletContext();
     const { isOnline } = useOffline();
+    const { t, language } = useLanguage();
+
+    useEffect(() => {
+        if (setTitle) setTitle(t('nav.picking', 'Picking'));
+    }, [setTitle, t, language]);
 
     // -- State --
     // Load Section

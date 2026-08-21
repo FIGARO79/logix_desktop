@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import { useLanguage } from '../context/LanguageContext';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
 const OccupancyDashboard = () => {
     const { setTitle } = useOutletContext();
+    const { t, language } = useLanguage();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [selectedCell, setSelectedCell] = useState(null); // { zone, level }
@@ -12,9 +14,9 @@ const OccupancyDashboard = () => {
     const [loadingDetails, setLoadingDetails] = useState(false);
 
     useEffect(() => {
-        if (setTitle) setTitle('Ocupación de Bodega');
+        if (setTitle) setTitle(t('occupancy.title', 'Ocupación de Bodega'));
         fetchData();
-    }, [setTitle]);
+    }, [setTitle, language]);
 
     const fetchData = async () => {
         setLoading(true);
@@ -84,19 +86,19 @@ const OccupancyDashboard = () => {
                     onClick={fetchData}
                     className="px-3 py-1.5 border border-black text-black bg-white text-[10px] font-normal uppercase tracking-tight rounded hover:bg-black hover:text-white transition-all shadow-sm"
                 >
-                    Actualizar Datos
+                    {t('occupancy.update_data', 'Actualizar Datos')}
                 </button>
             </div>
 
             {/* Global Utilization Summary */}
             <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-4">
                 {[
-                    { label: 'Total Bins', val: data?.summary?.total_bins ?? 0, color: 'text-black' },
-                    { label: 'Filled Capacity', val: data?.summary?.filled_bins ?? 0, color: 'text-black' },
-                    { label: 'Available', val: data?.summary?.available_bins ?? 0, color: 'text-black' },
-                    { label: 'Utilization %', val: `${data?.summary?.occupancy_pct ?? 0}%`, color: (data?.summary?.occupancy_pct ?? 0) > 85 ? 'text-red-750' : 'text-black' },
-                    { label: 'Active SKUs', val: data?.summary?.total_items ?? 0, color: 'text-black' },
-                    { label: 'Density (SKU/Bin)', val: data?.summary?.avg_items_per_bin ?? '0.0', color: 'text-black' }
+                    { label: t('occupancy.total_bins', 'Total Ubicaciones'), val: data?.summary?.total_bins ?? 0, color: 'text-black' },
+                    { label: t('occupancy.filled_capacity', 'Capacidad Ocupada'), val: data?.summary?.filled_bins ?? 0, color: 'text-black' },
+                    { label: t('occupancy.available', 'Disponibles'), val: data?.summary?.available_bins ?? 0, color: 'text-black' },
+                    { label: t('occupancy.utilization_pct', '% de Ocupación'), val: `${data?.summary?.occupancy_pct ?? 0}%`, color: (data?.summary?.occupancy_pct ?? 0) > 85 ? 'text-red-750' : 'text-black' },
+                    { label: t('occupancy.active_skus', 'SKUs Activos'), val: data?.summary?.total_items ?? 0, color: 'text-black' },
+                    { label: t('occupancy.density', 'Densidad (SKU/Bin)'), val: data?.summary?.avg_items_per_bin ?? '0.0', color: 'text-black' }
                 ].map((s, i) => (
                     <div key={i} className="bg-white px-3 py-1.5 border border-zinc-200 shadow-sm text-black">
                         <label className="text-[12px] uppercase text-black font-normal tracking-tight block mb-0.5 leading-tight">{s.label}</label>
@@ -109,17 +111,17 @@ const OccupancyDashboard = () => {
             <div className="bg-white border border-zinc-300 shadow-sm mb-8 overflow-hidden text-black">
                 <div className="px-6 py-3 border-b border-zinc-200 bg-zinc-50 flex justify-between items-center text-black">
                     <h3 className="text-[12px] font-normal text-black uppercase tracking-widest">
-                        Matriz de Saturación de Bins (Nivel vs Zona)
+                        {t('occupancy.matrix_title', 'Matriz de Saturación de Bins (Nivel vs Zona)')}
                     </h3>
                 </div>
                 <div className="overflow-x-auto text-black">
                     <table className="w-full border-collapse">
                         <thead>
                             <tr className="bg-zinc-950">
-                                <th className="px-6 py-3 text-left text-[12px] font-normal text-white uppercase tracking-wider border-b border-zinc-900">Identificador de Zona</th>
+                                <th className="px-6 py-3 text-left text-[12px] font-normal text-white uppercase tracking-wider border-b border-zinc-900">{t('occupancy.zone_col', 'Identificador de Zona')}</th>
                                 {allLevels.map(level => (
                                     <th key={level} className="px-2 py-3 text-center text-[12px] font-normal text-white uppercase tracking-wider border-b border-zinc-800">
-                                        Nivel {level}
+                                        {t('occupancy.level', 'Nivel')} {level}
                                     </th>
                                 ))}
                             </tr>
@@ -219,7 +221,7 @@ const OccupancyDashboard = () => {
                     <div className="px-6 py-4 border-b border-zinc-200 bg-zinc-50 flex justify-between items-center text-black">
                         <div>
                             <h3 className="text-[12px] font-normal text-black uppercase tracking-tight">
-                                Mapa de Ubicaciones: Zona {selectedCell.zone} {selectedCell.level !== null ? `— Nivel ${selectedCell.level}` : '— Todos los Niveles'}
+                                Mapa de Ubicaciones: {t('occupancy.zone', 'Zona')} {selectedCell.zone} {selectedCell.level !== null ? `— ${t('occupancy.level', 'Nivel')} ${selectedCell.level}` : '— Todos los Niveles'}
                             </h3>
                             <p className="text-[12px] text-black font-normal uppercase tracking-tight mt-1">
                                 {loadingDetails ? 'Cargando infraestructura...' : `${cellDetails.length} Ubicaciones encontradas`}
@@ -259,7 +261,7 @@ const OccupancyDashboard = () => {
                                     <div key={aisle} className="border border-zinc-200 rounded-sm p-4 bg-zinc-50/50">
                                         <div className="flex items-center justify-between mb-4 border-b border-zinc-200 pb-2">
                                             <span className="text-[12px] font-normal text-black uppercase tracking-tight">
-                                                Pasillo: {aisle}
+                                                {t('occupancy.aisle', 'Pasillo')}: {aisle}
                                             </span>
                                             <span className="text-[12px] text-black font-normal font-mono">
                                                 {bins.length} Bins
@@ -290,7 +292,7 @@ const OccupancyDashboard = () => {
                                                         </div>
                                                         <div className="mt-2 flex justify-between items-end">
                                                             <div className="flex flex-col">
-                                                                <span className="text-[12px] uppercase tracking-tighter opacity-80 text-black">SKUs</span>
+                                                                <span className="text-[12px] uppercase tracking-tighter opacity-80 text-black">{t('occupancy.skus_count', 'Cantidad de SKUs')}</span>
                                                                 <span className="text-[12px] font-normal font-mono leading-none text-black">{bin.skus}</span>
                                                             </div>
                                                             <div className="text-right">
@@ -341,7 +343,7 @@ const OccupancyDashboard = () => {
                 {/* 2. SKU Volume Distribution */}
                 <div className="bg-white p-6 border border-zinc-200 shadow-sm text-black">
                     <h3 className="text-[14px] font-normal text-black uppercase tracking-normal mb-4 border-b border-zinc-100 pb-2">
-                        Densidad de SKUs por Zona
+                        {t('occupancy.sku_volume', 'Densidad de SKUs por Zona')}
                     </h3>
                     <div className="space-y-4">
                         {(() => {
@@ -372,7 +374,7 @@ const OccupancyDashboard = () => {
                 {/* 3. Operational Risk (Hot Aisles) */}
                 <div className="bg-white p-6 border border-zinc-200 shadow-sm text-black">
                     <h3 className="text-[14px] font-normal text-black uppercase tracking-normal mb-4 border-b border-zinc-100 pb-2">
-                        Densidad Crítica (Pasillos Principales)
+                        {t('occupancy.hot_aisles', 'Densidad Crítica (Pasillos Principales)')}
                     </h3>
                     <div className="space-y-4">
                         {Object.entries(data?.analytics?.top_aisles || {}).map(([aisle, count], idx) => {
@@ -381,7 +383,7 @@ const OccupancyDashboard = () => {
                             return (
                                 <div key={aisle}>
                                     <div className="flex justify-between text-[14px] font-normal text-black mb-1 tracking-normal">
-                                        <span>Pasillo {aisle}</span>
+                                        <span>{t('occupancy.aisle', 'Pasillo')} {aisle}</span>
                                         <span className="text-black font-normal text-[14px]">{count}</span>
                                     </div>
                                     <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">

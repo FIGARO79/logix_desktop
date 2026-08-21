@@ -6,9 +6,11 @@ import 'react-toastify/dist/ReactToastify.css';
 import ScannerModal from '../components/ScannerModal';
 import { parseGS1Barcode } from '../utils/gs1Parser';
 import { getDB } from '../utils/offlineDb';
+import { useLanguage } from '../context/LanguageContext';
 
 const StockSearch = () => {
     const { setTitle } = useOutletContext();
+    const { t, language } = useLanguage();
     const navigate = useNavigate();
     const inputRef = useRef(null);
     const [itemCode, setItemCode] = useState('');
@@ -20,13 +22,13 @@ const StockSearch = () => {
     const [copied, setCopied] = useState(false);
 
     useEffect(() => {
-        if (setTitle) setTitle("Consulta de Stock");
+        if (setTitle) setTitle(t('stock.title', 'Consulta de Stock'));
         setTimeout(() => {
             if (inputRef.current) {
                 inputRef.current.focus();
             }
         }, 50);
-    }, [setTitle]);
+    }, [setTitle, language]);
 
     // Audio Beep Function for mobile feedback
     const playBeep = () => {
@@ -253,7 +255,7 @@ const StockSearch = () => {
                                 value={itemCode}
                                 onChange={(e) => setItemCode(e.target.value.toUpperCase())}
                                 className="w-full h-10 px-3 border border-zinc-300 rounded text-[14px] uppercase text-black focus:outline-none focus:border-[#285f94] focus:ring-1 focus:ring-[#285f94]"
-                                placeholder="Ej. 00003630, RA81C, BUSHING..."
+                                placeholder={t('stock.search_placeholder', 'Escanear o ingresar Código de Artículo...')}
                                 autoFocus
                             />
                         </div>
@@ -274,7 +276,7 @@ const StockSearch = () => {
                                 className="h-10 px-5 bg-[#285f94] hover:bg-[#1e4a74] text-white text-[12px] font-normal uppercase tracking-normal rounded transition-colors shadow-sm"
                                 disabled={loading}
                             >
-                                {loading ? 'Buscando...' : 'Consultar'}
+                                {loading ? 'Buscando...' : t('stock.search_btn', 'Buscar')}
                             </button>
                             <button
                                 type="button"
