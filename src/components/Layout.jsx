@@ -252,7 +252,10 @@ const Layout = () => {
         const saved = localStorage.getItem('logix_tabs');
         if (saved) {
             try {
-                return JSON.parse(saved);
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    return parsed;
+                }
             } catch (e) {
                 console.error("Error parsing tabs from localStorage", e);
             }
@@ -265,15 +268,27 @@ const Layout = () => {
 
     const [activeTabId, setActiveTabId] = useState(() => {
         const savedActive = localStorage.getItem('logix_active_tab');
-        // Validar que el ID guardado realmente exista en la lista de pestañas cargada
-        if (savedActive && tabs.some(t => t.id === savedActive)) {
+        if (savedActive && Array.isArray(tabs) && tabs.some(t => t.id === savedActive)) {
             return savedActive;
         }
-        return tabs.length > 0 ? tabs[0].id : null;
+        return Array.isArray(tabs) && tabs.length > 0 ? tabs[0].id : null;
     });
 
+    // Auto-recuperación garantizada de pestañas en caso de array vacío o nulo
     useEffect(() => {
-        localStorage.setItem('logix_tabs', JSON.stringify(tabs));
+        if (!Array.isArray(tabs) || tabs.length === 0) {
+            const defaultTab = { id: 'dashboard-' + Date.now(), path: '/dashboard', label: 'Inicio' };
+            setTabs([defaultTab]);
+            setActiveTabId(defaultTab.id);
+        } else if (!activeTabId || !tabs.some(t => t.id === activeTabId)) {
+            setActiveTabId(tabs[0].id);
+        }
+    }, [tabs, activeTabId]);
+
+    useEffect(() => {
+        if (Array.isArray(tabs) && tabs.length > 0) {
+            localStorage.setItem('logix_tabs', JSON.stringify(tabs));
+        }
     }, [tabs]);
 
     useEffect(() => {
@@ -380,37 +395,68 @@ const Layout = () => {
         ));
     };
 
-    const handleDragStart = (e, index) => {
-        setDraggedTabIndex(index);
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', index.toString());
-    };
+    const pointerDragRef = useRef(null);
 
-    const handleDragOver = (e, index) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        if (dragOverTabIndex !== index) {
-            setDragOverTabIndex(index);
-        }
-    };
+    const handleTabPointerDown = (e, index) => {
+        if (e.button !== 0) return;
+        if (e.target.closest('.tab-close-btn') || e.target.closest('.tab-refresh-btn')) return;
 
-    const handleDrop = (e, targetIndex) => {
-        e.preventDefault();
-        if (draggedTabIndex !== null && draggedTabIndex !== targetIndex) {
-            setTabs(prev => {
-                const newTabs = [...prev];
-                const [movedTab] = newTabs.splice(draggedTabIndex, 1);
-                newTabs.splice(targetIndex, 0, movedTab);
-                return newTabs;
-            });
-        }
-        setDraggedTabIndex(null);
-        setDragOverTabIndex(null);
-    };
+        pointerDragRef.current = {
+            currentIndex: index,
+            startX: e.clientX,
+            hasMoved: false
+        };
 
-    const handleDragEnd = () => {
-        setDraggedTabIndex(null);
-        setDragOverTabIndex(null);
+        const onPointerMove = (moveEvent) => {
+            if (!pointerDragRef.current) return;
+            const diffX = moveEvent.clientX - pointerDragRef.current.startX;
+
+            if (Math.abs(diffX) > 4 && !pointerDragRef.current.hasMoved) {
+                pointerDragRef.current.hasMoved = true;
+                setDraggedTabIndex(pointerDragRef.current.currentIndex);
+            }
+
+            if (!pointerDragRef.current.hasMoved) return;
+
+            const curIdx = pointerDragRef.current.currentIndex;
+            const threshold = 60;
+
+            if (diffX > threshold && curIdx < tabs.length - 1) {
+                const targetIdx = curIdx + 1;
+                setTabs(prev => {
+                    const newTabs = [...prev];
+                    const [moved] = newTabs.splice(curIdx, 1);
+                    newTabs.splice(targetIdx, 0, moved);
+                    return newTabs;
+                });
+                pointerDragRef.current.currentIndex = targetIdx;
+                pointerDragRef.current.startX = moveEvent.clientX;
+                setDraggedTabIndex(targetIdx);
+            } else if (diffX < -threshold && curIdx > 0) {
+                const targetIdx = curIdx - 1;
+                setTabs(prev => {
+                    const newTabs = [...prev];
+                    const [moved] = newTabs.splice(curIdx, 1);
+                    newTabs.splice(targetIdx, 0, moved);
+                    return newTabs;
+                });
+                pointerDragRef.current.currentIndex = targetIdx;
+                pointerDragRef.current.startX = moveEvent.clientX;
+                setDraggedTabIndex(targetIdx);
+            }
+        };
+
+        const onPointerUp = () => {
+            window.removeEventListener('pointermove', onPointerMove);
+            window.removeEventListener('pointerup', onPointerUp);
+            setTimeout(() => {
+                pointerDragRef.current = null;
+                setDraggedTabIndex(null);
+            }, 50);
+        };
+
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
     };
 
     useEffect(() => {
@@ -458,22 +504,18 @@ const Layout = () => {
                 <div className="tabs-wrapper flex-grow mr-4 min-w-0">
                     <div className="tabs-scroll-container overflow-x-auto no-scrollbar scroll-smooth">
                         {tabs.map((tab, index) => {
-                            let dropPositionClass = '';
-                            if (dragOverTabIndex === index && draggedTabIndex !== null && draggedTabIndex !== index) {
-                                dropPositionClass = index < draggedTabIndex ? 'drag-over-left' : 'drag-over-right';
-                            }
                             const isDragging = draggedTabIndex === index;
 
                             return (
                                 <div
                                     key={tab.id}
-                                    draggable
-                                    onDragStart={(e) => handleDragStart(e, index)}
-                                    onDragOver={(e) => handleDragOver(e, index)}
-                                    onDrop={(e) => handleDrop(e, index)}
-                                    onDragEnd={handleDragEnd}
-                                    onClick={() => switchTab(tab.id)}
-                                    className={`tab-item ${activeTabId === tab.id ? 'active' : ''} ${isDragging ? 'dragging' : ''} ${dropPositionClass}`}
+                                    onPointerDown={(e) => handleTabPointerDown(e, index)}
+                                    onClick={() => {
+                                        if (!pointerDragRef.current?.hasMoved) {
+                                            switchTab(tab.id);
+                                        }
+                                    }}
+                                    className={`tab-item ${activeTabId === tab.id ? 'active' : ''} ${isDragging ? 'dragging shadow-2xl bg-white/25 scale-[1.02] z-20 cursor-grabbing' : ''}`}
                                 >
                                     <span className="tab-label">{t(tab.label)}</span>
                                     <div className="tab-actions flex items-center gap-1 ml-2">
@@ -590,7 +632,7 @@ const Layout = () => {
                                 localStorage.removeItem('user');
                                 localStorage.removeItem('admin_authenticated');
                                 try { await fetch('/api/logout', { method: 'POST', credentials: 'include' }); }
-                                finally { window.location.href = '/login'; }
+                                finally { navigate('/login'); }
                             }}
                         >
                             <svg className="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -218,7 +218,7 @@ export const PHRASE_MAP_PT = {
     'Auditoría Agente': 'Auditoria Agente',
     'Registros': 'Registros',
     'Dashboard IR': 'Painel IR',
-    'Picking': 'Picking (Separação)',
+    'Picking': 'Separação',
     'Empaque': 'Embalagem',
     'Despacho': 'Expedição',
     'Etiquetado': 'Etiquetagem',
@@ -464,8 +464,23 @@ export const PHRASE_MAP_PT = {
     'Español (ES)': 'Espanhol (ES)',
     'Português (BR)': 'Português (BR)',
     'Español': 'Espanhol',
-    'Português': 'Português'
+    'Português': 'Português',
+
+    // Slotting y Ubicaciones
+    'Nivel de Recolección (N2)': 'Nível de Coleta (N2)',
+    'Nivel de Recolección': 'Nível de Coleta',
+    'Picking manual intensivo': 'Separação manual intensiva',
+    'Separação (Separação)': 'Separação',
+    'Picking (Separação)': 'Separação'
 };
+
+// Mapa inverso automático portugués -> español para traducción bidireccional completa
+export const PHRASE_MAP_ES = Object.entries(PHRASE_MAP_PT).reduce((acc, [esKey, ptVal]) => {
+    if (!acc[ptVal]) {
+        acc[ptVal] = esKey;
+    }
+    return acc;
+}, {});
 
 const LanguageContext = createContext({
     language: 'es',
@@ -527,7 +542,158 @@ export const LanguageProvider = ({ children }) => {
         return fallback !== undefined ? fallback : keyOrPhrase;
     }, [language]);
 
+const preserveCase = (original, replacement) => {
+    if (!original || !replacement) return replacement;
+    if (original === original.toUpperCase()) {
+        return replacement.toUpperCase();
+    }
+    if (original === original.toLowerCase()) {
+        return replacement.toLowerCase();
+    }
+    if (original[0] === original[0].toUpperCase()) {
+        return replacement.charAt(0).toUpperCase() + replacement.slice(1);
+    }
+    return replacement;
+};
 
+// Motor de traducción reactiva bidireccional del DOM para todas las páginas internas
+    useEffect(() => {
+        if (typeof document === 'undefined') return;
+
+        const activeMap = language === 'pt' ? PHRASE_MAP_PT : PHRASE_MAP_ES;
+        const mapEntries = Object.entries(activeMap).sort((a, b) => b[0].length - a[0].length);
+
+        const translateNode = (node) => {
+            if (!node || node.nodeType !== Node.TEXT_NODE) return;
+            const parent = node.parentElement;
+            if (!parent) return;
+            const tag = parent.tagName;
+            if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'CODE' || tag === 'PRE' || tag === 'NOSCRIPT') return;
+
+            const val = node.nodeValue;
+            if (!val || !val.trim()) return;
+
+            const source = val;
+            const trimmed = source.trim();
+
+            // 1. Coincidencia exacta
+            if (activeMap[trimmed]) {
+                const translated = activeMap[trimmed];
+                const leading = source.match(/^\s*/)[0];
+                const trailing = source.match(/\s*$/)[0];
+                const finalVal = leading + preserveCase(trimmed, translated) + trailing;
+                if (node.nodeValue !== finalVal) {
+                    node.nodeValue = finalVal;
+                }
+                return;
+            }
+
+            // 2. Coincidencia insensible a mayúsculas/minúsculas
+            const lower = trimmed.toLowerCase();
+            for (const [key, targetVal] of mapEntries) {
+                if (key.toLowerCase() === lower) {
+                    const leading = source.match(/^\s*/)[0];
+                    const trailing = source.match(/\s*$/)[0];
+                    const finalVal = leading + preserveCase(trimmed, targetVal) + trailing;
+                    if (node.nodeValue !== finalVal) {
+                        node.nodeValue = finalVal;
+                    }
+                    return;
+                }
+            }
+
+            // 3. Reemplazo de frases contenidas en párrafos u oraciones compuestas (preservando estilo de caja)
+            let current = source;
+            let replaced = false;
+            for (const [key, targetVal] of mapEntries) {
+                if (key.length >= 3 && current.toLowerCase().includes(key.toLowerCase())) {
+                    if (current.toLowerCase().includes(targetVal.toLowerCase()) && key.toLowerCase() !== targetVal.toLowerCase()) {
+                        continue;
+                    }
+                    const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const regex = new RegExp(escapedKey, 'gi');
+                    const next = current.replace(regex, (match) => preserveCase(match, targetVal));
+                    if (next !== current) {
+                        current = next;
+                        replaced = true;
+                    }
+                }
+            }
+            if (replaced && node.nodeValue !== current) {
+                node.nodeValue = current;
+            }
+        };
+
+        const translateAttributes = (el) => {
+            if (!el || !el.getAttribute) return;
+            if (el.placeholder) {
+                const pTrim = el.placeholder.trim();
+                if (activeMap[pTrim]) {
+                    el.placeholder = activeMap[pTrim];
+                } else {
+                    for (const [key, targetVal] of mapEntries) {
+                        if (key.length >= 3 && el.placeholder.toLowerCase().includes(key.toLowerCase())) {
+                            const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                            const regex = new RegExp(escapedKey, 'gi');
+                            el.placeholder = el.placeholder.replace(regex, targetVal);
+                        }
+                    }
+                }
+            }
+            if (el.title) {
+                const tTrim = el.title.trim();
+                if (activeMap[tTrim]) {
+                    el.title = activeMap[tTrim];
+                }
+            }
+        };
+
+        const scanAndTranslate = (rootNode = document.body) => {
+            if (!rootNode) return;
+            const walker = document.createTreeWalker(rootNode, NodeFilter.SHOW_TEXT, null);
+            let node;
+            while ((node = walker.nextNode())) {
+                translateNode(node);
+            }
+            const elements = rootNode.querySelectorAll ? rootNode.querySelectorAll('input, textarea, button, a, [title]') : [];
+            elements.forEach(translateAttributes);
+        };
+
+        // Escaneo inmediato al cambiar de idioma o montar
+        scanAndTranslate();
+
+        // Observer para capturar cambios dinámicos de DOM (pestañas, modales, tablas)
+        let rafId = null;
+        const observer = new MutationObserver((mutations) => {
+            if (rafId) cancelAnimationFrame(rafId);
+            rafId = requestAnimationFrame(() => {
+                for (const mutation of mutations) {
+                    if (mutation.type === 'childList') {
+                        for (const addedNode of mutation.addedNodes) {
+                            if (addedNode.nodeType === Node.TEXT_NODE) {
+                                translateNode(addedNode);
+                            } else if (addedNode.nodeType === Node.ELEMENT_NODE) {
+                                scanAndTranslate(addedNode);
+                            }
+                        }
+                    } else if (mutation.type === 'characterData') {
+                        translateNode(mutation.target);
+                    }
+                }
+            });
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            characterData: true,
+        });
+
+        return () => {
+            observer.disconnect();
+            if (rafId) cancelAnimationFrame(rafId);
+        };
+    }, [language]);
 
     const contextValue = useMemo(() => ({
         language,

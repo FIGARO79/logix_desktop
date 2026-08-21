@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { useLanguage } from '../context/LanguageContext';
 import { isTauri, callTauriCommand, processLocalCSVUpload, previewLocalGRNFile } from '../utils/tauriBridge';
@@ -20,6 +20,9 @@ const Update = () => {
     const [showClearPassword, setShowClearPassword] = useState(false);
     const [syncStatus, setSyncStatus] = useState({});
 
+    const fileInputRef = useRef(null);
+    const dropHappenedRef = useRef(false);
+
     // GRN Selection State
     const [availableGrns, setAvailableGrns] = useState([]);
     const [selectedGrns, setSelectedGrns] = useState([]);
@@ -28,6 +31,16 @@ const Update = () => {
     const [isFetchingMaestro, setIsFetchingMaestro] = useState(false);
     const [isPreviewing, setIsPreviewing] = useState(false);
     const [previewedFile, setPreviewedFile] = useState(null);
+
+    const handleFiles = useCallback((newFiles) => {
+        if (!newFiles || newFiles.length === 0) return;
+        const incomingArray = Array.from(newFiles);
+        setFiles(prev => {
+            const existingNames = new Set(prev.map(f => f.name));
+            const filteredNew = incomingArray.filter(f => !existingNames.has(f.name));
+            return [...prev, ...filteredNew];
+        });
+    }, []);
 
     const fetchSyncStatus = async () => {
         try {
@@ -75,10 +88,101 @@ const Update = () => {
         }
     };
 
+    const handleDragEnter = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragActive(true);
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.dataTransfer) {
+            e.dataTransfer.dropEffect = 'copy';
+        }
+        setDragActive(true);
+    };
+
+    const handleDragLeave = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.currentTarget && !e.currentTarget.contains(e.relatedTarget)) {
+            setDragActive(false);
+        }
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragActive(false);
+        dropHappenedRef.current = true;
+        setTimeout(() => { dropHappenedRef.current = false; }, 300);
+
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            handleFiles(e.dataTransfer.files);
+        }
+    };
+
+    const createFileFromPath = async (filePath) => {
+        try {
+            const fileName = filePath.split(/[/\\]/).pop();
+            if (isTauri()) {
+                const bytes = await callTauriCommand('read_file_binary', { path: filePath });
+                if (bytes) {
+                    const blob = new Blob([new Uint8Array(bytes)]);
+                    return new File([blob], fileName);
+                }
+            }
+            const resp = await fetch('file://' + filePath);
+            const blob = await resp.blob();
+            return new File([blob], fileName);
+        } catch (e) {
+            console.error("Error creando archivo nativo desde ruta:", e);
+            return null;
+        }
+    };
+
     useEffect(() => {
-        if (setTitle) setTitle(t('nav.update_data', 'Carga de Datos'));
-        fetchSyncStatus();
-    }, [setTitle, t, language]);
+        let unlistenDrop = null;
+        let unlistenHover = null;
+        let unlistenCancel = null;
+
+        if (isTauri()) {
+            import('@tauri-apps/api/event').then(({ listen }) => {
+                listen('tauri://file-drop', async (event) => {
+                    setDragActive(false);
+                    dropHappenedRef.current = true;
+                    setTimeout(() => { dropHappenedRef.current = false; }, 300);
+
+                    const paths = event.payload;
+                    if (Array.isArray(paths) && paths.length > 0) {
+                        const loadedFiles = [];
+                        for (const p of paths) {
+                            const f = await createFileFromPath(p);
+                            if (f) loadedFiles.push(f);
+                        }
+                        if (loadedFiles.length > 0) {
+                            handleFiles(loadedFiles);
+                        }
+                    }
+                }).then(fn => { unlistenDrop = fn; });
+
+                listen('tauri://file-drop-hover', () => {
+                    setDragActive(true);
+                }).then(fn => { unlistenHover = fn; });
+
+                listen('tauri://file-drop-cancelled', () => {
+                    setDragActive(false);
+                }).then(fn => { unlistenCancel = fn; });
+            }).catch(e => console.warn("Tauri event listen error:", e));
+        }
+
+        return () => {
+            if (unlistenDrop) unlistenDrop();
+            if (unlistenHover) unlistenHover();
+            if (unlistenCancel) unlistenCancel();
+        };
+    }, []);
 
     // Temporizador de 10 segundos para ocultar notificaciones automáticamente
     useEffect(() => {
@@ -128,16 +232,6 @@ const Update = () => {
             setPreviewedFile(null);
         }
     }, [files, previewedFile, fetchPreviewGrns, availableGrns.length]);
-
-    const handleFiles = (newFiles) => {
-        if (!newFiles || newFiles.length === 0) return;
-        const incomingArray = Array.from(newFiles);
-        setFiles(prev => {
-            const existingNames = new Set(prev.map(f => f.name));
-            const filteredNew = incomingArray.filter(f => !existingNames.has(f.name));
-            return [...prev, ...filteredNew];
-        });
-    };
 
     const removeFile = (idx) => {
         setFiles(prev => {
@@ -331,13 +425,18 @@ const Update = () => {
                             {/* Dropzone */}
                             <div
                                 className={`border border-dashed rounded-lg p-6 text-center transition-all cursor-pointer mb-3.5 ${dragActive ? 'border-[#285f94] bg-sky-50/40' : 'border-zinc-300 hover:border-zinc-400 bg-zinc-50/40 hover:bg-zinc-50'}`}
-                                onDragEnter={() => setDragActive(true)}
-                                onDragLeave={() => setDragActive(false)}
-                                onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
-                                onDrop={(e) => { e.preventDefault(); setDragActive(false); handleFiles(e.dataTransfer.files); }}
-                                onClick={() => document.getElementById('file-upload').click()}
+                                onDragEnter={handleDragEnter}
+                                onDragOver={handleDragOver}
+                                onDragLeave={handleDragLeave}
+                                onDrop={handleDrop}
+                                onClick={() => {
+                                    if (!dropHappenedRef.current) {
+                                        fileInputRef.current?.click();
+                                    }
+                                }}
                             >
                                 <input
+                                    ref={fileInputRef}
                                     id="file-upload"
                                     type="file"
                                     multiple

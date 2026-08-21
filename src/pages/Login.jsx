@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { isTauri, tauriLogin } from '../utils/tauriBridge';
 import { useLanguage } from '../context/LanguageContext';
 
 const Login = () => {
+    const navigate = useNavigate();
     const { language, setLanguage, t } = useLanguage();
     const [rememberMe, setRememberMe] = useState(() => {
         return localStorage.getItem('logix_remember_login') === 'true';
@@ -83,8 +84,10 @@ const Login = () => {
                     localStorage.removeItem('logix_saved_username');
                     localStorage.removeItem('logix_saved_password');
                 }
+                localStorage.removeItem('logix_tabs');
+                localStorage.removeItem('logix_active_tab');
                 localStorage.setItem('user', JSON.stringify(userData));
-                window.location.href = '/dashboard';
+                navigate('/dashboard');
             } else {
                 setError("Usuario o contraseña incorrectos");
             }
