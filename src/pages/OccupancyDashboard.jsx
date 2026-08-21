@@ -347,7 +347,7 @@ const OccupancyDashboard = () => {
                         {(() => {
                             const totalItems = Object.values(data?.analytics?.zones_by_items || {}).reduce((acc, val) => acc + val, 0);
                             return Object.entries(data?.analytics?.zones_by_items || {}).map(([zone, count]) => {
-                                const maxVal = Object.values(data?.analytics?.zones_by_items || {})[0] || 1;
+                                const maxVal = Math.max(...Object.values(data?.analytics?.zones_by_items || {}), 1);
                                 const pct = Math.round((count / maxVal) * 100);
                                 const itemPct = totalItems > 0 ? ((count / totalItems) * 100).toFixed(1) : 0;
                                 return (
@@ -376,7 +376,7 @@ const OccupancyDashboard = () => {
                     </h3>
                     <div className="space-y-4">
                         {Object.entries(data?.analytics?.top_aisles || {}).map(([aisle, count], idx) => {
-                            const maxVal = Object.values(data?.analytics?.top_aisles || {})[0] || 1;
+                            const maxVal = Math.max(...Object.values(data?.analytics?.top_aisles || {}), 1);
                             const pct = Math.round((count / maxVal) * 100);
                             return (
                                 <div key={aisle}>

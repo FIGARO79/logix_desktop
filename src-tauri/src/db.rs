@@ -8,26 +8,37 @@ pub struct Database {
 
 impl Database {
     pub fn new() -> Self {
-        let mut path = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-        // Si la aplicación se ejecuta dentro de src-tauri en tauri dev, subimos al directorio raíz
+        // 1. Prioridad: junto al ejecutable (modo portable / producción .exe)
+        let mut path = if let Ok(exe_path) = std::env::current_exe() {
+            if let Some(exe_dir) = exe_path.parent() {
+                let exe_data = exe_dir.join("data");
+                if exe_data.exists() || !exe_dir.to_string_lossy().contains("target") {
+                    exe_dir.to_path_buf()
+                } else {
+                    std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
+                }
+            } else {
+                std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
+            }
+        } else {
+            std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
+        };
+        // 2. Fallback a current_dir en modo desarrollo (src-tauri)
         if path.ends_with("src-tauri") {
             path.pop();
         }
-        let data_dir = path.join("data");
-        if !data_dir.exists() {
-            if let Ok(exe_path) = std::env::current_exe() {
-                if let Some(exe_dir) = exe_path.parent() {
-                    let exe_data = exe_dir.join("data");
-                    if exe_data.exists() || !exe_dir.to_string_lossy().contains("target") {
-                        path = exe_dir.to_path_buf();
-                    }
-                }
-            }
+        // Verificar si current_dir tiene data/ (modo desarrollo)
+        let cwd_data = std::env::current_dir()
+            .unwrap_or_else(|_| PathBuf::from("."))
+            .join("data");
+        if cwd_data.join("logix_local.db").exists() && !path.join("data").join("logix_local.db").exists() {
+            path = cwd_data.parent().unwrap_or(&path).to_path_buf();
         }
         path.push("data");
         if !path.exists() {
             let _ = fs::create_dir_all(&path);
         }
+        eprintln!("[db] Ruta base de datos: {}", path.join("logix_local.db").display());
         path.push("logix_local.db");
         Self { db_path: path }
     }

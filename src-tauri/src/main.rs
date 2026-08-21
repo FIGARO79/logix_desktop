@@ -26,14 +26,7 @@ pub struct AppState {
 }
 
 fn get_data_file_path(filename: &str) -> PathBuf {
-    let mut path = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    if path.ends_with("src-tauri") {
-        path.pop();
-    }
-    let data_file = path.join("data").join(filename);
-    if data_file.exists() {
-        return data_file;
-    }
+    // 1. Junto al ejecutable (modo portable / producción .exe) — prioridad máxima
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
             let exe_data_file = exe_dir.join("data").join(filename);
@@ -42,10 +35,32 @@ fn get_data_file_path(filename: &str) -> PathBuf {
             }
         }
     }
+    // 2. Directorio de trabajo actual (modo desarrollo)
+    let mut path = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    if path.ends_with("src-tauri") {
+        path.pop();
+    }
+    let data_file = path.join("data").join(filename);
+    if data_file.exists() {
+        return data_file;
+    }
+    // 3. Ruta relativa directa
     let direct = PathBuf::from("data").join(filename);
     if direct.exists() {
         return direct;
     }
+    // 4. Fallback: crear directorio data/ junto al exe y retornar esa ruta
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let exe_data_dir = exe_dir.join("data");
+            if !exe_data_dir.exists() {
+                let _ = std::fs::create_dir_all(&exe_data_dir);
+            }
+            eprintln!("[logix] Archivo '{}' no encontrado, usando ruta: {}", filename, exe_data_dir.join(filename).display());
+            return exe_data_dir.join(filename);
+        }
+    }
+    eprintln!("[logix] WARNING: No se encontró '{}' en ninguna ruta de datos.", filename);
     data_file
 }
 
@@ -1366,7 +1381,7 @@ fn get_occupancy_report(state: State<'_, AppState>) -> Result<Value, String> {
         let aisle = info.aisle.clone().unwrap_or_else(|| "N/A".to_string());
 
         let current_skus = *occupancy.get(bin_code).unwrap_or(&0);
-        let limit = if zone == "Minuteria" { 3 } else { 4 };
+        let limit = if zone.trim().eq_ignore_ascii_case("minuteria") { 3 } else { 4 };
         let bin_pct = std::cmp::min(100, ((current_skus as f64 / limit as f64) * 100.0).round() as i32);
 
         if !zones_map.contains_key(&zone) {
@@ -1801,6 +1816,11 @@ fn set_sync_status(state: State<'_, AppState>, key: String, timestamp: Option<i6
 fn main() {
     let db = Database::new();
     db.init().expect("Error al inicializar la base de datos local SQLite");
+
+    // Auto-seed storage_locations si está vacía (Fix: ocupación de bodega en .exe)
+    if let Ok(conn) = db.get_connection() {
+        slotting::seed_storage_locations_if_empty(&conn);
+    }
 
     tauri::Builder::default()
         .manage(AppState { db })

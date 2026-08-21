@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// Configuración embebida de slotting (compilada en el binario como fallback)
+const DEFAULT_SLOTTING_JSON: &str = include_str!("../../data/slotting_parameters.json");
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BinInfo {
     pub zone: Option<String>,
@@ -292,6 +295,9 @@ pub fn load_slotting_config(path_str: &str) -> (
     let content = std::fs::read_to_string(path_str).ok().or_else(|| {
         let fallback = format!("../{}", path_str.trim_start_matches("./"));
         std::fs::read_to_string(&fallback).ok()
+    }).or_else(|| {
+        eprintln!("[slotting] Archivo '{}' no encontrado en disco, usando configuración embebida por defecto.", path_str);
+        Some(DEFAULT_SLOTTING_JSON.to_string())
     });
 
     if let Some(json_str) = content {
@@ -448,6 +454,121 @@ pub fn calculate_suggested_bin(
         &occupancy,
         sic_code,
     )
+}
+
+/// Llena la tabla `storage_locations` con datos embebidos si está vacía.
+/// Se invoca al iniciar la aplicación para garantizar datos de ocupación
+/// incluso en instalaciones limpias del .exe.
+pub fn seed_storage_locations_if_empty(conn: &rusqlite::Connection) {
+    let count: i32 = conn
+        .query_row("SELECT COUNT(*) FROM storage_locations", [], |r| r.get(0))
+        .unwrap_or(0);
+    if count > 0 {
+        return;
+    }
+
+    eprintln!("[slotting] storage_locations vacía, inicializando con datos embebidos...");
+    let (storage, _, _, _) = load_slotting_config_from_str(DEFAULT_SLOTTING_JSON);
+
+    if storage.is_empty() {
+        eprintln!("[slotting] WARNING: La configuración embebida no contiene bins de storage.");
+        return;
+    }
+
+    let _ = conn.execute("BEGIN", []);
+    if let Ok(mut stmt) = conn.prepare(
+        "INSERT OR IGNORE INTO storage_locations (bin_code, zone, aisle, level, spot, score) VALUES (?1, ?2, ?3, ?4, ?5, ?6)"
+    ) {
+        for (bin_code, info) in &storage {
+            let _ = stmt.execute(rusqlite::params![
+                bin_code,
+                info.zone.as_deref().unwrap_or("General"),
+                info.aisle.as_deref().unwrap_or(""),
+                info.level,
+                info.spot.as_deref().unwrap_or("cold"),
+                info.score,
+            ]);
+        }
+    }
+    let _ = conn.execute("COMMIT", []);
+    eprintln!("[slotting] Se insertaron {} ubicaciones en storage_locations.", storage.len());
+}
+
+/// Versión interna que parsea directamente desde un string JSON.
+fn load_slotting_config_from_str(json_str: &str) -> (
+    HashMap<String, BinInfo>,
+    HashMap<String, TurnoverInfo>,
+    ZoneRules,
+    MixLimits,
+) {
+    let mut storage = HashMap::new();
+    let mut turnover = HashMap::new();
+    let mut zone_rules = ZoneRules::default();
+    let mut mix_limits = MixLimits::default();
+
+    if let Ok(val) = serde_json::from_str::<serde_json::Value>(json_str) {
+        if let Some(storage_obj) = val.get("storage").and_then(|v| v.as_object()) {
+            for (bin_code, b_val) in storage_obj {
+                let zone = b_val.get("zone").and_then(|v| v.as_str()).map(|s| s.to_string());
+                let aisle = b_val.get("aisle").and_then(|v| v.as_str()).map(|s| s.to_string());
+                let spot = b_val.get("spot").and_then(|v| v.as_str()).map(|s| s.to_string());
+                let level = b_val.get("level")
+                    .and_then(|v| v.as_i64().map(|n| n as i32))
+                    .or_else(|| b_val.get("level").and_then(|v| v.as_str()).and_then(|s| s.parse().ok()))
+                    .unwrap_or(0);
+                let score = b_val.get("score")
+                    .and_then(|v| v.as_i64().map(|n| n as i32))
+                    .or_else(|| b_val.get("score").and_then(|v| v.as_str()).and_then(|s| s.parse().ok()))
+                    .unwrap_or(0);
+                storage.insert(bin_code.to_uppercase(), BinInfo { zone, aisle, level, score, spot });
+            }
+        }
+        if let Some(turnover_obj) = val.get("turnover").and_then(|v| v.as_object()) {
+            for (sic, t_val) in turnover_obj {
+                let spot = t_val.get("spot").and_then(|v| v.as_str()).map(|s| s.to_string());
+                turnover.insert(sic.to_uppercase(), TurnoverInfo { spot });
+            }
+        }
+        if let Some(zr) = val.get("zone_rules").and_then(|v| v.as_object()) {
+            let get_str = |key: &str, def: &str| -> String {
+                zr.get(key).map(|v| {
+                    if let Some(s) = v.as_str() { s.to_string() }
+                    else if let Some(n) = v.as_f64() { n.to_string() }
+                    else if let Some(i) = v.as_i64() { i.to_string() }
+                    else { def.to_string() }
+                }).unwrap_or_else(|| def.to_string())
+            };
+            zone_rules.cantilever_keywords = get_str("cantilever_keywords", &zone_rules.cantilever_keywords);
+            zone_rules.minuteria_weight_max = get_str("minuteria_weight_max", &zone_rules.minuteria_weight_max);
+            zone_rules.heavy_weight_min = get_str("heavy_weight_min", &zone_rules.heavy_weight_min);
+            zone_rules.heavy_levels = get_str("heavy_levels", &zone_rules.heavy_levels);
+            zone_rules.high_rotation_levels = get_str("high_rotation_levels", &zone_rules.high_rotation_levels);
+            zone_rules.high_rotation_min_score = get_str("high_rotation_min_score", &zone_rules.high_rotation_min_score);
+            zone_rules.high_rotation_max_score = get_str("high_rotation_max_score", &zone_rules.high_rotation_max_score);
+            zone_rules.medium_rotation_levels = get_str("medium_rotation_levels", &zone_rules.medium_rotation_levels);
+            zone_rules.medium_rotation_min_score = get_str("medium_rotation_min_score", &zone_rules.medium_rotation_min_score);
+            zone_rules.medium_rotation_max_score = get_str("medium_rotation_max_score", &zone_rules.medium_rotation_max_score);
+            zone_rules.default_levels = get_str("default_levels", &zone_rules.default_levels);
+            zone_rules.exile_rack_levels = get_str("exile_rack_levels", &zone_rules.exile_rack_levels);
+            zone_rules.exile_sic_codes = get_str("exile_sic_codes", &zone_rules.exile_sic_codes);
+            zone_rules.minuteria_zone = get_str("minuteria_zone", &zone_rules.minuteria_zone);
+            zone_rules.exile_max_score = get_str("exile_max_score", &zone_rules.exile_max_score);
+        }
+        if let Some(ml) = val.get("mix_limits").and_then(|v| v.as_object()) {
+            let get_str = |key: &str, def: &str| -> String {
+                ml.get(key).map(|v| {
+                    if let Some(s) = v.as_str() { s.to_string() }
+                    else if let Some(i) = v.as_i64() { i.to_string() }
+                    else { def.to_string() }
+                }).unwrap_or_else(|| def.to_string())
+            };
+            mix_limits.minuteria_max_skus = get_str("minuteria_max_skus", &mix_limits.minuteria_max_skus);
+            mix_limits.nivel2_max_skus = get_str("nivel2_max_skus", &mix_limits.nivel2_max_skus);
+            mix_limits.otros_niveles_max_skus = get_str("otros_niveles_max_skus", &mix_limits.otros_niveles_max_skus);
+        }
+    }
+
+    (storage, turnover, zone_rules, mix_limits)
 }
 
 #[cfg(test)]
