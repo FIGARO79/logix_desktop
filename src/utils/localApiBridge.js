@@ -1152,7 +1152,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
                             if (v && typeof v === 'object') {
                                 cleanAssignments[String(k)] = {};
                                 for (const [pkgKey, qtyVal] of Object.entries(v)) {
-                                    cleanAssignments[String(k)][String(pkgKey)] = parseInt(qtyVal, 10) || 0;
+                                    cleanAssignments[String(k)][String(pkgKey)] = parseFloat(qtyVal) || 0;
                                 }
                             }
                         }
@@ -1190,15 +1190,14 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
                         }
                     });
 
-                    return createJsonResponse({
-                        message: "Auditoría de picking guardada con éxito",
-                        audit_id: auditId
-                    }, 201);
+                    if (auditId) {
+                        return createJsonResponse({
+                            message: "Auditoría de picking guardada con éxito",
+                            audit_id: auditId
+                        }, 201);
+                    }
                 } catch (e) {
-                    console.error("Error saving full picking audit in Tauri:", e);
-                    return createJsonResponse({
-                        detail: `Error al guardar en Tauri SQLite: ${e?.message || e}`
-                    }, 500);
+                    console.warn("Comando Tauri save_picking_audit_full omitido o no disponible, usando base de datos local IndexedDB:", e);
                 }
             }
 
@@ -1236,7 +1235,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
 
             if (isTauri() && auditId > 0) {
                 try {
-                    const pl = await callTauriCommand('get_picking_packing_list', { auditId });
+                    const pl = await callTauriCommand('get_picking_packing_list', { audit_id: auditId, auditId });
                     if (pl) return createJsonResponse(pl);
                 } catch (e) {
                     console.warn("Error getting picking packing list in Tauri:", e);
@@ -1255,7 +1254,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
             const id = parseInt(pathname.replace('/api/picking_audit/', '').split('/')[0], 10) || 0;
             if (isTauri() && id > 0) {
                 try {
-                    const audit = await callTauriCommand('get_picking_audit_by_id_full', { auditId: id });
+                    const audit = await callTauriCommand('get_picking_audit_by_id_full', { audit_id: id, auditId: id });
                     if (audit) return createJsonResponse(audit);
                 } catch (e) {
                     console.warn("Error getting audit detail in Tauri:", e);

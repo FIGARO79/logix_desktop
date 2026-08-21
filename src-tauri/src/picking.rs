@@ -541,25 +541,61 @@ pub fn save_picking_audit_full_to_db(conn: &mut Connection, payload: PickingAudi
     let desp_num = payload.despatch_number.unwrap_or_else(|| "00".to_string());
     let desp_num = if desp_num.trim().is_empty() { "00".to_string() } else { desp_num.trim().to_string() };
 
-    // 1. Insert or Replace Header
-    tx.execute(
-        "INSERT INTO picking_audits (
-            order_number, despatch_number, customer_code, customer_name,
-            username, timestamp, status, packages, shipment_id
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
-        params![
-            ord_num,
-            desp_num,
-            cust_code,
-            cust_name,
-            username,
-            timestamp,
-            status,
-            packages,
-            ord_num,
-        ],
-    )?;
-    let audit_id = tx.last_insert_rowid();
+    // 1. Check for existing audit by ID or order_number + despatch_number to avoid duplicate headers
+    let existing_id: Option<i64> = if let Some(id) = payload.id {
+        Some(id)
+    } else {
+        tx.query_row(
+            "SELECT id FROM picking_audits WHERE UPPER(TRIM(order_number)) = ?1 AND UPPER(TRIM(despatch_number)) = ?2",
+            params![ord_num.to_uppercase(), desp_num.to_uppercase()],
+            |row| row.get(0),
+        ).ok()
+    };
+
+    let audit_id = if let Some(id) = existing_id {
+        tx.execute("DELETE FROM picking_audit_items WHERE audit_id = ?1", params![id])?;
+        tx.execute("DELETE FROM picking_packages WHERE audit_id = ?1", params![id])?;
+        tx.execute("DELETE FROM picking_package_items WHERE audit_id = ?1", params![id])?;
+
+        tx.execute(
+            "UPDATE picking_audits SET
+                order_number = ?1, despatch_number = ?2, customer_code = ?3, customer_name = ?4,
+                username = ?5, timestamp = ?6, status = ?7, packages = ?8, shipment_id = ?9
+             WHERE id = ?10",
+            params![
+                ord_num,
+                desp_num,
+                cust_code,
+                cust_name,
+                username,
+                timestamp,
+                status,
+                packages,
+                ord_num,
+                id,
+            ],
+        )?;
+        id
+    } else {
+        tx.execute(
+            "INSERT INTO picking_audits (
+                order_number, despatch_number, customer_code, customer_name,
+                username, timestamp, status, packages, shipment_id
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            params![
+                ord_num,
+                desp_num,
+                cust_code,
+                cust_name,
+                username,
+                timestamp,
+                status,
+                packages,
+                ord_num,
+            ],
+        )?;
+        tx.last_insert_rowid()
+    };
 
     // 2. Insert Items
     {
@@ -896,6 +932,27 @@ pub fn update_picking_audit_full_in_db(conn: &mut Connection, id: i64, payload: 
                     }
                 }
             }
+        }
+    }
+
+    // Reinsertar dimensiones de bultos
+    tx.execute("DELETE FROM picking_packages WHERE audit_id = ?1", params![id])?;
+    {
+        let mut stmt_dim = tx.prepare(
+            "INSERT INTO picking_packages (
+                audit_id, package_number, length, width, height, weight
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        )?;
+
+        for dim in &payload.packages_dimensions {
+            stmt_dim.execute(params![
+                id,
+                dim.package_number,
+                dim.length,
+                dim.width,
+                dim.height,
+                dim.weight,
+            ])?;
         }
     }
 

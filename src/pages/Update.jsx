@@ -7,6 +7,11 @@ import { getDB } from '../utils/offlineDb';
 const Update = () => {
     const { setTitle } = useOutletContext();
     const { t, language } = useLanguage();
+
+    useEffect(() => {
+        if (setTitle) setTitle(t('nav.update_data', 'Carga de Datos'));
+    }, [setTitle, t, language]);
+
     const [messages, setMessages] = useState({ success: '', error: '', info: '' });
     const [isLoading, setIsLoading] = useState(false);
     const [dragActive, setDragActive] = useState(false);

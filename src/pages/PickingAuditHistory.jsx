@@ -4,6 +4,7 @@ import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { getDB } from '../utils/offlineDb';
+import { getPickingAudits, updatePickingAudit, deletePickingAudits } from '../utils/tauriApi';
 
 const PickingAuditHistory = () => {
     const tabContext = useOutletContext();
@@ -42,9 +43,13 @@ const PickingAuditHistory = () => {
         setError(null);
         try {
             let serverAudits = [];
-            const response = await fetch('/api/views/view_picking_audits', { credentials: 'include' });
-            if (response.ok) {
-                serverAudits = await response.json();
+            try {
+                serverAudits = await getPickingAudits();
+            } catch (e) {
+                const response = await fetch('/api/views/view_picking_audits', { credentials: 'include' });
+                if (response.ok) {
+                    serverAudits = await response.json();
+                }
             }
 
             if (Array.isArray(serverAudits) && serverAudits.length > 0) {
@@ -76,9 +81,9 @@ const PickingAuditHistory = () => {
                         code: it.code || it.item_code || '',
                         description: it.description || '',
                         order_line: it.order_line || '',
-                        qty_req: parseInt(it.qty_req || 0),
-                        qty_scan: parseInt(it.qty_scan || 0),
-                        difference: (parseInt(it.qty_scan || 0)) - (parseInt(it.qty_req || 0))
+                        qty_req: parseFloat(it.qty_req || 0),
+                        qty_scan: parseFloat(it.qty_scan || 0),
+                        difference: (parseFloat(it.qty_scan || 0)) - (parseFloat(it.qty_req || 0))
                     }))
                 }));
 
@@ -177,15 +182,19 @@ const PickingAuditHistory = () => {
                 packages: parseInt(editingAudit.packages) || 0,
                 packages_assignment: editingAudit.packages_assignment || {}
             };
-            const response = await fetch(`/api/update_picking_audit/${editingAudit.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-                credentials: 'include'
-            });
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.detail || 'Error al actualizar');
+            try {
+                await updatePickingAudit(editingAudit.id, payload);
+            } catch (err) {
+                const response = await fetch(`/api/update_picking_audit/${editingAudit.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    credentials: 'include'
+                });
+                if (!response.ok) {
+                    const resErr = await response.json();
+                    throw new Error(resErr.detail || 'Error al actualizar');
+                }
             }
             await fetchAudits();
             setIsEditModalOpen(false);
@@ -380,15 +389,20 @@ const PickingAuditHistory = () => {
         if (!window.confirm(confirmMsg)) return;
         
         try {
-            const res = await fetch('/api/delete_picking_audits', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ audit_ids: [...selectedIds] }),
-                credentials: 'include'
-            });
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.detail || 'Error al eliminar auditorías');
+            const numericIds = [...selectedIds].map(Number).filter(n => !isNaN(n));
+            try {
+                await deletePickingAudits(numericIds);
+            } catch (err) {
+                const res = await fetch('/api/delete_picking_audits', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ audit_ids: numericIds }),
+                    credentials: 'include'
+                });
+                if (!res.ok) {
+                    const resErr = await res.json();
+                    throw new Error(resErr.detail || 'Error al eliminar auditorías');
+                }
             }
             toast.success("Auditorías eliminadas correctamente");
             setSelectedIds(new Set());
