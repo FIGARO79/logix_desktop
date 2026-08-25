@@ -1202,7 +1202,23 @@ const Inbound = () => {
     const triggerReactPrint = useReactToPrint({
         contentRef: labelComponentRef,
         documentTitle: itemData ? `Etiqueta-${itemData.itemCode}` : 'Etiqueta',
-        pageStyle: "@page { size: 70mm 100mm; margin: 0; } @media print { body { -webkit-print-color-adjust: exact; } }",
+        pageStyle: `
+            @page {
+                size: 70mm 100mm;
+                margin: 0;
+            }
+            @media print {
+                html, body {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    width: 70mm !important;
+                    height: 100mm !important;
+                    background: #ffffff !important;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                }
+            }
+        `
     });
 
     const handlePrintClick = async () => {

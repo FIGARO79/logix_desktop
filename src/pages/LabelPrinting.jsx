@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { useReactToPrint } from 'react-to-print';
 import QRCode from 'qrcode';
@@ -14,6 +15,7 @@ import '../styles/Label.css';
 
 const LabelPrinting = () => {
     const { setTitle } = useOutletContext();
+    const location = useLocation();
     useEffect(() => { setTitle("Etiquetado"); }, [setTitle]);
 
     // States
@@ -29,6 +31,15 @@ const LabelPrinting = () => {
     const itemCodeInputRef = useRef(null);
     const labelComponentRef = useRef(null);
 
+    // Initial item loading from navigation state
+    useEffect(() => {
+        if (location.state?.itemCode) {
+            const initialCode = location.state.itemCode.trim().toUpperCase();
+            setItemCode(initialCode);
+            findItem(initialCode);
+        }
+    }, [location.state]);
+
     // QR Code Generation
     useEffect(() => {
         const activeCode = itemData?.itemCode || itemCode;
@@ -40,6 +51,7 @@ const LabelPrinting = () => {
             setQrImage(null);
         }
     }, [itemData, itemCode]);
+
 
     const printSilentOrFallback = async (dataToPrint, qtyToPrint) => {
         const cfg = getPrinterConfig();
@@ -137,9 +149,24 @@ const LabelPrinting = () => {
 
     const triggerReactPrint = useReactToPrint({
         contentRef: labelComponentRef,
-        content: () => labelComponentRef.current,
         documentTitle: itemData ? `Etiqueta_${itemData.itemCode}` : "Etiqueta",
-        pageStyle: "@page { size: 70mm 100mm; margin: 0; } body { margin: 0; -webkit-print-color-adjust: exact; }"
+        pageStyle: `
+            @page {
+                size: 70mm 100mm;
+                margin: 0;
+            }
+            @media print {
+                html, body {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    width: 70mm !important;
+                    height: 100mm !important;
+                    background: #ffffff !important;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                }
+            }
+        `
     });
 
     const handlePrintClick = () => {

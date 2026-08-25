@@ -559,7 +559,7 @@ const StockSearch = () => {
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => navigate('/label-printing')}
+                                    onClick={() => navigate('/label', { state: { itemCode: itemData?.item_code || itemData?.itemCode } })}
                                     className="h-9 px-4 bg-white hover:bg-zinc-100 border border-zinc-300 text-black text-[12px] font-normal uppercase tracking-normal rounded flex items-center gap-1.5 transition-colors"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

@@ -22,7 +22,14 @@ pnpm-debug.log*
 *.sqlite3
 data/*.db
 data/*.json
-public/static/json/
+!data/slotting_parameters.json
+Logix_portable/*.db
+Logix_portable/*.json
+!Logix_portable/slotting_parameters.json
+public/static/json/*
+!public/static/json/slotting_parameters.json
+
+
 
 # Environment variables
 .env

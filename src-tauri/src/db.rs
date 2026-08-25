@@ -11,8 +11,9 @@ impl Database {
         // 1. Prioridad: junto al ejecutable (modo portable / producción .exe)
         let mut path = if let Ok(exe_path) = std::env::current_exe() {
             if let Some(exe_dir) = exe_path.parent() {
+                let exe_portable = exe_dir.join("Logix_portable");
                 let exe_data = exe_dir.join("data");
-                if exe_data.exists() || !exe_dir.to_string_lossy().contains("target") {
+                if exe_portable.exists() || exe_data.exists() || !exe_dir.to_string_lossy().contains("target") {
                     exe_dir.to_path_buf()
                 } else {
                     std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
@@ -27,20 +28,22 @@ impl Database {
         if path.ends_with("src-tauri") {
             path.pop();
         }
-        // Verificar si current_dir tiene data/ (modo desarrollo)
-        let cwd_data = std::env::current_dir()
-            .unwrap_or_else(|_| PathBuf::from("."))
-            .join("data");
-        if cwd_data.join("logix_local.db").exists() && !path.join("data").join("logix_local.db").exists() {
-            path = cwd_data.parent().unwrap_or(&path).to_path_buf();
+        
+        let old_data_db = path.join("data").join("logix_local.db");
+        let portable_dir = path.join("Logix_portable");
+        if !portable_dir.exists() {
+            let _ = fs::create_dir_all(&portable_dir);
         }
-        path.push("data");
-        if !path.exists() {
-            let _ = fs::create_dir_all(&path);
+        
+        let new_db_path = portable_dir.join("logix_local.db");
+        // Si no existe en Logix_portable pero existe en data/, migrar/copiar
+        if !new_db_path.exists() && old_data_db.exists() {
+            let _ = fs::copy(&old_data_db, &new_db_path);
+            eprintln!("[db] Migrada base de datos de data/ a Logix_portable/");
         }
-        eprintln!("[db] Ruta base de datos: {}", path.join("logix_local.db").display());
-        path.push("logix_local.db");
-        Self { db_path: path }
+
+        eprintln!("[db] Ruta base de datos: {}", new_db_path.display());
+        Self { db_path: new_db_path }
     }
 
     pub fn get_connection(&self) -> Result<Connection> {

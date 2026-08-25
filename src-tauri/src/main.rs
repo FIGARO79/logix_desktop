@@ -29,6 +29,10 @@ fn get_data_file_path(filename: &str) -> PathBuf {
     // 1. Junto al ejecutable (modo portable / producción .exe) — prioridad máxima
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
+            let exe_portable_file = exe_dir.join("Logix_portable").join(filename);
+            if exe_portable_file.exists() {
+                return exe_portable_file;
+            }
             let exe_data_file = exe_dir.join("data").join(filename);
             if exe_data_file.exists() {
                 return exe_data_file;
@@ -40,28 +44,36 @@ fn get_data_file_path(filename: &str) -> PathBuf {
     if path.ends_with("src-tauri") {
         path.pop();
     }
+    let portable_file = path.join("Logix_portable").join(filename);
+    if portable_file.exists() {
+        return portable_file;
+    }
     let data_file = path.join("data").join(filename);
     if data_file.exists() {
         return data_file;
     }
     // 3. Ruta relativa directa
+    let direct_portable = PathBuf::from("Logix_portable").join(filename);
+    if direct_portable.exists() {
+        return direct_portable;
+    }
     let direct = PathBuf::from("data").join(filename);
     if direct.exists() {
         return direct;
     }
-    // 4. Fallback: crear directorio data/ junto al exe y retornar esa ruta
+    // 4. Fallback: crear directorio Logix_portable/ junto al exe y retornar esa ruta
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
-            let exe_data_dir = exe_dir.join("data");
-            if !exe_data_dir.exists() {
-                let _ = std::fs::create_dir_all(&exe_data_dir);
+            let exe_portable_dir = exe_dir.join("Logix_portable");
+            if !exe_portable_dir.exists() {
+                let _ = std::fs::create_dir_all(&exe_portable_dir);
             }
-            eprintln!("[logix] Archivo '{}' no encontrado, usando ruta: {}", filename, exe_data_dir.join(filename).display());
-            return exe_data_dir.join(filename);
+            eprintln!("[logix] Archivo '{}' no encontrado, usando ruta: {}", filename, exe_portable_dir.join(filename).display());
+            return exe_portable_dir.join(filename);
         }
     }
     eprintln!("[logix] WARNING: No se encontró '{}' en ninguna ruta de datos.", filename);
-    data_file
+    portable_file
 }
 
 // -------------------------------------------------------------

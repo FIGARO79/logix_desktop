@@ -25,7 +25,7 @@ const SandvikLabel = ({ data, qrImage, quantity, relocatedBin, totalWeight }) =>
             <div style={{ flexGrow: 1 }}></div>
 
             {/* Data Table */}
-            <div style={{ fontSize: '10pt', fontWeight: 'semibold', lineHeight: 1.4, flexShrink: 0 }}>
+            <div style={{ fontSize: '10pt', fontWeight: '600', lineHeight: 1.4, flexShrink: 0 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '28mm 1fr' }}>
                     <div>Quantity/pack</div>
                     <div>{quantity || 1} EA</div>
