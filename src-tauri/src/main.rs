@@ -13,7 +13,7 @@ mod planner;
 mod stock;
 mod printer;
 
-use db::Database;
+use db::{get_app_data_dir, Database};
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -26,55 +26,24 @@ pub struct AppState {
 }
 
 fn get_data_file_path(filename: &str) -> PathBuf {
-    // 1. Junto al ejecutable (modo portable / producción .exe) — prioridad máxima: data/
-    if let Ok(exe_path) = std::env::current_exe() {
-        if let Some(exe_dir) = exe_path.parent() {
-            let exe_data_file = exe_dir.join("data").join(filename);
-            if exe_data_file.exists() {
-                return exe_data_file;
-            }
-            // Migración desde Logix_portable si existía previamente
-            let exe_portable_file = exe_dir.join("Logix_portable").join(filename);
-            if exe_portable_file.exists() {
-                let _ = std::fs::create_dir_all(exe_dir.join("data"));
-                let _ = std::fs::copy(&exe_portable_file, &exe_data_file);
-                return exe_data_file;
-            }
+    let data_dir = get_app_data_dir();
+    let target_file = data_dir.join(filename);
+
+    if target_file.exists() {
+        return target_file;
+    }
+
+    // Migración transparente si existía en Logix_portable
+    if let Some(parent) = data_dir.parent() {
+        let old_portable_file = parent.join("Logix_portable").join(filename);
+        if old_portable_file.exists() {
+            let _ = std::fs::copy(&old_portable_file, &target_file);
+            return target_file;
         }
     }
-    // 2. Directorio de trabajo actual (modo desarrollo)
-    let mut path = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    if path.ends_with("src-tauri") {
-        path.pop();
-    }
-    let data_file = path.join("data").join(filename);
-    if data_file.exists() {
-        return data_file;
-    }
-    let portable_file = path.join("Logix_portable").join(filename);
-    if portable_file.exists() {
-        let _ = std::fs::create_dir_all(path.join("data"));
-        let _ = std::fs::copy(&portable_file, &data_file);
-        return data_file;
-    }
-    // 3. Ruta relativa directa
-    let direct = PathBuf::from("data").join(filename);
-    if direct.exists() {
-        return direct;
-    }
-    // 4. Fallback: crear directorio data/ junto al exe y retornar esa ruta
-    if let Ok(exe_path) = std::env::current_exe() {
-        if let Some(exe_dir) = exe_path.parent() {
-            let exe_data_dir = exe_dir.join("data");
-            if !exe_data_dir.exists() {
-                let _ = std::fs::create_dir_all(&exe_data_dir);
-            }
-            eprintln!("[logix] Archivo '{}' no encontrado, usando ruta: {}", filename, exe_data_dir.join(filename).display());
-            return exe_data_dir.join(filename);
-        }
-    }
-    eprintln!("[logix] WARNING: No se encontró '{}' en ninguna ruta de datos.", filename);
-    data_file
+
+    // Si aún no existe (por ejemplo, antes del primer guardado), retornar la ruta dentro de data/
+    target_file
 }
 
 // -------------------------------------------------------------
@@ -1581,11 +1550,9 @@ fn get_slotting_config() -> Result<Value, String> {
             return Ok(val);
         }
     }
-    let fallback = PathBuf::from("./data/slotting_parameters.json");
-    if let Ok(data) = std::fs::read_to_string(&fallback) {
-        if let Ok(val) = serde_json::from_str::<Value>(&data) {
-            return Ok(val);
-        }
+    // Fallback a configuración embebida en el binario
+    if let Ok(val) = serde_json::from_str::<Value>(slotting::DEFAULT_SLOTTING_JSON) {
+        return Ok(val);
     }
     Ok(serde_json::json!({
         "zone_rules": slotting::ZoneRules::default(),
@@ -1835,6 +1802,13 @@ fn set_sync_status(state: State<'_, AppState>, key: String, timestamp: Option<i6
 fn main() {
     let db = Database::new();
     db.init().expect("Error al inicializar la base de datos local SQLite");
+
+    // Garantizar que slotting_parameters.json resida dentro de data/
+    let slotting_path = get_data_file_path("slotting_parameters.json");
+    if !slotting_path.exists() {
+        let _ = std::fs::write(&slotting_path, slotting::DEFAULT_SLOTTING_JSON);
+        eprintln!("[main] Inicializado archivo: {}", slotting_path.display());
+    }
 
     // Auto-seed storage_locations si está vacía (Fix: ocupación de bodega en .exe)
     if let Ok(conn) = db.get_connection() {

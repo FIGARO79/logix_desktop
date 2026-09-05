@@ -131,6 +131,7 @@ npm install
 | :--- | :--- | :--- |
 | **Desarrollo** | `npm run tauri:dev` | Inicia la app en modo desarrollo con hot-reload. |
 | **Compilación** | `npm run tauri:build` | Compila el ejecutable de producción (.exe / instalador). |
+| **Empaquetar Portable** | `npm run package:portable` | Empaqueta la versión portable completa en `dist-portable/logix_desktop/`. |
 | **Frontend dev** | `npm run dev` | Inicia solo el servidor Vite (sin Tauri). |
 | **Build frontend** | `npm run build` | Compila solo el frontend a `dist/`. |
 | **Tests Rust** | `npm run test:rust` | Ejecuta tests unitarios del backend Rust. |
@@ -139,23 +140,29 @@ npm install
 
 ---
 
-## Compilación de Producción
+## Compilación y Empaquetado
+
+### En resumen:
+
+| Comando | ¿Qué genera? | ¿Cómo se usa? |
+| :--- | :--- | :--- |
+| **`npm run tauri:build`** | Compila el código Rust/React y crea tanto el instalador `setup.exe` como el binario `LogixDesktop.exe`. | Crea los binarios de producción. |
+| **`npm run package:portable`** | Toma ese ejecutable nuevo y lo coloca en `dist-portable/logix_desktop/` listo con su carpeta `data/`. | Reemplaza el `.exe` para que tengas tu carpeta portable lista para mover a donde quieras sin instalar nada. |
+
+### Flujo recomendado para distribución portable:
 
 ```bash
-# Compilar ejecutable limpio (recomendado para release)
-cargo clean --manifest-path src-tauri/Cargo.toml
+# 1. Compilar los binarios de producción
 npm run tauri:build
+
+# 2. Empaquetar la versión portable lista para usar
+npm run package:portable
 ```
 
-El ejecutable resultante se encuentra en:
-```
-src-tauri/target/release/LogixDesktop.exe
-```
-
-Los instaladores (`.msi`, `.nsis`) se generan en:
-```
-src-tauri/target/release/bundle/
-```
+El ejecutable directo y los instaladores se ubican en:
+- **Binario directo compilado:** `src-tauri/target/release/LogixDesktop.exe`
+- **Instaladores del sistema:** `src-tauri/target/release/bundle/`
+- **Carpeta Portable lista para distribuir:** `dist-portable/logix_desktop/` (contiene `LogixDesktop.exe` y su carpeta aislada `data/`)
 
 ---
 

@@ -27,6 +27,14 @@
         "all": true
       }
     },
+    "updater": {
+      "active": true,
+      "dialog": true,
+      "endpoints": [
+        "https://github.com/FIGARO79/logix_desktop/releases/latest/download/updater.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ5MjdERDVGMTU1MzcxNgpSV1FXTjFYeDFYMlNCS050SDBDeGU4cEhraUxzQWFTcGpIRVY1bFY4WDZTUXRLU3ovVFRPY3BWWAo="
+    },
     "bundle": {
       "active": true,
       "targets": "all",
@@ -38,7 +46,12 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "resources": ["../data/slotting_parameters.json"]
+      "resources": ["../data/slotting_parameters.json"],
+      "windows": {
+        "nsis": {
+          "installMode": "perMachine"
+        }
+      }
     },
     "security": {
       "csp": null

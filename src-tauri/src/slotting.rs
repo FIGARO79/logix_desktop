@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Configuración embebida de slotting (compilada en el binario como fallback)
-const DEFAULT_SLOTTING_JSON: &str = include_str!("../../data/slotting_parameters.json");
+pub const DEFAULT_SLOTTING_JSON: &str = include_str!("../../data/slotting_parameters.json");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BinInfo {

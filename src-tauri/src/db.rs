@@ -6,43 +6,54 @@ pub struct Database {
     db_path: PathBuf,
 }
 
-impl Database {
-    pub fn new() -> Self {
-        // 1. Prioridad: junto al ejecutable (modo portable / producción .exe)
-        let mut path = if let Ok(exe_path) = std::env::current_exe() {
-            if let Some(exe_dir) = exe_path.parent() {
-                let exe_portable = exe_dir.join("Logix_portable");
-                let exe_data = exe_dir.join("data");
-                if exe_portable.exists() || exe_data.exists() || !exe_dir.to_string_lossy().contains("target") {
-                    exe_dir.to_path_buf()
-                } else {
-                    std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
+/// Obtiene el directorio base de datos `data/` de manera consistente y portable.
+/// - En producción / portable: SIEMPRE `<directorio_del_exe>/data`
+/// - En desarrollo (target/debug): `<raíz_del_proyecto>/data`
+pub fn get_app_data_dir() -> PathBuf {
+    let base_dir = if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let exe_str = exe_dir.to_string_lossy();
+            if exe_str.contains("target\\debug") || exe_str.contains("target/debug") 
+                || exe_str.contains("target\\release") || exe_str.contains("target/release") {
+                // Modo compilación/desarrollo cargo: navegar a la raíz del repositorio
+                let mut p = exe_dir.to_path_buf();
+                while p.ends_with("target") || p.ends_with("debug") || p.ends_with("release") || p.ends_with("src-tauri") {
+                    p.pop();
                 }
+                p
             } else {
-                std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
+                // Modo portable real: el directorio donde reside el .exe
+                exe_dir.to_path_buf()
             }
         } else {
             std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
-        };
-        // 2. Fallback a current_dir en modo desarrollo (src-tauri)
-        if path.ends_with("src-tauri") {
-            path.pop();
         }
-        
-        let data_dir = path.join("data");
-        if !data_dir.exists() {
-            let _ = fs::create_dir_all(&data_dir);
-        }
-        
+    } else {
+        std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
+    };
+
+    let data_dir = base_dir.join("data");
+    if !data_dir.exists() {
+        let _ = fs::create_dir_all(&data_dir);
+    }
+    data_dir
+}
+
+impl Database {
+    pub fn new() -> Self {
+        let data_dir = get_app_data_dir();
         let db_path = data_dir.join("logix_local.db");
-        // Si no existe en data/ pero existe en Logix_portable/, migrar/copiar
-        let old_portable_db = path.join("Logix_portable").join("logix_local.db");
-        if !db_path.exists() && old_portable_db.exists() {
-            let _ = fs::copy(&old_portable_db, &db_path);
-            eprintln!("[db] Migrada base de datos de Logix_portable/ a data/");
+
+        // Migración automática si existía en Logix_portable/
+        if let Some(parent) = data_dir.parent() {
+            let old_portable_db = parent.join("Logix_portable").join("logix_local.db");
+            if !db_path.exists() && old_portable_db.exists() {
+                let _ = fs::copy(&old_portable_db, &db_path);
+                eprintln!("[db] Migrada base de datos de Logix_portable/ a data/: {}", db_path.display());
+            }
         }
 
-        eprintln!("[db] Ruta base de datos: {}", db_path.display());
+        eprintln!("[db] Ruta base de datos SQLite: {}", db_path.display());
         Self { db_path }
     }
 

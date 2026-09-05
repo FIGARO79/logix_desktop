@@ -32,6 +32,10 @@ public/static/json/*
 
 
 
+# Keys & Signing (Updater)
+*.key
+logix_updater.key
+
 # Environment variables
 .env
 .env.local
