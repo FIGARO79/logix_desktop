@@ -16,6 +16,8 @@ const StockSearch = () => {
     const [itemCode, setItemCode] = useState('');
     const [itemData, setItemData] = useState(null);
     const [searchResults, setSearchResults] = useState([]);
+    const [lastQuery, setLastQuery] = useState('');
+    const [validBins, setValidBins] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [scannerOpen, setScannerOpen] = useState(false);
@@ -23,6 +25,12 @@ const StockSearch = () => {
 
     useEffect(() => {
         if (setTitle) setTitle(t('stock.title', 'Consulta de Stock'));
+        fetch('/api/stock/valid_bins')
+            .then(res => res.ok ? res.json() : [])
+            .then(data => {
+                if (Array.isArray(data)) setValidBins(data);
+            })
+            .catch(() => {});
         setTimeout(() => {
             if (inputRef.current) {
                 inputRef.current.focus();
@@ -118,7 +126,7 @@ const StockSearch = () => {
         return num.toLocaleString('es-CO', { maximumFractionDigits: 2 });
     };
 
-    // Ejecución de búsqueda
+    // Ejecución de búsqueda unificada: código, ubicación o descripción en un solo input
     const executeSearch = async (query) => {
         let cleanQuery = query ? query.trim() : '';
         if (!cleanQuery) return;
@@ -133,9 +141,12 @@ const StockSearch = () => {
         setError('');
         setItemData(null);
         setSearchResults([]);
+        setLastQuery(cleanQuery);
 
         try {
             let data = [];
+
+            // 1. Consultar endpoint general de búsqueda (busca por item_code, description, bin_location y additional_bins)
             const res = await fetch(`/api/search_items?q=${encodeURIComponent(cleanQuery)}`).catch(() => null);
             if (res && res.ok) {
                 const json = await res.json().catch(() => []);
@@ -144,7 +155,18 @@ const StockSearch = () => {
                 }
             }
 
-            // Fallback en IndexedDB offline si no hubo resultados
+            // 2. Si no hay resultados, intentar explícitamente como ubicación (/api/stock/by_location)
+            if (!data || data.length === 0) {
+                const resLoc = await fetch(`/api/stock/by_location?bin=${encodeURIComponent(cleanQuery)}`).catch(() => null);
+                if (resLoc && resLoc.ok) {
+                    const jsonLoc = await resLoc.json().catch(() => []);
+                    if (Array.isArray(jsonLoc) && jsonLoc.length > 0) {
+                        data = jsonLoc.map(normalizeItem).filter(Boolean);
+                    }
+                }
+            }
+
+            // 3. Fallback en IndexedDB offline si no hubo resultados
             if (!data || data.length === 0) {
                 const db = await getDB();
                 const allItems = await db.getAll('master_items') || [];
@@ -156,26 +178,31 @@ const StockSearch = () => {
                     (item.description && item.description.toUpperCase().includes(qUpper)) ||
                     (item.Bin_Location && item.Bin_Location.toUpperCase().includes(qUpper)) ||
                     (item.Bin_1 && item.Bin_1.toUpperCase().includes(qUpper)) ||
-                    (item.bin_location && item.bin_location.toUpperCase().includes(qUpper))
+                    (item.bin_location && item.bin_location.toUpperCase().includes(qUpper)) ||
+                    (item.Aditional_Bin_Location && item.Aditional_Bin_Location.toUpperCase().includes(qUpper)) ||
+                    (item.additional_bins && item.additional_bins.toUpperCase().includes(qUpper))
                 );
 
                 data = matches.map(normalizeItem).filter(Boolean);
             }
 
             if (data.length === 0) {
-                setError('Item no encontrado en el maestro de inventario');
-                toast.error('Item no encontrado');
-            } else if (data.length === 1) {
+                setError(`No se encontraron artículos para "${cleanQuery}" (código, ubicación o descripción)`);
+                toast.error('No se encontraron resultados');
+            } else if (data.length === 1 && data[0].itemCode.toUpperCase() === cleanQuery.toUpperCase()) {
+                // Coincidencia exacta de SKU único: abrir detalle directamente
                 setItemData(data[0]);
                 playBeep();
                 setItemCode('');
             } else {
+                // Búsqueda por ubicación, descripción o múltiples coincidencias: mostrar lista de artículos
                 setSearchResults(data);
+                playBeep();
             }
         } catch (err) {
             console.error("Error en executeSearch:", err);
-            setError('Error al consultar stock');
-            toast.error('Error al consultar stock');
+            setError('Error al consultar inventario');
+            toast.error('Error al consultar inventario');
         } finally {
             setLoading(false);
         }
@@ -183,10 +210,14 @@ const StockSearch = () => {
 
     const handleSelectResult = (item) => {
         setItemData(item);
-        setSearchResults([]);
-        setItemCode('');
         playBeep();
         setTimeout(() => inputRef.current?.focus(), 50);
+    };
+
+    const handleSearchLocation = (loc) => {
+        if (!loc || loc === 'N/A') return;
+        setItemCode(loc);
+        executeSearch(loc);
     };
 
     const handleScan = (code) => {
@@ -205,6 +236,7 @@ const StockSearch = () => {
         setItemCode('');
         setItemData(null);
         setSearchResults([]);
+        setLastQuery('');
         setError('');
         setTimeout(() => inputRef.current?.focus(), 50);
     };
@@ -240,7 +272,6 @@ const StockSearch = () => {
                             Consulta y Búsqueda de Stock
                         </h2>
                     </div>
-                    
                 </div>
 
                 <div className="p-6 bg-white">
@@ -252,12 +283,20 @@ const StockSearch = () => {
                             <input
                                 ref={inputRef}
                                 type="text"
+                                list="valid-bins-list"
                                 value={itemCode}
                                 onChange={(e) => setItemCode(e.target.value.toUpperCase())}
                                 className="w-full h-10 px-3 border border-zinc-300 rounded text-[14px] uppercase text-black focus:outline-none focus:border-[#285f94] focus:ring-1 focus:ring-[#285f94]"
-                                placeholder={t('stock.search_placeholder', 'Escanear o ingresar Código de Artículo...')}
+                                placeholder="Escanear o ingresar Código de Artículo, Ubicación o Descripción..."
                                 autoFocus
                             />
+                            {validBins.length > 0 && (
+                                <datalist id="valid-bins-list">
+                                    {validBins.map((b) => (
+                                        <option key={b} value={b} />
+                                    ))}
+                                </datalist>
+                            )}
                         </div>
                         <div className="flex items-end gap-2">
                             <button
@@ -266,7 +305,7 @@ const StockSearch = () => {
                                 className="h-10 w-10 border border-zinc-300 bg-zinc-50 hover:bg-zinc-100 rounded text-black flex items-center justify-center transition-colors"
                                 title="Escanear Código de Barras"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="w-30 h-30 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
                                 </svg>
@@ -301,7 +340,7 @@ const StockSearch = () => {
             )}
 
             {/* Multiple Search Results List */}
-            {searchResults.length > 0 && (
+            {searchResults.length > 0 && !itemData && (
                 <div className="bg-white rounded-lg shadow-sm border border-zinc-200 overflow-hidden mb-6 animate-fade-in">
                     <div className="bg-zinc-100 px-6 py-3 border-b border-zinc-200 flex justify-between items-center">
                         <h3 className="text-xs font-medium text-black uppercase tracking-normal">
@@ -371,6 +410,22 @@ const StockSearch = () => {
             {/* Selected Item Detail Card */}
             {itemData && (
                 <div className="bg-white rounded-lg shadow-sm border border-zinc-200 overflow-hidden animate-fade-in">
+                    {/* Return to search results breadcrumb banner */}
+                    {searchResults.length > 1 && (
+                        <div className="bg-blue-50 px-6 py-2.5 border-b border-blue-200 flex justify-between items-center">
+                            <button
+                                type="button"
+                                onClick={() => setItemData(null)}
+                                className="text-xs font-semibold text-[#1e4a74] hover:text-[#285f94] flex items-center gap-1.5 transition-colors cursor-pointer"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                </svg>
+                                Volver a la lista de resultados {lastQuery ? `("${lastQuery}")` : ''} ({searchResults.length} ítems)
+                            </button>
+                        </div>
+                    )}
+
                     {/* Item Card Header */}
                     <div className="bg-zinc-50 px-6 py-4 border-b border-zinc-200 flex flex-wrap justify-between items-center gap-4">
                         <div className="flex items-center gap-3">
@@ -422,14 +477,18 @@ const StockSearch = () => {
                             </div>
 
                             {/* Ubicación Principal */}
-                            <div className="bg-zinc-50 border border-zinc-200 rounded p-4 text-center">
-                                <span className="text-[11px] font-normal text-zinc-500 uppercase tracking-normal block mb-1">
-                                    Ubicación Principal
+                            <div 
+                                onClick={() => handleSearchLocation(itemData.binLocation)}
+                                className="bg-zinc-50 hover:bg-blue-50/60 border border-zinc-200 hover:border-blue-300 rounded p-4 text-center cursor-pointer transition-all group"
+                                title="Clic para ver todos los artículos en esta ubicación 📍"
+                            >
+                                <span className="text-[11px] font-normal text-zinc-500 uppercase tracking-normal block mb-1 group-hover:text-[#285f94]">
+                                    Ubicación Principal 📍
                                 </span>
-                                <div className="text-2xl font-bold font-mono text-[#285f94]">
+                                <div className="text-2xl font-bold font-mono text-[#285f94] group-hover:underline">
                                     {itemData.binLocation || 'N/A'}
                                 </div>
-                                <span className="text-[10px] text-zinc-500 uppercase">Bin Primario</span>
+                                <span className="text-[10px] text-zinc-500 uppercase">Bin Primario (Ver todos)</span>
                             </div>
 
                             {/* Costo Unitario */}
@@ -468,23 +527,36 @@ const StockSearch = () => {
                         {/* Ubicaciones de Almacenamiento */}
                         <div className="bg-white border border-zinc-200 rounded p-4">
                             <label className="text-[11px] font-medium text-zinc-500 uppercase tracking-normal block mb-2">
-                                Ubicaciones en Bodega
+                                Ubicaciones en Bodega <span className="text-[10px] font-normal text-zinc-500 normal-case">(Haga clic en una ubicación para consultar todos sus artículos)</span>
                             </label>
                             <div className="flex flex-wrap items-center gap-3">
                                 <div>
                                     <span className="text-[10px] text-zinc-500 block uppercase mb-1">Principal:</span>
-                                    <span className="inline-flex items-center px-3 py-1 bg-blue-100 text-[#1e4a74] border border-blue-200 rounded font-mono font-bold text-sm">
-                                        {itemData.binLocation || 'N/A'}
-                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSearchLocation(itemData.binLocation)}
+                                        className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 hover:bg-blue-200 text-[#1e4a74] border border-blue-200 rounded font-mono font-bold text-sm transition-colors cursor-pointer"
+                                        title="Clic para ver todos los artículos en esta ubicación 📍"
+                                    >
+                                        <span>📍</span>
+                                        <span>{itemData.binLocation || 'N/A'}</span>
+                                    </button>
                                 </div>
                                 {additionalBinsList.length > 0 ? (
                                     <div>
                                         <span className="text-[10px] text-zinc-500 block uppercase mb-1">Adicionales:</span>
                                         <div className="flex flex-wrap gap-1.5">
                                             {additionalBinsList.map((bin, idx) => (
-                                                <span key={idx} className="inline-flex items-center px-2.5 py-1 bg-zinc-100 text-black border border-zinc-300 rounded font-mono text-xs font-medium">
-                                                    {bin}
-                                                </span>
+                                                <button
+                                                    key={idx}
+                                                    type="button"
+                                                    onClick={() => handleSearchLocation(bin)}
+                                                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 text-black border border-zinc-300 rounded font-mono text-xs font-medium transition-colors cursor-pointer"
+                                                    title={`Clic para ver todos los artículos en ${bin} 📍`}
+                                                >
+                                                    <span>📍</span>
+                                                    <span>{bin}</span>
+                                                </button>
                                             ))}
                                         </div>
                                     </div>

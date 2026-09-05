@@ -597,6 +597,130 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
         // -------------------------------------------------------------
         // 3. CONSULTA DE STOCK & UBICACIONES
         // -------------------------------------------------------------
+        if (pathname === '/api/stock/valid_bins' || pathname === '/api/inventory/valid_bins') {
+            if (isTauri()) {
+                try {
+                    const bins = await callTauriCommand('get_valid_bins');
+                    if (bins) return createJsonResponse(bins);
+                } catch (e) {
+                    console.warn("Error in get_valid_bins:", e);
+                }
+            }
+            return createJsonResponse([]);
+        }
+
+        if (pathname === '/api/stock/by_location' || pathname === '/api/search_by_location') {
+            const loc = (searchParams.get('location') || searchParams.get('bin') || searchParams.get('q') || '').trim();
+            if (isTauri()) {
+                try {
+                    const items = await callTauriCommand('search_stock_by_location', { location: loc });
+                    if (items) {
+                        return createJsonResponse(items.map(it => {
+                            const binLoc = it.bin_location || 'N/A';
+                            const addBins = it.additional_bins || '';
+                            const qty = typeof it.system_qty === 'number' ? it.system_qty : parseFloat(it.system_qty || '0') || 0;
+                            const cost = typeof it.unit_cost === 'number' ? it.unit_cost : parseFloat(it.unit_cost || '0') || 0;
+                            const weight = typeof it.weight_per_unit === 'number' ? it.weight_per_unit : parseFloat(it.weight_per_unit || '0') || 0;
+                            const sic = it.sic_code || '0';
+                            const abc = it.abc_code || '';
+                            const updated = it.updated_at || '';
+
+                            return {
+                                itemCode: it.item_code,
+                                item_code: it.item_code,
+                                description: it.description || '',
+                                binLocation: binLoc,
+                                bin_location: binLoc,
+                                system_bin: binLoc,
+                                additionalBins: addBins,
+                                aditionalBins: addBins,
+                                additional_bins: addBins,
+                                additional_locations: addBins,
+                                systemQty: qty,
+                                system_qty: qty,
+                                physicalQty: qty,
+                                physical_qty: qty,
+                                unitCost: cost,
+                                unit_cost: cost,
+                                weightPerUnit: weight,
+                                weight_per_unit: weight,
+                                weight: weight,
+                                weight_kg: weight,
+                                sicCode: sic,
+                                sic_code: sic,
+                                abcCode: abc,
+                                abc_code: abc,
+                                itemType: abc,
+                                lengthCm: it.length_cm || 0,
+                                widthCm: it.width_cm || 0,
+                                heightCm: it.height_cm || 0,
+                                volumeCm3: it.volume_cm3 || 0,
+                                updatedAt: updated,
+                                dateLastReceived: updated ? updated.split(' ')[0] : ''
+                            };
+                        }));
+                    }
+                } catch (e) {
+                    console.warn("Error in search_stock_by_location:", e);
+                }
+            }
+
+            const allItems = db ? (await db.getAll('master_items') || []) : [];
+            const locUpper = loc.toUpperCase();
+            const matches = allItems.filter(item => {
+                const b1 = (item.Bin_Location || item.Bin_1 || item.bin_location || '').toUpperCase();
+                const b2 = (item.Aditional_Bin_Location || item.additional_bins || item.additional_bin_location || '').toUpperCase();
+                return b1 === locUpper || b1.includes(locUpper) || b2.includes(locUpper);
+            });
+
+            return createJsonResponse(matches.map(item => {
+                const code = item.Item_Code || item.item_code || '';
+                const desc = item.Item_Description || item.description || '';
+                const binLoc = item.Bin_Location || item.Bin_1 || item.bin_location || 'N/A';
+                const addBins = item.Aditional_Bin_Location || item.additional_bins || item.additional_bin_location || item.aditional_bins || item.bin_2 || '';
+                const qty = typeof item.System_Qty === 'number' ? item.System_Qty : parseFloat(item.System_Qty || item.Physical_Qty || item.physical_qty || item.system_qty || '0') || 0;
+                const cost = typeof item.Unit_Cost === 'number' ? item.Unit_Cost : parseFloat(item.Unit_Cost || item.unit_cost || item.cost_per_unit || '0') || 0;
+                const weight = typeof item.Weight_Per_Unit === 'number' ? item.Weight_Per_Unit : parseFloat(item.Weight_Per_Unit || item.Weight_per_Unit || item.weight_per_unit || item.weight || '0') || 0;
+                const sic = item.SIC_Code || item.SIC_Code_stockroom || item.sic_code || '0';
+                const abc = item.ABC_Code || item.ABC_Code_stockroom || item.abc_code || item.item_type || '';
+                const updated = item.updated_at || item.updatedAt || '';
+
+                return {
+                    itemCode: code,
+                    item_code: code,
+                    description: desc,
+                    binLocation: binLoc,
+                    bin_location: binLoc,
+                    system_bin: binLoc,
+                    additionalBins: addBins,
+                    aditionalBins: addBins,
+                    additional_bins: addBins,
+                    additional_locations: addBins,
+                    systemQty: qty,
+                    system_qty: qty,
+                    physicalQty: qty,
+                    physical_qty: qty,
+                    unitCost: cost,
+                    unit_cost: cost,
+                    weightPerUnit: weight,
+                    weight_per_unit: weight,
+                    weight: weight,
+                    weight_kg: weight,
+                    sicCode: sic,
+                    sic_code: sic,
+                    abcCode: abc,
+                    abc_code: abc,
+                    itemType: abc,
+                    lengthCm: 0,
+                    widthCm: 0,
+                    heightCm: 0,
+                    volumeCm3: 0,
+                    updatedAt: updated,
+                    dateLastReceived: updated ? updated.split(' ')[0] : ''
+                };
+            }));
+        }
+
         if (pathname === '/api/search_items' || pathname === '/api/stock/search') {
             const q = (searchParams.get('q') || '').trim();
             if (isTauri()) {

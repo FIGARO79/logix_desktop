@@ -1771,10 +1771,17 @@ mod tests {
             );
         ", []).unwrap();
 
+        let temp_dir = std::env::temp_dir().join("logix_test_inbound");
+        let _ = std::fs::create_dir_all(&temp_dir);
+        let po_path = temp_dir.join("po_lookup.json");
+        let grn_path = temp_dir.join("grn_master_data.json");
+        std::fs::write(&po_path, "{}").unwrap();
+        std::fs::write(&grn_path, r#"[{"Item_Code":"BG00866933","Item_Description":"ENGINE","Quantity":1.0,"GRN_Number":"22864","Order_Number":"123","Order_Line":"1","Import_Reference":"26-0594","Waybill":"US107278172"}]"#).unwrap();
+
         let res = get_inbound_reconciliation_view(
             &conn,
-            "./data/po_lookup.json",
-            "./data/grn_master_data.json",
+            po_path.to_str().unwrap(),
+            grn_path.to_str().unwrap(),
             None,
             None,
             Some("22864".to_string()),

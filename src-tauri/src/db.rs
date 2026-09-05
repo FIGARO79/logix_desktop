@@ -29,21 +29,21 @@ impl Database {
             path.pop();
         }
         
-        let old_data_db = path.join("data").join("logix_local.db");
-        let portable_dir = path.join("Logix_portable");
-        if !portable_dir.exists() {
-            let _ = fs::create_dir_all(&portable_dir);
+        let data_dir = path.join("data");
+        if !data_dir.exists() {
+            let _ = fs::create_dir_all(&data_dir);
         }
         
-        let new_db_path = portable_dir.join("logix_local.db");
-        // Si no existe en Logix_portable pero existe en data/, migrar/copiar
-        if !new_db_path.exists() && old_data_db.exists() {
-            let _ = fs::copy(&old_data_db, &new_db_path);
-            eprintln!("[db] Migrada base de datos de data/ a Logix_portable/");
+        let db_path = data_dir.join("logix_local.db");
+        // Si no existe en data/ pero existe en Logix_portable/, migrar/copiar
+        let old_portable_db = path.join("Logix_portable").join("logix_local.db");
+        if !db_path.exists() && old_portable_db.exists() {
+            let _ = fs::copy(&old_portable_db, &db_path);
+            eprintln!("[db] Migrada base de datos de Logix_portable/ a data/");
         }
 
-        eprintln!("[db] Ruta base de datos: {}", new_db_path.display());
-        Self { db_path: new_db_path }
+        eprintln!("[db] Ruta base de datos: {}", db_path.display());
+        Self { db_path }
     }
 
     pub fn get_connection(&self) -> Result<Connection> {

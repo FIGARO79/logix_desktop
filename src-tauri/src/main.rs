@@ -26,15 +26,18 @@ pub struct AppState {
 }
 
 fn get_data_file_path(filename: &str) -> PathBuf {
-    // 1. Junto al ejecutable (modo portable / producción .exe) — prioridad máxima
+    // 1. Junto al ejecutable (modo portable / producción .exe) — prioridad máxima: data/
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
-            let exe_portable_file = exe_dir.join("Logix_portable").join(filename);
-            if exe_portable_file.exists() {
-                return exe_portable_file;
-            }
             let exe_data_file = exe_dir.join("data").join(filename);
             if exe_data_file.exists() {
+                return exe_data_file;
+            }
+            // Migración desde Logix_portable si existía previamente
+            let exe_portable_file = exe_dir.join("Logix_portable").join(filename);
+            if exe_portable_file.exists() {
+                let _ = std::fs::create_dir_all(exe_dir.join("data"));
+                let _ = std::fs::copy(&exe_portable_file, &exe_data_file);
                 return exe_data_file;
             }
         }
@@ -44,36 +47,34 @@ fn get_data_file_path(filename: &str) -> PathBuf {
     if path.ends_with("src-tauri") {
         path.pop();
     }
-    let portable_file = path.join("Logix_portable").join(filename);
-    if portable_file.exists() {
-        return portable_file;
-    }
     let data_file = path.join("data").join(filename);
     if data_file.exists() {
         return data_file;
     }
-    // 3. Ruta relativa directa
-    let direct_portable = PathBuf::from("Logix_portable").join(filename);
-    if direct_portable.exists() {
-        return direct_portable;
+    let portable_file = path.join("Logix_portable").join(filename);
+    if portable_file.exists() {
+        let _ = std::fs::create_dir_all(path.join("data"));
+        let _ = std::fs::copy(&portable_file, &data_file);
+        return data_file;
     }
+    // 3. Ruta relativa directa
     let direct = PathBuf::from("data").join(filename);
     if direct.exists() {
         return direct;
     }
-    // 4. Fallback: crear directorio Logix_portable/ junto al exe y retornar esa ruta
+    // 4. Fallback: crear directorio data/ junto al exe y retornar esa ruta
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
-            let exe_portable_dir = exe_dir.join("Logix_portable");
-            if !exe_portable_dir.exists() {
-                let _ = std::fs::create_dir_all(&exe_portable_dir);
+            let exe_data_dir = exe_dir.join("data");
+            if !exe_data_dir.exists() {
+                let _ = std::fs::create_dir_all(&exe_data_dir);
             }
-            eprintln!("[logix] Archivo '{}' no encontrado, usando ruta: {}", filename, exe_portable_dir.join(filename).display());
-            return exe_portable_dir.join(filename);
+            eprintln!("[logix] Archivo '{}' no encontrado, usando ruta: {}", filename, exe_data_dir.join(filename).display());
+            return exe_data_dir.join(filename);
         }
     }
     eprintln!("[logix] WARNING: No se encontró '{}' en ninguna ruta de datos.", filename);
-    portable_file
+    data_file
 }
 
 // -------------------------------------------------------------
@@ -439,6 +440,12 @@ fn get_item_details(state: State<'_, AppState>, item_code: String) -> Result<Ite
 fn search_stock_items(state: State<'_, AppState>, query: String) -> Result<Vec<stock::StockItemResult>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     stock::search_stock_items(&conn, &query).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn search_stock_by_location(state: State<'_, AppState>, location: String) -> Result<Vec<stock::StockItemResult>, String> {
+    let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    stock::search_stock_by_location(&conn, &location).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -1855,6 +1862,7 @@ fn main() {
             add_inventory_items_bulk,
             get_item_details,
             search_stock_items,
+            search_stock_by_location,
             get_valid_bins,
             get_occupancy_stats,
             save_item_measurement,

@@ -16,15 +16,25 @@ export default defineConfig({
     },
     build: {
         target: process.env.TAURI_PLATFORM == 'windows' ? 'chrome105' : 'safari13',
-        minify: !process.env.TAURI_DEBUG ? 'esbuild' : false,
+        minify: !process.env.TAURI_DEBUG,
         sourcemap: !!process.env.TAURI_DEBUG,
         rollupOptions: {
             output: {
-                manualChunks: {
-                    'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-                    'ui-vendor': ['react-toastify', 'react-to-print'],
-                    'scanner-vendor': ['html5-qrcode', 'qrcode'],
-                    'http-vendor': ['axios']
+                manualChunks(id) {
+                    if (id.includes('node_modules')) {
+                        if (id.includes('react/') || id.includes('react-dom/') || id.includes('react-router-dom/')) {
+                            return 'react-vendor';
+                        }
+                        if (id.includes('react-toastify') || id.includes('react-to-print')) {
+                            return 'ui-vendor';
+                        }
+                        if (id.includes('html5-qrcode') || id.includes('qrcode')) {
+                            return 'scanner-vendor';
+                        }
+                        if (id.includes('axios')) {
+                            return 'http-vendor';
+                        }
+                    }
                 }
             }
         },

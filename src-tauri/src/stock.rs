@@ -67,8 +67,12 @@ pub fn search_stock_items(conn: &Connection, query: &str) -> Result<Vec<StockIte
             CASE 
                 WHEN UPPER(item_code) = ?2 THEN 1
                 WHEN UPPER(item_code) LIKE ?3 THEN 2
-                ELSE 3
+                WHEN UPPER(bin_location) = ?2 THEN 3
+                WHEN UPPER(bin_location) LIKE ?3 THEN 4
+                WHEN UPPER(additional_bins) LIKE ?1 THEN 5
+                ELSE 6
             END,
+            bin_location ASC,
             item_code ASC
          LIMIT 100",
     )?;
@@ -282,4 +286,106 @@ pub fn assign_auditor_zones_db(conn: &Connection, user_id: i64, assigned_zones: 
         params![clean, user_id],
     )?;
     Ok(format!("Zonas/pasillos actualizados exitosamente."))
+}
+
+/// Búsqueda de todos los ítems asignados a una ubicación específica (bin principal o adicional)
+pub fn search_stock_by_location(conn: &Connection, location: &str) -> Result<Vec<StockItemResult>> {
+    let clean_loc = location.trim().to_uppercase();
+    if clean_loc.is_empty() {
+        return Ok(Vec::new());
+    }
+    let q = format!("%{}%", clean_loc);
+    let exact = clean_loc.clone();
+
+    let mut stmt = conn.prepare(
+        "SELECT item_code, description, bin_location, additional_bins, system_qty, unit_cost, weight_per_unit, sic_code, abc_code, length_cm, width_cm, height_cm, volume_cm3, updated_at
+         FROM inventory_items
+         WHERE UPPER(bin_location) = ?1
+            OR UPPER(bin_location) LIKE ?2
+            OR UPPER(additional_bins) LIKE ?2
+         ORDER BY 
+            CASE 
+                WHEN UPPER(bin_location) = ?1 THEN 1
+                WHEN UPPER(bin_location) LIKE ?2 THEN 2
+                ELSE 3
+            END,
+            item_code ASC
+         LIMIT 200",
+    )?;
+
+    let iter = stmt.query_map(params![exact, q], |row| {
+        Ok(StockItemResult {
+            item_code: row.get(0)?,
+            description: row.get::<_, Option<String>>(1)?.unwrap_or_default(),
+            bin_location: row.get::<_, Option<String>>(2)?.unwrap_or_else(|| "N/A".to_string()),
+            additional_bins: row.get::<_, Option<String>>(3)?.unwrap_or_default(),
+            system_qty: row.get::<_, Option<f64>>(4)?.unwrap_or(0.0),
+            unit_cost: row.get::<_, Option<f64>>(5)?.unwrap_or(0.0),
+            weight_per_unit: row.get::<_, Option<f64>>(6)?.unwrap_or(0.0),
+            sic_code: row.get::<_, Option<String>>(7)?.unwrap_or_else(|| "0".to_string()),
+            abc_code: row.get::<_, Option<String>>(8)?.unwrap_or_default(),
+            length_cm: row.get::<_, Option<f64>>(9)?.unwrap_or(0.0),
+            width_cm: row.get::<_, Option<f64>>(10)?.unwrap_or(0.0),
+            height_cm: row.get::<_, Option<f64>>(11)?.unwrap_or(0.0),
+            volume_cm3: row.get::<_, Option<f64>>(12)?.unwrap_or(0.0),
+            updated_at: row.get::<_, Option<String>>(13)?.unwrap_or_default(),
+        })
+    })?;
+
+    let mut list = Vec::new();
+    for it in iter.flatten() {
+        list.push(it);
+    }
+    Ok(list)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rusqlite::Connection;
+
+    fn setup_test_db() -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute("
+            CREATE TABLE inventory_items (
+                item_code TEXT PRIMARY KEY,
+                description TEXT,
+                bin_location TEXT,
+                additional_bins TEXT DEFAULT '',
+                system_qty REAL DEFAULT 0.0,
+                unit_cost REAL DEFAULT 0.0,
+                weight_per_unit REAL DEFAULT 0.0,
+                sic_code TEXT DEFAULT '0',
+                length_cm REAL DEFAULT 0.0,
+                width_cm REAL DEFAULT 0.0,
+                height_cm REAL DEFAULT 0.0,
+                volume_cm3 REAL DEFAULT 0.0,
+                abc_code TEXT DEFAULT '',
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+        ", []).unwrap();
+        conn
+    }
+
+    #[test]
+    fn test_search_stock_by_location() {
+        let conn = setup_test_db();
+        conn.execute("
+            INSERT INTO inventory_items (item_code, description, bin_location, additional_bins, system_qty)
+            VALUES 
+                ('ITEM-A', 'Cilindro Hidraulico', 'A-01-02', 'B-02-01', 10.0),
+                ('ITEM-B', 'Valvula de Alivio', 'A-01-02', '', 5.0),
+                ('ITEM-C', 'Bomba Hidraulica', 'C-05-01', 'A-01-02', 2.0),
+                ('ITEM-D', 'Filtro de Aceite', 'D-10-01', '', 20.0);
+        ", []).unwrap();
+
+        let results = search_stock_by_location(&conn, "A-01-02").unwrap();
+        assert_eq!(results.len(), 3);
+        assert_eq!(results[0].item_code, "ITEM-A");
+        assert_eq!(results[1].item_code, "ITEM-B");
+        assert_eq!(results[2].item_code, "ITEM-C");
+
+        let empty_results = search_stock_by_location(&conn, "Z-99-99").unwrap();
+        assert_eq!(empty_results.len(), 0);
+    }
 }
