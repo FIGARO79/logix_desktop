@@ -37,6 +37,9 @@ import Shipments from '../pages/Shipments';
 import PackingListPrint from '../pages/PackingListPrint';
 import InboundAudit from '../pages/InboundAudit';
 import IRReconciliation from '../pages/IRReconciliation';
+import NetworkSettingsModal from './NetworkSettingsModal';
+import PrinterSettingsModal from './PrinterSettingsModal';
+import DesktopMenuBar from './DesktopMenuBar';
 
 // Mapeo de rutas a componentes
 const ROUTE_MAP = [
@@ -100,12 +103,12 @@ const MenuItem = ({ to, label, desc, categoryId, onClick }) => {
                 to={to}
                 draggable
                 onDragStart={handleDragStart}
-                className={`flex-grow flex items-center px-4 py-1 text-white leading-tight transition-all border-l-[4px] cursor-grab active:cursor-grabbing
-                ${isActive ? 'bg-white/10 border-blue-400 font-medium text-gray-900' : 'border-transparent hover:border-blue-400/40'}`}
+                className={`flex-grow flex items-center px-3 py-0.5 text-white leading-tight transition-all border-l-[3px] cursor-grab active:cursor-grabbing
+                ${isActive ? 'bg-white/15 border-blue-400 font-semibold text-white' : 'border-transparent text-slate-200 hover:text-white hover:border-blue-400/50'}`}
                 onClick={onClick}
                 title="Arrastra esta opción al Dashboard para fijarla"
             >
-                <span className="text-[12px] uppercase select-none">{label}</span>
+                <span className="text-[11.5px] uppercase select-none tracking-tight leading-snug">{label}</span>
             </Link>
 
             <button
@@ -273,6 +276,9 @@ const Layout = () => {
         }
         return Array.isArray(tabs) && tabs.length > 0 ? tabs[0].id : null;
     });
+
+    const [isNetworkModalOpen, setIsNetworkModalOpen] = useState(false);
+    const [isPrinterModalOpen, setIsPrinterModalOpen] = useState(false);
 
     // Auto-recuperación garantizada de pestañas en caso de array vacío o nulo
     useEffect(() => {
@@ -489,92 +495,106 @@ const Layout = () => {
 
     return (
         <div className="flex flex-col min-h-screen bg-[var(--sap-bg)] text-[var(--sap-text)] font-sans print:block print:h-auto print:overflow-visible">
-            {/* Header / Shell Bar */}
-            <header className="top-header bg-[var(--sap-shell-bg)] text-white h-[48px] px-4 flex items-center gap-4 shadow-lg sticky top-0 z-50 print:hidden no-print border-none">
-                <button
-                    className="p-2 rounded hover:bg-white/10 transition-all cursor-pointer z-[1001]"
-                    onClick={toggleMenu}
-                    aria-label="Menú"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                    </svg>
-                </button>
+            {/* Barra Superior Completa: Menubar de Escritorio + Shell de Pestañas */}
+            <div className="sticky top-0 z-50 print:hidden no-print shadow-md">
+                <DesktopMenuBar
+                    onNewTab={addTab}
+                    onCloseCurrentTab={() => closeTab({ stopPropagation: () => {} }, activeTabId)}
+                    onOpenNetworkModal={() => setIsNetworkModalOpen(true)}
+                    onOpenPrinterModal={() => setIsPrinterModalOpen(true)}
+                    onNavigate={(path) => navigate(path)}
+                    language={language}
+                    setLanguage={setLanguage}
+                    onLogout={async () => {
+                        localStorage.removeItem('user');
+                        localStorage.removeItem('admin_authenticated');
+                        try { await fetch('/api/logout', { method: 'POST', credentials: 'include' }); }
+                        finally { navigate('/login'); }
+                    }}
+                />
 
-                <div className="tabs-wrapper flex-grow mr-4 min-w-0">
-                    <div className="tabs-scroll-container overflow-x-auto no-scrollbar scroll-smooth">
-                        {tabs.map((tab, index) => {
-                            const isDragging = draggedTabIndex === index;
+                <header className="top-header bg-[var(--sap-shell-bg)] text-white h-[48px] px-4 flex items-center gap-4 border-none">
+                    <button
+                        className="p-2 rounded hover:bg-white/10 transition-all cursor-pointer z-[1001]"
+                        onClick={toggleMenu}
+                        aria-label="Menú"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                        </svg>
+                    </button>
 
-                            return (
-                                <div
-                                    key={tab.id}
-                                    onPointerDown={(e) => handleTabPointerDown(e, index)}
-                                    onClick={() => {
-                                        if (!pointerDragRef.current?.hasMoved) {
-                                            switchTab(tab.id);
-                                        }
-                                    }}
-                                    className={`tab-item ${activeTabId === tab.id ? 'active' : ''} ${isDragging ? 'dragging shadow-2xl bg-white/25 scale-[1.02] z-20 cursor-grabbing' : ''}`}
-                                >
-                                    <span className="tab-label">{t(tab.label)}</span>
-                                    <div className="tab-actions flex items-center gap-1 ml-2">
-                                        <button
-                                            onClick={(e) => refreshTab(e, tab.id)}
-                                            className={`tab-refresh-btn p-1 rounded hover:bg-white/10 transition-all ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-                                            title={t('header.refresh_data', 'Refrescar datos')}
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                                            </svg>
-                                        </button>
-                                        {tabs.length > 1 && (
-                                            <button onClick={(e) => closeTab(e, tab.id)} className="tab-close-btn">
-                                                <span>&#215;</span>
+                    <div className="tabs-wrapper flex-grow mr-4 min-w-0">
+                        <div className="tabs-scroll-container overflow-x-auto no-scrollbar scroll-smooth">
+                            {tabs.map((tab, index) => {
+                                const isDragging = draggedTabIndex === index;
+
+                                return (
+                                    <div
+                                        key={tab.id}
+                                        onPointerDown={(e) => handleTabPointerDown(e, index)}
+                                        onClick={() => {
+                                            if (!pointerDragRef.current?.hasMoved) {
+                                                switchTab(tab.id);
+                                            }
+                                        }}
+                                        className={`tab-item ${activeTabId === tab.id ? 'active' : ''} ${isDragging ? 'dragging shadow-2xl bg-white/25 scale-[1.02] z-20 cursor-grabbing' : ''}`}
+                                    >
+                                        <span className="tab-label">{t(tab.label)}</span>
+                                        <div className="tab-actions flex items-center gap-1 ml-2">
+                                            <button
+                                                onClick={(e) => refreshTab(e, tab.id)}
+                                                className={`tab-refresh-btn p-1 rounded hover:bg-white/10 transition-all ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                                                title={t('header.refresh_data', 'Refrescar datos')}
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                                </svg>
                                             </button>
-                                        )}
+                                            {tabs.length > 1 && (
+                                                <button onClick={(e) => closeTab(e, tab.id)} className="tab-close-btn">
+                                                    <span>&#215;</span>
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
+                        <button onClick={addTab} className="add-tab-btn">+</button>
                     </div>
-                    <button onClick={addTab} className="add-tab-btn">+</button>
-                </div>
+                </header>
+            </div>
 
-                <div className="header-actions flex items-center gap-3">
-                    <Link to="/admin/login" className="text-[11px] font-medium text-white uppercase tracking-tight px-3 py-1 border border-white/20 rounded hover:bg-white/10 transition-all opacity-0 hover:opacity-100 duration-200">Admin</Link>
-                </div>
-            </header>
-
-            {/* Sidebar Menu Sincronizado a 48px */}
+            {/* Sidebar Menu Sincronizado a 76px (Menubar 28px + Shell 48px) */}
             <div
                 className={`fixed left-0 w-64 bg-[var(--sap-shell-bg)] shadow-2xl z-[999] overflow-y-auto transform transition-transform duration-300 ease-in-out print:hidden no-print ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
-                style={{ top: '48px', height: 'calc(100vh - 48px)' }}
+                style={{ top: '76px', height: 'calc(100vh - 76px)' }}
             >
-                <nav className="py-2 flex flex-col min-h-full">
+                <nav className="py-1 flex flex-col min-h-full">
                     <div className="flex-grow">
-                        <div className="px-4 mb-2">
-                            <div className="px-2 text-[12px] font-medium text-slate-500 uppercase tracking-tight mb-1">{t('menu.main', 'Principal')}</div>
+                        <div className="px-3 mb-1">
+                            <div className="px-2 text-[10px] font-bold text-white uppercase tracking-wider mb-0.5 opacity-80">{t('menu.main', 'Principal')}</div>
                             <MenuItem to="/dashboard" label={t('nav.home', 'Inicio')} desc={t('nav.home_desc', 'Panel principal y accesos rápidos')} categoryId="recepcion" onClick={toggleMenu} />
                             <MenuItem to="/stock" label={t('nav.stock', 'Consultar Stock')} desc={t('nav.stock_desc', 'Búsqueda global de inventario y saldos')} categoryId="recepcion" onClick={toggleMenu} />
                         </div>
-                        <div className="px-4 mb-2">
-                            <div className="px-2 text-[12px] font-medium text-slate-500 uppercase tracking-tight mb-1 border-t border-white/5 pt-2">{t('menu.inbound', 'Operaciones Inbound')}</div>
+                        <div className="px-3 mb-1">
+                            <div className="px-2 text-[10px] font-bold text-white uppercase tracking-wider mb-0.5 border-t border-white/10 pt-1.5 opacity-80">{t('menu.inbound', 'Operaciones Inbound')}</div>
                             <MenuItem to="/inbound" label={t('nav.inbound', 'Recepción')} desc={t('nav.inbound_desc', 'Entrada de mercancía y referencias')} categoryId="recepcion" onClick={toggleMenu} />
                             <MenuItem to="/reconciliation" label={t('nav.reconciliation', 'Conciliación')} desc={t('nav.reconciliation_desc', 'Cruce de documentos y discrepancias')} categoryId="recepcion" onClick={toggleMenu} />
                             <MenuItem to="/inbound/audit" label={t('nav.inbound_audit', 'Auditoría Agente')} desc={t('nav.inbound_audit_desc', 'Control de calidad y recepción física')} categoryId="recepcion" onClick={toggleMenu} />
                             <MenuItem to="/view_logs" label={t('nav.view_logs', 'Registros')} desc={t('nav.view_logs_desc', 'Consulta de registros históricos')} categoryId="recepcion" onClick={toggleMenu} />
                             <MenuItem to="/ir-reconciliation" label={t('nav.ir_dashboard', 'Dashboard IR')} desc={t('nav.ir_dashboard_desc', 'Estado general de Import References')} categoryId="recepcion" onClick={toggleMenu} />
                         </div>
-                        <div className="px-4 mb-2">
-                            <div className="px-2 text-[12px] font-medium text-slate-500 uppercase tracking-tight mb-1 border-t border-white/5 pt-2">{t('menu.outbound', 'Operaciones Outbound')}</div>
+                        <div className="px-3 mb-1">
+                            <div className="px-2 text-[10px] font-bold text-white uppercase tracking-wider mb-0.5 border-t border-white/10 pt-1.5 opacity-80">{t('menu.outbound', 'Operaciones Outbound')}</div>
                             <MenuItem to="/picking" label={t('nav.picking', 'Picking')} desc={t('nav.picking_desc', 'Verificación de pedidos y empaque')} categoryId="despacho" onClick={toggleMenu} />
                             <MenuItem to="/view_picking_audits" label={t('nav.packing', 'Empaque')} desc={t('nav.packing_desc', 'Listas de empaque y auditorías')} categoryId="despacho" onClick={toggleMenu} />
                             <MenuItem to="/shipments" label={t('nav.shipments', 'Despacho')} desc={t('nav.shipments_desc', 'Gestión de despachos y embarques')} categoryId="despacho" onClick={toggleMenu} />
                             <MenuItem to="/label" label={t('nav.label', 'Etiquetado')} desc={t('nav.label_desc', 'Impresión de etiquetas operativas')} categoryId="despacho" onClick={toggleMenu} />
                         </div>
-                        <div className="px-4 mb-2">
-                            <div className="px-2 text-[12px] font-medium text-slate-500 uppercase tracking-tight mb-1 border-t border-white/5 pt-2">{t('menu.inventory', 'Control Inventario')}</div>
+                        <div className="px-3 mb-1">
+                            <div className="px-2 text-[10px] font-bold text-white uppercase tracking-wider mb-0.5 border-t border-white/10 pt-1.5 opacity-80">{t('menu.inventory', 'Control Inventario')}</div>
                             <MenuItem to="/planner" label={t('nav.planner', 'Plan Cíclico')} desc={t('nav.planner_desc', 'Programación de conteos cíclicos')} categoryId="inventario" onClick={toggleMenu} />
                             <MenuItem to="/inventory-dashboard" label={t('nav.metrics', 'Métricas')} desc={t('nav.metrics_desc', 'Indicadores de exactitud')} categoryId="inventario" onClick={toggleMenu} />
                             <MenuItem to="/view_counts/recordings" label={t('nav.recordings', 'Históricos')} desc={t('nav.recordings_desc', 'Grabaciones y trazabilidad')} categoryId="inventario" onClick={toggleMenu} />
@@ -585,8 +605,8 @@ const Layout = () => {
                             <MenuItem to="/express-audit" label={t('nav.manual_cycle', 'Ciclo Manual')} desc={t('nav.manual_cycle_desc', 'Conteo ciego y auditoría rápida')} categoryId="inventario" onClick={toggleMenu} />  
                             <MenuItem to="/spot-check" label={t('nav.spot_check', 'Spot Check')} desc={t('nav.spot_check_desc', 'Auditorías rápidas en piso')} categoryId="inventario" onClick={toggleMenu} />
                         </div>
-                        <div className="px-4 mb-2">
-                            <div className="px-2 text-[12px] font-medium text-slate-500 uppercase tracking-tight mb-1 border-t border-white/5 pt-2">{t('menu.system', 'Sistema')}</div>
+                        <div className="px-3 mb-1">
+                            <div className="px-2 text-[10px] font-bold text-white uppercase tracking-wider mb-0.5 border-t border-white/10 pt-1.5 opacity-80">{t('menu.system', 'Sistema')}</div>
                             <MenuItem to="/admin/inventory" label={t('nav.admin_inventory', 'Adm. Inventario')} desc={t('nav.admin_inventory_desc', 'Control de ciclos de conteo')} categoryId="admin" onClick={toggleMenu} />
                             <MenuItem to="/admin/slotting" label={t('nav.slotting_config', 'Config. Slotting')} desc={t('nav.slotting_config_desc', 'Parámetros de ubicaciones')} categoryId="admin" onClick={toggleMenu} />
                             <MenuItem to="/occupancy" label={t('nav.occupancy', 'Ocupación Bodega')} desc={t('nav.occupancy_desc', 'Análisis de espacio y ubicaciones')} categoryId="admin" onClick={toggleMenu} />
@@ -594,40 +614,10 @@ const Layout = () => {
                         </div>
                     </div>
 
-                    {/* Selector de Idioma Simplificado */}
-                    <div className="px-4 py-2 border-t border-white/10 bg-black/15 mt-2">
-                        <div className="grid grid-cols-2 gap-2 px-1">
-                            <button
-                                type="button"
-                                onClick={() => setLanguage('es')}
-                                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded text-[12px] font-bold transition-all cursor-pointer ${
-                                    language === 'es'
-                                        ? 'bg-blue-600 text-white border border-blue-400 shadow-md scale-[1.02]'
-                                        : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-transparent'
-                                }`}
-                                title="Español"
-                            >
-                                <span className="text-base leading-none">🇪🇸</span>
-                                <span>Español</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setLanguage('pt')}
-                                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded text-[12px] font-bold transition-all cursor-pointer ${
-                                    language === 'pt'
-                                        ? 'bg-emerald-600 text-white border border-emerald-400 shadow-md scale-[1.02]'
-                                        : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-transparent'
-                                }`}
-                                title="Português"
-                            >
-                                <span className="text-base leading-none">🇧🇷</span>
-                                <span>Português</span>
-                            </button>
-                        </div>
-
+                    {/* Pie del Sidebar / Cerrar Sesión */}
+                    <div className="px-4 py-3 border-t border-white/10 bg-black/15 mt-auto">
                         <button
-                            className="w-full flex items-center justify-start !justify-start px-2 py-1.5 mt-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-all uppercase text-[11px] font-semibold tracking-tight text-left cursor-pointer"
-                            style={{ justifyContent: 'flex-start' }}
+                            className="w-full flex items-center justify-start px-2 py-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-all uppercase text-[11px] font-semibold tracking-tight text-left cursor-pointer"
                             onClick={async () => {
                                 localStorage.removeItem('user');
                                 localStorage.removeItem('admin_authenticated');
@@ -644,10 +634,10 @@ const Layout = () => {
                 </nav>
             </div>
 
-            {/* Overlay Sincronizado a 48px */}
+            {/* Overlay Sincronizado a 76px */}
             <div
                 className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity z-[998] print:hidden no-print ${isMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}
-                style={{ top: '48px' }}
+                style={{ top: '76px' }}
                 onClick={toggleMenu}
             ></div>
 
@@ -664,6 +654,18 @@ const Layout = () => {
                     ))}
                 </div>
             </main>
+
+            {/* Modal de Configuración de Red y Modo Host/Cliente */}
+            <NetworkSettingsModal
+                isOpen={isNetworkModalOpen}
+                onClose={() => setIsNetworkModalOpen(false)}
+            />
+
+            {/* Modal de Configuración de Impresión Silenciosa */}
+            <PrinterSettingsModal
+                isOpen={isPrinterModalOpen}
+                onClose={() => setIsPrinterModalOpen(false)}
+            />
         </div>
     );
 };

@@ -12,6 +12,7 @@ mod spot_check;
 mod planner;
 mod stock;
 mod printer;
+mod server;
 
 use db::{get_app_data_dir, Database};
 use rusqlite::params;
@@ -23,6 +24,7 @@ use tauri::State;
 
 pub struct AppState {
     pub db: Database,
+    pub server: server::HostServerManager,
 }
 
 fn get_data_file_path(filename: &str) -> PathBuf {
@@ -1796,11 +1798,49 @@ fn set_sync_status(state: State<'_, AppState>, key: String, timestamp: Option<i6
 }
 
 // -------------------------------------------------------------
+// 15. HOST SERVER (MODO SERVIDOR LOCAL)
+// -------------------------------------------------------------
+
+#[tauri::command]
+fn start_host_server(state: State<'_, AppState>, port: Option<u16>) -> Result<server::ServerInfo, String> {
+    let p = port.unwrap_or(8088);
+    let db_clone = Database::new();
+    state.server.start(db_clone, p)
+}
+
+#[tauri::command]
+fn stop_host_server(state: State<'_, AppState>) -> Result<server::ServerInfo, String> {
+    state.server.stop()
+}
+
+#[tauri::command]
+fn get_host_server_info(state: State<'_, AppState>) -> Result<server::ServerInfo, String> {
+    Ok(state.server.get_info())
+}
+
+#[tauri::command]
+fn get_distinct_operators(state: State<'_, AppState>) -> Result<Vec<String>, String> {
+    let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    let mut stmt = conn.prepare(
+        "SELECT DISTINCT user_id FROM counts WHERE user_id IS NOT NULL AND user_id != '' 
+         UNION 
+         SELECT username FROM users WHERE is_approved = 1"
+    ).map_err(|e| e.to_string())?;
+
+    let ops: Vec<String> = stmt.query_map([], |row| row.get(0))
+        .map_err(|e| e.to_string())?
+        .flatten()
+        .collect();
+    Ok(ops)
+}
+
+// -------------------------------------------------------------
 // MAIN ENTRYPOINT
 // -------------------------------------------------------------
 
 fn main() {
     let db = Database::new();
+    let server = server::HostServerManager::new();
     db.init().expect("Error al inicializar la base de datos local SQLite");
 
     // Garantizar que slotting_parameters.json resida dentro de data/
@@ -1816,7 +1856,7 @@ fn main() {
     }
 
     tauri::Builder::default()
-        .manage(AppState { db })
+        .manage(AppState { db, server })
         .invoke_handler(tauri::generate_handler![
             // Auth & Users
             login,
@@ -1955,6 +1995,12 @@ fn main() {
             // Sync Status
             get_sync_status,
             set_sync_status,
+
+            // Host Server & Multi-User
+            start_host_server,
+            stop_host_server,
+            get_host_server_info,
+            get_distinct_operators,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

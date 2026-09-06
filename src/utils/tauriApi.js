@@ -22,9 +22,31 @@ const tauriInvoke = async (cmd, args = {}) => {
         try {
             return await invokeFn(cmd, args);
         } catch (err) {
-            console.warn(`Invocación nativa de '${cmd}' falló, usando respaldo API:`, err);
+            console.warn(`Invocación nativa de '${cmd}' falló, evaluando respaldo:`, err);
+            const hasWebFallback = [
+                'save_picking_audit_full',
+                'get_picking_audits_full',
+                'get_picking_tracking',
+                'get_picking_order_details'
+            ].includes(cmd);
+
+            if (!hasWebFallback && !cmd.startsWith('save_') && !cmd.startsWith('update_') && !cmd.startsWith('delete_')) {
+                throw err;
+            }
+        }
+    } else {
+        const hasWebFallback = [
+            'save_picking_audit_full',
+            'get_picking_audits_full',
+            'get_picking_tracking',
+            'get_picking_order_details'
+        ].includes(cmd);
+
+        if (!hasWebFallback && !cmd.startsWith('save_') && !cmd.startsWith('update_') && !cmd.startsWith('delete_')) {
+            throw new Error(`El comando '${cmd}' requiere la aplicación de escritorio (Tauri) con backend nativo.`);
         }
     }
+
 
     if (cmd === 'save_picking_audit_full') {
         const res = await fetch('/api/save_picking_audit', {
@@ -380,6 +402,21 @@ export const getPlannerStats = () =>
     tauriInvoke('get_planner_stats');
 
 // ─────────────────────────────────────────────────────
+// HOST SERVER & MULTI-USER LOCAL NETWORK
+// ─────────────────────────────────────────────────────
+export const startHostServer = (port = 8088) =>
+    tauriInvoke('start_host_server', { port });
+
+export const stopHostServer = () =>
+    tauriInvoke('stop_host_server');
+
+export const getHostServerInfo = () =>
+    tauriInvoke('get_host_server_info');
+
+export const getDistinctOperators = () =>
+    tauriInvoke('get_distinct_operators');
+
+// ─────────────────────────────────────────────────────
 // EXPORT DEFAULT (acceso agrupado opcional)
 // ─────────────────────────────────────────────────────
 
@@ -425,4 +462,6 @@ export default {
     saveSlottingConfig, getPlannerConfig, savePlannerConfig,
     getPlannerDailyItems, getItemsWithDifferencesPlanner,
     updatePlannerDifferenceCause, savePlannerExecution, getPlannerStats,
+    // Host Server
+    startHostServer, stopHostServer, getHostServerInfo, getDistinctOperators,
 };

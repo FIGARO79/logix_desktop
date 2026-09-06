@@ -8,7 +8,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { syncPendingInbound, checkAndSyncIfNeeded, downloadMasterData } from '../utils/syncManager';
 import { useOffline } from '../hooks/useOffline';
 import SandvikLabel from '../components/labels/SandvikLabel';
-import PrinterSettingsModal from '../components/PrinterSettingsModal';
 import { useReactToPrint } from 'react-to-print';
 import '../styles/Label.css';
 import { parseGS1Barcode } from '../utils/gs1Parser';
@@ -105,7 +104,6 @@ const Inbound = () => {
     const [scannerOpen, setScannerOpen] = useState(false);
     const [qrImage, setQrImage] = useState(null);
     const [editId, setEditId] = useState(null);
-    const [printerModalOpen, setPrinterModalOpen] = useState(false);
 
     // --- Estado para el Tablero de Control de la IR ---
     const [irStats, setIrStats] = useState(DEFAULT_IR_STATS);
@@ -1242,7 +1240,6 @@ const Inbound = () => {
 
     return (
         <>
-            <PrinterSettingsModal isOpen={printerModalOpen} onClose={() => setPrinterModalOpen(false)} />
             <div className="container-wrapper px-4 pt-1 pb-4 lg:h-[calc(100vh-5px)] lg:flex lg:flex-col lg:overflow-hidden" style={{ paddingTop: '0.75rem' }}>
                 <form onSubmit={handleSaveLog} className="lg:flex-shrink-0 mb-0">
 
@@ -1441,19 +1438,11 @@ const Inbound = () => {
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-1.5 w-full">
-                                <button
-                                    type="button"
-                                    onClick={() => setPrinterModalOpen(true)}
-                                    className="h-9 px-2.5 text-[10px] text-zinc-700 bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 rounded-lg shadow-sm flex items-center justify-center font-medium transition-colors cursor-pointer"
-                                    title="Configurar Impresora de Etiquetas"
-                                >
-                                    ⚙️
-                                </button>
+                            <div className="w-full">
                                 <button
                                     type="button"
                                     onClick={handlePrintClick}
-                                    className="h-9 flex-grow text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold cursor-pointer"
+                                    className="h-9 w-full text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold cursor-pointer"
                                     style={{ background: '#285f94' }}
                                     onMouseEnter={e => !(!itemData) && (e.currentTarget.style.background = '#1e4a74')}
                                     onMouseLeave={e => !(!itemData) && (e.currentTarget.style.background = '#285f94')}

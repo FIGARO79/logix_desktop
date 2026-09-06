@@ -6,6 +6,7 @@ import { cacheData, getCachedData } from '../utils/offlineDb';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as XLSX from 'xlsx';
 import { exportExcelFileNative } from '../utils/tauriBridge';
+import { getDistinctOperators } from '../utils/tauriApi';
 
 const Reconciliation = () => {
     const { setTitle } = useOutletContext();
@@ -17,9 +18,26 @@ const Reconciliation = () => {
     // Filtros de navegación
     const [selectedIR, setSelectedIR] = useState('');
     const [selectedGRN, setSelectedGRN] = useState('');
+    const [selectedOperator, setSelectedOperator] = useState('all');
+    const [availableOperators, setAvailableOperators] = useState([]);
     const [filterText, setFilterText] = useState('');
     const [sortConfig, setSortConfig] = useState({ key: 'GRN', direction: 'ascending' });
     const [isOfflineData, setIsOfflineData] = useState(false);
+
+    // Cargar lista de operadores para filtro multi-usuario
+    useEffect(() => {
+        const loadOps = async () => {
+            try {
+                const ops = await getDistinctOperators();
+                if (ops && Array.isArray(ops)) {
+                    setAvailableOperators(ops.filter(Boolean));
+                }
+            } catch (e) {
+                console.warn('Error al cargar operadores:', e);
+            }
+        };
+        loadOps();
+    }, []);
 
     // Estado local para justificaciones y rectificaciones de diferencias por fila (clave: `${IR}_${GRN}_${ItemCode}_${OrderLine}`)
     const [differenceEdits, setDifferenceEdits] = useState({});
@@ -163,14 +181,18 @@ const Reconciliation = () => {
         });
     }, [rawData, differenceEdits]);
 
-    // Filtrar por IR seleccionada, GRN seleccionada y búsqueda en texto
+    // Filtrar por IR seleccionada, GRN seleccionada, Operador y búsqueda en texto
     const filteredBySelectors = useMemo(() => {
         return processedData.filter(item => {
             if (selectedIR && item.Import_Reference !== selectedIR) return false;
             if (selectedGRN && item.GRN !== selectedGRN) return false;
+            if (selectedOperator && selectedOperator !== 'all') {
+                const op = (item.Usuario || item.user_id || item.Operador || item.Observacion_Operador || '').toLowerCase();
+                if (!op.includes(selectedOperator.toLowerCase())) return false;
+            }
             return true;
         });
-    }, [processedData, selectedIR, selectedGRN]);
+    }, [processedData, selectedIR, selectedGRN, selectedOperator]);
 
     const sortedData = useMemo(() => {
         let sortableItems = [...filteredBySelectors];
@@ -565,6 +587,21 @@ const Reconciliation = () => {
                         </div>
                     </div>
 
+                    {/* Selector de Operador / Usuario (Multi-Usuario en Red) */}
+                    <div className="w-44 flex flex-col">
+                        <label className="text-[9px] uppercase font-semibold text-zinc-500 mb-0.5 tracking-tight">Operador / Usuario</label>
+                        <select
+                            value={selectedOperator}
+                            onChange={(e) => setSelectedOperator(e.target.value)}
+                            className="w-full h-8 px-2 text-[11px] text-zinc-900 font-medium bg-white border border-zinc-200 rounded-lg outline-none uppercase focus:border-[#285f94]"
+                        >
+                            <option value="all">TODOS LOS OPERADORES</option>
+                            {availableOperators.map(op => (
+                                <option key={op} value={op}>{op.toUpperCase()}</option>
+                            ))}
+                        </select>
+                    </div>
+
                     {/* Búsqueda General */}
                     <div className="flex-1 min-w-[200px] flex flex-col">
                         <label className="text-[9px] uppercase font-semibold text-zinc-500 mb-0.5 tracking-tight">Búsqueda Rápida</label>
@@ -604,12 +641,13 @@ const Reconciliation = () => {
                     </div>
 
                     {/* Botón Limpiar Filtros */}
-                    {(selectedIR || selectedGRN || filterText) && (
+                    {(selectedIR || selectedGRN || (selectedOperator && selectedOperator !== 'all') || filterText) && (
                         <div className="self-end">
                             <button
                                 onClick={() => {
                                     setSelectedIR('');
                                     setSelectedGRN('');
+                                    setSelectedOperator('all');
                                     setFilterText('');
                                 }}
                                 className="h-8 px-2.5 text-[11px] text-zinc-600 bg-zinc-200 hover:bg-zinc-300 rounded-lg transition-colors font-medium active:scale-95 flex items-center justify-center"

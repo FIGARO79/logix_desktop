@@ -104,24 +104,22 @@ const Login = () => {
             <div className="fiori-login-card bg-white p-8 rounded-lg shadow-md w-full max-w-md">
                 <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
                     <span className="text-[12px] font-medium text-gray-500 uppercase tracking-tight">LOGIX DESKTOP</span>
-                    <div className="inline-flex bg-gray-100 p-0.5 rounded border border-gray-200 text-xs">
+                    <div className="inline-flex bg-slate-100 p-0.5 rounded-md border border-slate-200 text-[11px] font-semibold tracking-wide">
                         <button
                             type="button"
                             onClick={() => setLanguage('es')}
-                            className={`px-2 py-1 rounded transition-all flex items-center gap-1 cursor-pointer ${language === 'es' ? 'bg-white shadow-xs text-[#285f94] font-semibold' : 'text-gray-500 hover:text-gray-800'}`}
+                            className={`w-7 h-5 rounded flex items-center justify-center transition-all cursor-pointer ${language === 'es' ? 'bg-white shadow-xs text-[#285f94] font-bold' : 'text-slate-500 hover:text-slate-800'}`}
                             title="Español"
                         >
-                            <span>🇪🇸</span>
-                            <span>ES</span>
+                            ES
                         </button>
                         <button
                             type="button"
                             onClick={() => setLanguage('pt')}
-                            className={`px-2 py-1 rounded transition-all flex items-center gap-1 cursor-pointer ${language === 'pt' ? 'bg-white shadow-xs text-emerald-700 font-semibold' : 'text-gray-500 hover:text-gray-800'}`}
-                            title="Português (Brasil)"
+                            className={`w-7 h-5 rounded flex items-center justify-center transition-all cursor-pointer ${language === 'pt' ? 'bg-white shadow-xs text-emerald-700 font-bold' : 'text-slate-500 hover:text-slate-800'}`}
+                            title="Português"
                         >
-                            <span>🇧🇷</span>
-                            <span>PT</span>
+                            PT
                         </button>
                     </div>
                 </div>
