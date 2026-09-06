@@ -42,7 +42,7 @@ const Dial = ({ percent, label, valueText, strokeColor = "#1679E0", strokeWidth 
                         cx="42.5" 
                         cy="42.5" 
                         r={radius} 
-                        className="text-zinc-200" 
+                        className="text-[#e5e7eb]" 
                         strokeWidth={trackStrokeWidth} 
                         stroke="currentColor" 
                         fill="transparent" 
@@ -61,11 +61,11 @@ const Dial = ({ percent, label, valueText, strokeColor = "#1679E0", strokeWidth 
                     />
                 </svg>
                 <div className="absolute text-center flex flex-col items-center justify-center">
-                    <span className="text-[13px] font-extrabold text-black leading-none">{valueText}</span>
-                    <span className="text-[10px] text-zinc-700 font-extrabold leading-none mt-0.5">{percent}%</span>
+                    <span className="text-[13px] font-normal text-black leading-none">{valueText}</span>
+                    <span className="text-[10px] text-black font-normal leading-none mt-0.5">{percent}%</span>
                 </div>
             </div>
-            <span className="text-[10px] uppercase tracking-wider text-zinc-900 font-bold mt-1.5 text-center leading-none truncate w-full">{label}</span>
+            <span className="text-[10px] uppercase tracking-normal text-black font-normal mt-1.5 text-center leading-none truncate w-full">{label}</span>
         </div>
     );
 };
@@ -1254,7 +1254,7 @@ const Inbound = () => {
                                             {pendingCount} Pendientes
                                         </div>
                                     )}
-                                    <button type="button" onClick={async () => { setIsSyncing(true); const ok = await downloadMasterData(); alert(ok ? '✅ Maestro sincronizado.' : '❌ Error.'); setIsSyncing(false); }} className={`p-1.5 rounded hover:bg-gray-200 ${isSyncing ? 'animate-spin' : ''}`} title="Sincronizar Maestro">
+                                    <button type="button" onClick={async () => { setIsSyncing(true); const ok = await downloadMasterData(); alert(ok ? 'Maestro sincronizado.' : 'Error al sincronizar.'); setIsSyncing(false); }} className={`p-1.5 rounded hover:bg-gray-200 ${isSyncing ? 'animate-spin' : ''}`} title="Sincronizar Maestro">
                                         <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                     </button>
                                 </div>
@@ -1361,7 +1361,7 @@ const Inbound = () => {
                                                     <span className={`text-[10px] font-medium  uppercase ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'text-amber-800' : 'text-emerald-800'}`}>
                                                         {(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'UBICACIÓN + XDOCK' : 'Sugerida'}
                                                     </span>
-                                                    <span className="text-[8px] italic text-zinc-600 font-medium ">Tap usar</span>
+                                                    <span className="text-[8px] italic text-black font-normal">Tap usar</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <svg className={`w-4 h-4 ${(!itemData.binLocation || itemData.binLocation === 'N/A') && effectiveXdockPending > 0 ? 'text-amber-700' : 'text-emerald-700'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -1392,17 +1392,17 @@ const Inbound = () => {
                                         }`} style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{cumulativeQty - (itemData?.defaultQtyGrn || 0)}</div></div>
                                 </div>
                             </div>
-                            <div className="flex gap-3">
+                            <div className="flex gap-2.5">
                                 <button
                                     type="submit"
                                     disabled={isSaving}
-                                    className={`h-9 px-6 text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all ${isSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
-                                    style={{ background: '#285f94' }}
-                                    onMouseEnter={e => !isSaving && (e.currentTarget.style.background = '#1e4a74')}
-                                    onMouseLeave={e => !isSaving && (e.currentTarget.style.background = '#285f94')}
+                                    className={`h-7 px-4 text-[12px] font-normal text-white rounded transition-colors whitespace-nowrap cursor-pointer flex items-center justify-center gap-1.5 ${isSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                    style={{ background: '#0067c0' }}
+                                    onMouseEnter={e => !isSaving && (e.currentTarget.style.background = '#005a9e')}
+                                    onMouseLeave={e => !isSaving && (e.currentTarget.style.background = '#0067c0')}
                                 >
                                     {isSaving ? (
-                                        <><span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span> Guardando...</>
+                                        <><span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full"></span> Guardando...</>
                                     ) : (
                                         editId ? 'Guardar Cambios' : 'Añadir Registro'
                                     )}
@@ -1411,7 +1411,7 @@ const Inbound = () => {
                                     <button
                                         type="button"
                                         onClick={resetForm}
-                                        className="h-9 px-6 text-[10px] text-zinc-700 bg-white border border-zinc-200 rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all hover:bg-zinc-50"
+                                        className="h-7 px-3 text-[12px] font-normal text-[#1f1f1f] bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] rounded transition-colors whitespace-nowrap cursor-pointer"
                                     >
                                         Cancelar
                                     </button>
@@ -1421,12 +1421,12 @@ const Inbound = () => {
                         </div>
 
                         {/* Columna 3: Vista Etiqueta */}
-                        <div className="lg:col-span-1 bg-white p-1 rounded shadow-sm border border-gray-200 flex flex-col justify-between">
-                            <h2 className="text-[12px] font-semibold text-black uppercase tracking-wider mb-3 border-b border-zinc-100 pb-1.5 flex items-center gap-1.5">
+                        <div className="lg:col-span-1 bg-white p-2 rounded border border-[#d1d5db] shadow-sm flex flex-col justify-between">
+                            <span className="text-[12px] font-normal text-[#1f1f1f] uppercase tracking-normal mb-2 border-b border-[#f0f0f0] pb-1.5 block">
                                 Vista Etiqueta
-                            </h2>
+                            </span>
                             <div className="flex-grow flex flex-col justify-center items-center">
-                                <div className="border border-zinc-200 p-0 rounded bg-zinc-50 shadow-inner scale-[0.95] transform origin-center my-auto">
+                                <div className="border border-[#e5e5e5] p-0 rounded bg-[#fafafa] scale-[0.95] transform origin-center my-auto">
                                     <div ref={labelComponentRef} className="bg-white">
                                         <SandvikLabel
                                             data={itemData}
@@ -1438,20 +1438,17 @@ const Inbound = () => {
                                     </div>
                                 </div>
                             </div>
-                            <div className="w-full">
+                            <div className="w-full pt-2 border-t border-[#f0f0f0]">
                                 <button
                                     type="button"
                                     onClick={handlePrintClick}
-                                    className="h-9 w-full text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold cursor-pointer"
-                                    style={{ background: '#285f94' }}
-                                    onMouseEnter={e => !(!itemData) && (e.currentTarget.style.background = '#1e4a74')}
-                                    onMouseLeave={e => !(!itemData) && (e.currentTarget.style.background = '#285f94')}
+                                    className="h-7 w-full text-[12px] font-normal text-white rounded transition-colors whitespace-nowrap cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{ background: '#0067c0' }}
+                                    onMouseEnter={e => !(!itemData) && (e.currentTarget.style.background = '#005a9e')}
+                                    onMouseLeave={e => !(!itemData) && (e.currentTarget.style.background = '#0067c0')}
                                     disabled={!itemData}
                                 >
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                    </svg>
-                                    Imprimir
+                                    Imprimir etiqueta
                                 </button>
                             </div>
                         </div>
@@ -1492,50 +1489,45 @@ const Inbound = () => {
                                     </div>
                                     
                                     <div className="mt-4 space-y-2">
-                                        <div className="text-[11px] uppercase font-bold text-zinc-800 tracking-wider">Desglose de Diferencias (GRN)</div>
+                                        <div className="text-[11px] uppercase font-normal text-black tracking-normal">Desglose de Diferencias (GRN)</div>
                                         <div className="grid grid-cols-3 gap-2">
                                             <div className="p-2 bg-emerald-50 rounded border border-emerald-200 text-center">
-                                                <div className="text-[15px] font-extrabold text-emerald-900">{irStats.okLines}</div>
-                                                <div className="text-[9.5px] uppercase tracking-wider text-emerald-800 font-bold leading-tight">Sin Dif.</div>
+                                                <div className="text-[14px] font-normal text-emerald-900">{irStats.okLines}</div>
+                                                <div className="text-[9.5px] uppercase tracking-normal text-emerald-800 font-normal leading-tight">Sin Dif.</div>
                                             </div>
                                             <div className="p-2 bg-red-50 rounded border border-red-200 text-center">
-                                                <div className="text-[15px] font-extrabold text-red-900">{irStats.negativeDiffLines}</div>
-                                                <div className="text-[9.5px] uppercase tracking-wider text-red-800 font-bold leading-tight">Faltantes</div>
+                                                <div className="text-[14px] font-normal text-red-900">{irStats.negativeDiffLines}</div>
+                                                <div className="text-[9.5px] uppercase tracking-normal text-red-800 font-normal leading-tight">Faltantes</div>
                                             </div>
                                             <div className="p-2 bg-blue-50 rounded border border-blue-200 text-center">
-                                                <div className="text-[15px] font-extrabold text-blue-900">{irStats.positiveDiffLines}</div>
-                                                <div className="text-[9.5px] uppercase tracking-wider text-blue-800 font-bold leading-tight">Sobrantes</div>
+                                                <div className="text-[14px] font-normal text-blue-900">{irStats.positiveDiffLines}</div>
+                                                <div className="text-[9.5px] uppercase tracking-normal text-blue-800 font-normal leading-tight">Sobrantes</div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             ) : (
-                                <div className="flex-grow flex flex-col items-center justify-center text-zinc-700 p-4 text-center">
-                                    <svg className="w-10 h-10 text-zinc-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                                <div className="flex-grow flex flex-col items-center justify-center text-black p-4 text-center">
+                                    <svg className="w-10 h-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                                     </svg>
-                                    <span className="italic text-[11px] uppercase tracking-wider font-medium">Ingrese una Import Reference para activar el tablero</span>
+                                    <span className="italic text-[11px] uppercase tracking-normal font-normal">Ingrese una Import Reference para activar el tablero</span>
                                 </div>
                             )}
                         </div>
                     </div>
                 </form>
 
-                <div className="bg-white border border-zinc-200 rounded-lg shadow-sm overflow-hidden lg:flex-grow lg:flex lg:flex-col lg:min-h-0">
-                    <div className="bg-zinc-50/50 p-2 border-b border-zinc-100 flex flex-col md:flex-row justify-between items-center lg:flex-shrink-0 gap-3">
-                        <h2 className="text-base font-medium  text-black tracking-normal uppercase">Registros de ingreso</h2>
+                <div className="bg-white border border-[#d1d5db] rounded shadow-sm overflow-hidden lg:flex-grow lg:flex lg:flex-col lg:min-h-0 font-['Segoe_UI',Tahoma,sans-serif] text-[#1f1f1f]">
+                    <div className="bg-[#fbfbfb] px-3 py-2 border-b border-[#e5e5e5] flex flex-col md:flex-row justify-between items-center lg:flex-shrink-0 gap-2.5">
+                        <span className="text-[12px] font-normal text-[#1f1f1f] uppercase tracking-normal">Registros de ingreso</span>
                         <div className="flex flex-wrap gap-2 items-center justify-end">
                             <div className="relative w-full sm:w-64">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none flex items-center text-zinc-400 z-10">
-                                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                    </svg>
-                                </span>
                                 <input
                                     type="text"
-                                    placeholder="BUSCAR..."
-                                    className="w-full h-9 text-[10px] bg-white border border-zinc-200 rounded-lg outline-none text-black uppercase tracking-wider focus:border-zinc-400 transition-all"
-                                    style={{ paddingLeft: '32px', paddingRight: searchTerm ? '30px' : '12px' }}
+                                    placeholder="Buscar en registros..."
+                                    className="w-full h-7 px-2 text-[12px] bg-white border border-[#d1d5db] rounded outline-none text-[#1f1f1f] font-normal tracking-normal focus:border-[#0067c0] transition-colors"
+                                    style={{ paddingRight: searchTerm ? '24px' : '8px' }}
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
@@ -1543,7 +1535,7 @@ const Inbound = () => {
                                     <button
                                         type="button"
                                         onClick={() => setSearchTerm('')}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center text-zinc-400 hover:text-zinc-600 transition-all z-20 text-[11px] font-medium "
+                                        className="absolute right-1.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center text-[#7f7f7f] hover:text-[#1f1f1f] transition-colors z-20 text-[10px] font-normal cursor-pointer"
                                         title="Limpiar búsqueda"
                                     >
                                         ✕
@@ -1554,88 +1546,102 @@ const Inbound = () => {
                             <select
                                 onChange={(e) => setCurrentVersion(e.target.value)}
                                 value={currentVersion}
-                                className="h-9 p-1 text-[12px] text-black bg-white border border-zinc-200 rounded-lg outline-none cursor-pointer uppercase w-full sm:w-40 focus:border-zinc-400 transition-all"
+                                className="h-7 px-2 text-[12px] text-[#1f1f1f] bg-white border border-[#d1d5db] rounded outline-none cursor-pointer font-normal w-full sm:w-36 focus:border-[#0067c0] transition-colors"
                             >
                                 <option value="">ACTUAL</option>
                                 {versions.map(v => <option key={v} value={v}>{formatDate(v, false)}</option>)}
                             </select>
 
                             <button
+                                type="button"
                                 onClick={() => {
                                     const offset = new Date().getTimezoneOffset();
                                     const baseUrl = currentVersion ? `/api/export_log?version_date=${currentVersion}` : '/api/export_log';
                                     window.location.href = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}timezone_offset=${offset}`;
                                 }}
-                                className="h-9 px-4 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all whitespace-nowrap"
-                                style={{ background: '#285f94' }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'}
-                                onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
+                                className="h-7 px-3 text-[12px] font-normal text-[#1f1f1f] bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] rounded transition-colors whitespace-nowrap cursor-pointer"
                             >
                                 Exportar
                             </button>
 
                             <button
+                                type="button"
                                 onClick={handleArchive}
-                                className="h-9 px-4 text-[12px] text-white rounded-lg shadow-sm flex items-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all whitespace-nowrap"
-                                style={{ background: '#285f94' }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'}
-                                onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
+                                className="h-7 px-3 text-[12px] font-normal text-white bg-[#0067c0] hover:bg-[#005a9e] rounded transition-colors whitespace-nowrap cursor-pointer"
                             >
                                 Archivar
                             </button>
                         </div>
                     </div>
                     <div className="overflow-x-auto lg:flex-grow lg:overflow-y-auto min-h-0">
-                        <table className="w-full text-xs border-collapse">
+                        <table className="w-full text-[12px] border-collapse font-normal">
                             <thead className="sticky top-0 z-20">
-                                <tr style={{ background: '#111827' }} className="text-white">
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium  uppercase tracking-wider">Ref</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium  uppercase tracking-wider">Waybill</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium  uppercase tracking-wider">Item</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium  uppercase tracking-wider">Desc</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium  uppercase tracking-wider">Orig</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium  uppercase tracking-wider">New</th>
-                                    <th className="px-2 py-2 text-center text-[12px] font-medium  uppercase tracking-wider">Qty</th>
-                                    <th className="px-2 py-2 text-center text-[12px] font-medium  uppercase tracking-wider">Esp.</th>
-                                    <th className="px-2 py-2 text-center text-[12px] font-medium  uppercase tracking-wider">Dif.</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium  uppercase tracking-wider">Fecha</th>
-                                    <th className="px-2 py-2 text-left text-[12px] font-medium  uppercase tracking-wider">User</th>
-                                    <th className="px-2 py-2 text-center text-[12px] font-medium  uppercase tracking-wider">Acc</th>
+                                <tr className="bg-[#354a5f] text-white border-b border-[#2a3c4d]">
+                                    <th className="px-2.5 py-1.5 text-left text-[11.5px] font-normal tracking-normal">Ref</th>
+                                    <th className="px-2.5 py-1.5 text-left text-[11.5px] font-normal tracking-normal">Waybill</th>
+                                    <th className="px-2.5 py-1.5 text-left text-[11.5px] font-normal tracking-normal">Item</th>
+                                    <th className="px-2.5 py-1.5 text-left text-[11.5px] font-normal tracking-normal">Desc</th>
+                                    <th className="px-2.5 py-1.5 text-left text-[11.5px] font-normal tracking-normal">Orig</th>
+                                    <th className="px-2.5 py-1.5 text-left text-[11.5px] font-normal tracking-normal">New</th>
+                                    <th className="px-2.5 py-1.5 text-center text-[11.5px] font-normal tracking-normal">Qty</th>
+                                    <th className="px-2.5 py-1.5 text-center text-[11.5px] font-normal tracking-normal">Esp.</th>
+                                    <th className="px-2.5 py-1.5 text-center text-[11.5px] font-normal tracking-normal">Dif.</th>
+                                    <th className="px-2.5 py-1.5 text-left text-[11.5px] font-normal tracking-normal">Fecha</th>
+                                    <th className="px-2.5 py-1.5 text-left text-[11.5px] font-normal tracking-normal">User</th>
+                                    <th className="px-2.5 py-1.5 text-center text-[11.5px] font-normal tracking-normal">Acc</th>
                                 </tr>
                             </thead>
 
-                            <tbody className="divide-y divide-gray-200">
-                                {filteredLogs.length === 0 ? <tr><td colSpan="12" className="text-center py-4 font-normal text-black/60 uppercase tracking-widest">No hay registros registrados</td></tr> : filteredLogs.map((log, idx) => (
-                                    <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-zinc-50/50'} hover:bg-blue-50 border-b border-gray-100 ${log.isPending ? 'border-l-4 border-amber-400' : ''}`}>
-                                        <td className="px-2 py-1 font-normal text-sm text-black">{log.importReference}</td>
-                                        <td className="px-2 py-1 font-normal text-sm text-black">{log.waybill}</td>
-                                        <td className="px-2 py-1 font-normal text-sm text-black">{log.itemCode}</td>
-                                        <td className="px-2 py-1 truncate max-w-[180px] font-normal text-sm text-black">{log.itemDescription}</td>
-                                        <td className="px-2 py-1 font-normal text-sm text-blue-900">{log.binLocation}</td>
-                                        <td className="px-2 py-1 font-normal text-sm text-emerald-900">{log.relocatedBin}</td>
-                                        <td className="px-2 py-1 text-center font-normal text-sm text-black">{log.qtyReceived}</td>
-                                        <td className="px-2 py-1 text-center font-normal text-sm text-black">{log.expected_qty || 0}</td>
-                                        <td className={`px-2 py-1 text-center font-normal text-sm ${(log.difference || 0) > 0 ? 'text-blue-700' :
-                                            (log.difference || 0) < 0 ? 'text-red-700' : 'text-gray-950'
-                                            }`}>{log.difference || 0}</td>
-                                        <td className="px-2 py-1 whitespace-nowrap text-sm text-black font-normal">{formatDate(log.timestamp)}</td>
-                                        <td className="px-2 py-1 uppercase font-normal text-sm text-black">{log.username}</td>
-                                        <td className="px-2 py-0.5">
-                                            <div className="flex gap-1 justify-center">
-                                                <button type="button" onClick={(e) => { e.stopPropagation(); startEdit(log); }} className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Editar">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
-                                                    </svg>
-                                                </button>
-                                                <button type="button" onClick={(e) => { e.stopPropagation(); handleDelete(log.id); }} className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors" title="Eliminar">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                                                    </svg>
-                                                </button>
-                                            </div>
+                            <tbody className="divide-y divide-[#e5e5e5]">
+                                {filteredLogs.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="12" className="text-center py-6 font-normal text-[#7f7f7f] tracking-normal">
+                                            No hay registros registrados
                                         </td>
                                     </tr>
-                                ))}
+                                ) : (
+                                    filteredLogs.map((log, idx) => (
+                                        <tr
+                                            key={log.id}
+                                            className={`${idx % 2 === 0 ? 'bg-white' : 'bg-[#fafafa]'} hover:bg-[#edf3f9] border-b border-[#f0f0f0] transition-colors ${log.isPending ? 'border-l-2 border-[#d83b01]' : ''}`}
+                                        >
+                                            <td className="px-2.5 py-1.5 font-normal text-[12px] text-[#1f1f1f]">{log.importReference}</td>
+                                            <td className="px-2.5 py-1.5 font-normal text-[12px] text-[#1f1f1f]">{log.waybill}</td>
+                                            <td className="px-2.5 py-1.5 font-normal text-[12px] text-[#1f1f1f]">{log.itemCode}</td>
+                                            <td className="px-2.5 py-1.5 truncate max-w-[180px] font-normal text-[12px] text-[#1f1f1f]">{log.itemDescription}</td>
+                                            <td className="px-2.5 py-1.5 font-normal text-[12px] text-[#0067c0]">{log.binLocation}</td>
+                                            <td className="px-2.5 py-1.5 font-normal text-[12px] text-[#107c41]">{log.relocatedBin}</td>
+                                            <td className="px-2.5 py-1.5 text-center font-normal text-[12px] text-[#1f1f1f]">{log.qtyReceived}</td>
+                                            <td className="px-2.5 py-1.5 text-center font-normal text-[12px] text-[#1f1f1f]">{log.expected_qty || 0}</td>
+                                            <td className={`px-2.5 py-1.5 text-center font-normal text-[12px] ${(log.difference || 0) > 0 ? 'text-[#0067c0]' :
+                                                (log.difference || 0) < 0 ? 'text-[#d13438]' : 'text-[#1f1f1f]'
+                                                }`}>{log.difference || 0}</td>
+                                            <td className="px-2.5 py-1.5 whitespace-nowrap text-[12px] text-[#1f1f1f] font-normal">{formatDate(log.timestamp)}</td>
+                                            <td className="px-2.5 py-1.5 uppercase font-normal text-[12px] text-[#1f1f1f]">{log.username}</td>
+                                            <td className="px-2.5 py-1">
+                                                <div className="flex gap-1 justify-center items-center">
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => { e.stopPropagation(); startEdit(log); }}
+                                                        className="px-1.5 py-0.5 text-[11px] text-[#0067c0] hover:underline font-normal rounded hover:bg-[#f0f6fc] transition-colors cursor-pointer"
+                                                        title="Editar registro"
+                                                    >
+                                                        Editar
+                                                    </button>
+                                                    <span className="text-[#d1d5db]">|</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => { e.stopPropagation(); handleDelete(log.id); }}
+                                                        className="px-1.5 py-0.5 text-[11px] text-[#d13438] hover:underline font-normal rounded hover:bg-[#fde7e9] transition-colors cursor-pointer"
+                                                        title="Eliminar registro"
+                                                    >
+                                                        Eliminar
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>

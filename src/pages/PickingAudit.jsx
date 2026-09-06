@@ -459,46 +459,45 @@ const PickingAudit = () => {
     // -- Render --
     if (auditActive) {
         return (
-            <div className="container-wrapper max-w-5xl mx-auto px-4 py-4">
-
-                <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-                    <div className="flex justify-between items-start mb-6 border-b pb-4">
+            <div className="container-wrapper max-w-5xl mx-auto px-4 py-4 font-['Segoe_UI',Tahoma,sans-serif] font-normal tracking-normal text-[12px] text-[#1f1f1f]">
+                <div className="bg-white p-5 rounded border border-[#e5e5e5] shadow-sm">
+                    <div className="flex justify-between items-start mb-4 border-b border-[#e5e5e5] pb-3">
                         <div>
-                            <h1 className="text-2xl font-medium  text-gray-800">Auditoría en Curso</h1>
-                            <p className="text-gray-600">Orden: <span className="font-mono font-medium  text-black">{orderNumber} / {despatchNumber}</span></p>
-                            <p className="text-gray-600">Cliente: <span className="font-medium  text-black">{customerCode} - {customerName}</span></p>
+                            <h1 className="text-[16px] font-normal text-[#1f1f1f]">Auditoría en Curso</h1>
+                            <p className="text-[#616161] text-[12px]">Orden: <span className="text-[#1f1f1f]">{orderNumber} / {despatchNumber}</span></p>
+                            <p className="text-[#616161] text-[12px]">Cliente: <span className="text-[#1f1f1f]">{customerCode} - {customerName}</span></p>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
-                            <button onClick={handleReset} className="btn-sap btn-secondary text-xs">Cancelar / Salir</button>
-                            {!isOnline && <span className="text-[9px] font-medium  text-red-500 animate-pulse">MODO OFFLINE</span>}
+                        <div className="flex flex-col items-end gap-1.5">
+                            <button onClick={handleReset} className="h-7 px-3 bg-white hover:bg-[#f5f5f5] text-[#1f1f1f] border border-[#d1d5db] rounded text-[12px] font-normal transition-colors cursor-pointer">Cancelar / Salir</button>
+                            {!isOnline && <span className="text-[10px] font-normal text-[#a80000]">MODO OFFLINE</span>}
                         </div>
                     </div>
 
                     {/* Active Package Selector Compact */}
-                    <div className="mb-4 p-2 px-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center gap-3">
-                        <span className="text-[10px] uppercase font-medium  text-slate-500 whitespace-nowrap">Bulto Activo:</span>
+                    <div className="mb-4 p-2 px-3 bg-[#fafafa] rounded border border-[#e5e5e5] flex items-center gap-3">
+                        <span className="text-[10px] uppercase text-[#616161] whitespace-nowrap">Bulto Activo:</span>
                         <div className="flex gap-1.5 flex-wrap">
                             {Array.from({ length: parseInt(packagesCount) || 1 }).map((_, i) => (
                                 <div key={i + 1} className="relative">
                                     <button
                                         onClick={() => setActivePackage(i + 1)}
-                                        className={`w-8 h-8 rounded-full font-medium  text-xs transition-all ${activePackage === i + 1
-                                            ? 'bg-[#285f94] text-white shadow-sm'
-                                            : 'bg-white text-slate-600 border border-slate-300 hover:border-[#285f94]'}`}
+                                        className={`w-7 h-7 rounded text-[12px] font-normal transition-colors cursor-pointer ${activePackage === i + 1
+                                            ? 'bg-[#0067c0] text-white shadow-sm'
+                                            : 'bg-white text-[#1f1f1f] border border-[#d1d5db] hover:bg-[#f5f5f5]'}`}
                                     >
                                         {i + 1}
                                     </button>
                                     {activePackage === i + 1 && (
                                         <button
                                             onClick={() => setDimensionScannerOpen(true)}
-                                            className="absolute -top-1.5 -right-1.5 bg-white border border-[#285f94] rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow-sm hover:bg-slate-50"
+                                            className="absolute -top-1 -right-1 bg-white border border-[#0067c0] rounded-full w-4 h-4 flex items-center justify-center text-[9px] shadow-sm hover:bg-[#f5f5f5] cursor-pointer"
                                             title="Medir Dimensiones"
                                         >
-                                            📏
+                                            M
                                         </button>
                                     )}
                                     {packageDimensions[i + 1] && (
-                                        <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-green-500 rounded-full border border-white"></div>
+                                        <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#107c41] rounded-full border border-white"></div>
                                     )}
                                 </div>
                             ))}
@@ -508,7 +507,6 @@ const PickingAudit = () => {
                                     <button
                                         onClick={() => {
                                             const currentTotal = parseInt(packagesCount);
-                                            // Verificar si el último bulto tiene algo asignado
                                             let hasAssignments = false;
                                             Object.values(packageAssignments).forEach(itemPkgs => {
                                                 if (itemPkgs[currentTotal] > 0) hasAssignments = true;
@@ -520,7 +518,7 @@ const PickingAudit = () => {
                                             setPackagesCount(newCount.toString());
                                             if (activePackage > newCount) setActivePackage(newCount);
                                         }}
-                                        className="w-8 h-8 rounded-full border border-red-200 bg-red-50 text-red-500 font-medium  text-xs hover:bg-red-500 hover:text-white flex items-center justify-center transition-all"
+                                        className="w-7 h-7 rounded border border-[#fecaca] bg-white text-[#a80000] text-[12px] font-normal hover:bg-[#fef2f2] flex items-center justify-center transition-colors cursor-pointer"
                                         title="Eliminar Último Bulto"
                                     >
                                         −
@@ -539,22 +537,22 @@ const PickingAudit = () => {
                                             return updated;
                                         });
                                     }}
-                                    className="w-8 h-8 rounded-full border border-[#285f94] bg-white text-[#285f94] font-medium  text-xs hover:bg-[#285f94] hover:text-white flex items-center justify-center transition-all"
+                                    className="w-7 h-7 rounded border border-[#0067c0] bg-white text-[#0067c0] text-[12px] font-normal hover:bg-[#f0f7ff] flex items-center justify-center transition-colors cursor-pointer"
                                     title="Añadir Bulto"
                                 >
                                     +
                                 </button>
                             </div>
                         </div>
-                        <div className="hidden sm:block flex-grow text-[11px] text-slate-500 italic">
-                            Asignando al <strong>Bulto {activePackage}</strong>.
+                        <div className="hidden sm:block flex-grow text-[11px] text-[#616161]">
+                            Asignando al Bulto {activePackage}.
                         </div>
                     </div>
 
                     {/* Scan Input */}
-                    <div className="mb-6 flex gap-2">
+                    <div className="mb-4 flex gap-2">
                         <div className="flex-grow">
-                            <label className="form-label">Item Code (Scan)</label>
+                            <label className="text-[10px] uppercase text-[#616161] block mb-0.5">Item Code (Scan)</label>
                             <input
                                 type="text"
                                 value={itemCodeInput}
@@ -565,60 +563,59 @@ const PickingAudit = () => {
                                         handleScan(itemCodeInput);
                                     }
                                 }}
-                                className="w-full uppercase"
+                                className="w-full h-7 px-2 text-[12px] border border-[#d1d5db] rounded outline-none uppercase focus:border-[#0067c0] font-normal"
                                 placeholder="Escanear o escribir..."
                                 autoFocus
                             />
                         </div>
-                        <div className="flex items-end gap-2">
+                        <div className="flex items-end gap-1.5">
                             <button
                                 onClick={() => setScannerOpen(true)}
-                                className="btn-sap btn-secondary h-[38px] px-3"
+                                className="h-7 px-3 bg-white hover:bg-[#f5f5f5] text-[#1f1f1f] border border-[#d1d5db] rounded text-[12px] font-normal transition-colors cursor-pointer"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1H1v2.5a.5.5 0 0 1-1 0zm12 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0V1h-2.5a.5.5 0 0 1-.5-.5M.5 12a.5.5 0 0 1 .5.5V15h2.5a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H15v-2.5a.5.5 0 0 1 .5-.5M4 4h1v1H4z" /><path d="M7 2H2v5h5zM3 3h3v3H3zm2 8H4v1h1z" /><path d="M7 9H2v5h5zm-4 1h3v3H3zm8-6h1v1h-1z" /><path d="M9 2h5v5H9zm1 1v3h3V3zM8 8v2h1v1H8v1h2v-2h1v2h1v-1h2v-1h-3V8zm2 2H9V9h1zm4 2h-1v1h-2v1h3zm-4 2v-1H8v1z" /><path d="M12 9h2V8h-2z" /></svg>
+                                Escáner
                             </button>
-                            <button onClick={() => handleScan(itemCodeInput)} className="btn-sap btn-secondary h-[38px]">Buscar</button>
+                            <button onClick={() => handleScan(itemCodeInput)} className="h-7 px-3 bg-[#0067c0] hover:bg-[#005a9e] text-white rounded text-[12px] font-normal transition-colors cursor-pointer">Buscar</button>
                         </div>
                     </div>
 
-                    {/* Table */}
                     {/* Desktop Table View */}
-                    <div className="hidden sm:block overflow-x-auto border border-gray-300 rounded mb-6">
-                        <table className="w-full text-left sap-table">
-                            <thead>
+                    <div className="hidden sm:block overflow-x-auto border border-[#e5e5e5] rounded mb-4">
+                        <table className="w-full text-left text-[11.5px] border-collapse">
+                            <thead className="bg-[#354a5f] text-white font-normal text-[11px]">
                                 <tr>
-                                    <th className="text-center w-12">Línea</th>
-                                    <th>Item</th>
-                                    <th>Descripción</th>
-                                    <th className="text-center w-16">Req</th>
-                                    <th className="text-center w-16">Scan</th>
-                                    <th className="text-center w-16">Dif</th>
+                                    <th className="px-2.5 py-1.5 text-center w-12 font-normal">Línea</th>
+                                    <th className="px-2.5 py-1.5 font-normal">Item</th>
+                                    <th className="px-2.5 py-1.5 font-normal">Descripción</th>
+                                    <th className="px-2.5 py-1.5 text-center w-16 font-normal">Req</th>
+                                    <th className="px-2.5 py-1.5 text-center w-16 font-normal">Scan</th>
+                                    <th className="px-2.5 py-1.5 text-center w-16 font-normal">Dif</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-[#f1f1f1]">
                                 {orderItems.map((item, idx) => {
                                     const diff = item.qty_scan - item.qty_req;
                                     const isComplete = item.qty_scan === item.qty_req;
                                     const isOver = item.qty_scan > item.qty_req;
 
                                     return (
-                                        <tr key={idx} className={isComplete ? 'bg-green-50' : isOver ? 'bg-red-50' : ''}>
-                                            <td className="text-center font-mono text-xs">{item.order_line}</td>
-                                            <td className="font-medium">
-                                                {item.code}
-                                                <div className="text-[10px] text-slate-500 flex gap-1 flex-wrap mt-1">
+                                        <tr key={idx} className={isComplete ? 'bg-[#f0fdf4]' : isOver ? 'bg-[#fef2f2]' : 'hover:bg-[#edf3f9]'}>
+                                            <td className="text-center text-[#616161] px-2.5 py-1.5">{item.order_line}</td>
+                                            <td className="px-2.5 py-1.5 font-normal">
+                                                <span className="text-[#0067c0]">{item.code}</span>
+                                                <div className="text-[10px] text-[#616161] flex gap-1 flex-wrap mt-0.5">
                                                     {Object.entries(packageAssignments[`${item.code}:${item.order_line || ''}`] || {})
                                                         .filter(([_, qty]) => qty > 0)
                                                         .map(([pkg, qty]) => (
-                                                            <span key={pkg} className="bg-slate-100 px-1 rounded border">B{pkg}: {qty}</span>
+                                                             <span key={pkg} className="bg-white px-1 rounded border border-[#d1d5db]">B{pkg}: {qty}</span>
                                                         ))
                                                     }
                                                 </div>
                                             </td>
-                                            <td className="text-sm truncate max-w-[200px]">{item.description}</td>
-                                            <td className="text-center">{item.qty_req}</td>
-                                            <td className="text-center font-medium ">{item.qty_scan}</td>
-                                            <td className={`text-center font-medium  ${diff !== 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                            <td className="px-2.5 py-1.5 truncate max-w-[200px] text-[#1f1f1f]">{item.description}</td>
+                                            <td className="px-2.5 py-1.5 text-center text-[#1f1f1f]">{item.qty_req}</td>
+                                            <td className="px-2.5 py-1.5 text-center text-[#1f1f1f]">{item.qty_scan}</td>
+                                            <td className={`px-2.5 py-1.5 text-center ${diff !== 0 ? 'text-[#a80000]' : 'text-[#107c41]'}`}>
                                                 {diff > 0 ? `+${diff}` : diff}
                                             </td>
                                         </tr>
@@ -628,56 +625,7 @@ const PickingAudit = () => {
                         </table>
                     </div>
 
-                    {/* Mobile Card View */}
-                    <div className="block sm:hidden space-y-3 mb-6">
-                        {orderItems.map((item, idx) => {
-                            const diff = item.qty_scan - item.qty_req;
-                            const isComplete = item.qty_scan === item.qty_req;
-                            const isOver = item.qty_scan > item.qty_req;
-
-                            return (
-                                <div key={idx} className={`p-4 rounded-lg shadow-sm border ${isComplete ? 'bg-green-50 border-green-200' : isOver ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
-                                    {/* Header */}
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div className="flex flex-col">
-                                            <span className="font-medium  text-lg text-gray-800">{item.code}</span>
-                                            <span className="text-[10px] font-mono text-gray-500">LÍNEA {item.order_line}</span>
-                                        </div>
-                                        <span className={`px-2 py-0.5 text-xs font-medium  rounded ${diff === 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                            {diff > 0 ? `+${diff}` : diff !== 0 ? diff : 'OK'}
-                                        </span>
-                                    </div>
-                                    <p className="text-xs text-gray-500 mb-2 truncate">{item.description}</p>
-
-                                    {/* Package Breakdown Mobile */}
-                                    <div className="flex flex-wrap gap-1 mb-3">
-                                        {Object.entries(packageAssignments[`${item.code}:${item.order_line || ''}`] || {})
-                                            .filter(([_, qty]) => qty > 0)
-                                            .map(([pkg, qty]) => (
-                                                <span key={pkg} className="text-[10px] bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-600 shadow-sm">
-                                                    B{pkg}: <span className="font-medium  text-slate-800">{qty}</span>
-                                                </span>
-                                            ))
-                                        }
-                                    </div>
-
-                                    {/* Grid */}
-                                    <div className="grid grid-cols-2 gap-4 text-sm bg-white/50 p-2 rounded">
-                                        <div className="flex flex-col border-r border-gray-200">
-                                            <span className="text-gray-500 text-[10px] uppercase tracking-wider">Requerido</span>
-                                            <span className="font-mono font-medium text-lg">{item.qty_req}</span>
-                                        </div>
-                                        <div className="flex flex-col items-end">
-                                            <span className="text-gray-500 text-[10px] uppercase tracking-wider">Escaneado</span>
-                                            <span className={`font-medium  text-xl ${diff !== 0 ? 'text-[#285f94]' : 'text-green-600'}`}>{item.qty_scan}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    <button onClick={handleFinalize} className="btn-sap btn-primary w-full py-3 text-lg">
+                    <button onClick={handleFinalize} className="w-full h-8 bg-[#0067c0] hover:bg-[#005a9e] text-white text-[12px] font-normal rounded transition-colors cursor-pointer shadow-sm">
                         Finalizar Auditoría
                     </button>
                 </div>
@@ -697,28 +645,28 @@ const PickingAudit = () => {
 
                 {/* Quantity Modal */}
                 {showQtyModal && scannedItem && (
-                    <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
-                        <div className="bg-white p-6 rounded-lg shadow-2xl max-w-sm w-full border-t-4 border-[#285f94]">
-                            <h3 className="text-xl font-medium  text-gray-800 mb-1">{scannedItem.code}</h3>
-                            <p className="text-sm text-gray-500 mb-4 truncate">{scannedItem.description}</p>
+                    <div className="fixed inset-0 bg-black/30 z-[100] flex items-center justify-center p-4">
+                        <div className="bg-white p-5 rounded shadow-lg max-w-sm w-full border border-[#d1d5db]">
+                            <h3 className="text-[14px] font-normal text-[#1f1f1f] mb-1">{scannedItem.code}</h3>
+                            <p className="text-[12px] text-[#616161] mb-3 truncate">{scannedItem.description}</p>
 
-                            <div className="bg-blue-50 p-3 rounded mb-4 flex justify-between text-sm">
+                            <div className="bg-[#f0f7ff] p-2.5 rounded border border-[#cce4ff] mb-3 flex justify-between text-[12px]">
                                 <div>
-                                    <span className="block text-gray-500 text-[10px] uppercase">Línea</span>
-                                    <span className="font-medium  text-lg">{scannedItem.order_line}</span>
+                                    <span className="block text-[#0067c0] text-[10px] uppercase">Línea</span>
+                                    <span className="text-[14px] text-[#1f1f1f]">{scannedItem.order_line}</span>
                                 </div>
                                 <div className="text-right">
-                                    <span className="block text-gray-500 text-[10px] uppercase">Auditado</span>
-                                    <span className="font-medium  text-lg text-[#285f94]">{scannedItem.qty_scan}</span>
+                                    <span className="block text-[#0067c0] text-[10px] uppercase">Auditado</span>
+                                    <span className="text-[14px] text-[#0067c0]">{scannedItem.qty_scan}</span>
                                 </div>
                             </div>
 
-                            <label className="form-label text-center block mb-2 font-medium ">CANTIDAD A SUMAR</label>
+                            <label className="text-center block mb-1 text-[10px] uppercase text-[#616161]">Cantidad a Sumar</label>
                             <input
                                 type="number"
                                 value={tempQty}
                                 onChange={e => setTempQty(e.target.value)}
-                                className="text-center text-3xl font-medium  w-full p-4 border-2 border-[#285f94] rounded mb-6"
+                                className="text-center text-2xl font-normal w-full p-2 border border-[#0067c0] rounded mb-4 outline-none"
                                 autoFocus
                                 onFocus={(e) => e.target.select()}
                                 onKeyDown={e => {
@@ -727,18 +675,18 @@ const PickingAudit = () => {
                                 }}
                             />
 
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 gap-2">
                                 <button
                                     onClick={() => setShowQtyModal(false)}
-                                    className="px-4 py-3 border border-gray-300 rounded text-gray-600 font-medium  hover:bg-gray-100"
+                                    className="h-7 border border-[#d1d5db] rounded text-[#1f1f1f] font-normal hover:bg-[#f5f5f5] transition-colors cursor-pointer text-[12px]"
                                 >
-                                    CANCELAR
+                                    Cancelar
                                 </button>
                                 <button
                                     onClick={confirmQuantity}
-                                    className="px-4 py-3 bg-[#285f94] text-white rounded font-medium  hover:bg-[#1e4a74] shadow-md"
+                                    className="h-7 bg-[#0067c0] text-white rounded font-normal hover:bg-[#005a9e] shadow-sm transition-colors cursor-pointer text-[12px]"
                                 >
-                                    CONFIRMAR
+                                    Confirmar
                                 </button>
                             </div>
                         </div>
@@ -747,13 +695,13 @@ const PickingAudit = () => {
 
                 {/* Confirmation Modal */}
                 {showConfirmModal && (
-                    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                        <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
-                            <h3 className="text-lg font-medium  text-yellow-600 mb-2">Diferencias Detectadas</h3>
-                            <p className="mb-4 text-gray-700">Hay ítems con diferencias. ¿Desea finalizar con errores?</p>
+                    <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4">
+                        <div className="bg-white p-5 rounded shadow-lg max-w-sm w-full border border-[#d1d5db]">
+                            <h3 className="text-[14px] font-normal text-[#794e00] mb-2">Diferencias Detectadas</h3>
+                            <p className="mb-4 text-[#616161] text-[12px]">Hay ítems con diferencias. ¿Desea finalizar con discrepancias?</p>
                             <div className="flex justify-end gap-2">
-                                <button onClick={() => setShowConfirmModal(false)} className="btn-sap btn-secondary">Cancelar</button>
-                                <button onClick={() => { setShowConfirmModal(false); setShowAssignmentModal(true); }} className="btn-sap btn-primary bg-yellow-500 border-yellow-600">Sí, Continuar</button>
+                                <button onClick={() => setShowConfirmModal(false)} className="h-7 px-3 bg-white hover:bg-[#f5f5f5] text-[#1f1f1f] border border-[#d1d5db] rounded text-[12px] font-normal cursor-pointer">Cancelar</button>
+                                <button onClick={() => { setShowConfirmModal(false); setShowAssignmentModal(true); }} className="h-7 px-3 bg-[#0067c0] hover:bg-[#005a9e] text-white rounded text-[12px] font-normal cursor-pointer">Sí, Continuar</button>
                             </div>
                         </div>
                     </div>
@@ -761,36 +709,35 @@ const PickingAudit = () => {
 
                 {/* Assignment Modal */}
                 {showAssignmentModal && (
-                    <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-                        <div className="bg-white p-6 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+                    <div className="fixed inset-0 bg-black/30 z-[60] flex items-center justify-center p-4">
+                        <div className="bg-white p-5 rounded shadow-lg max-w-4xl w-full max-h-[90vh] flex flex-col border border-[#d1d5db] font-['Segoe_UI',Tahoma,sans-serif]">
                             {/* Modal Header */}
-                            <div className="flex-shrink-0 flex justify-between items-center pb-3 border-b border-gray-200 mb-4">
+                            <div className="flex-shrink-0 flex justify-between items-center pb-2 border-b border-[#e5e5e5] mb-3">
                                 <div>
-                                    <h3 className="text-xl font-semibold text-gray-800">Distribuir Ítems en Bultos</h3>
-                                    <p className="text-xs text-gray-500">Asigne las cantidades escaneadas a cada bulto antes de finalizar la auditoría</p>
+                                    <h3 className="text-[14px] font-normal text-[#1f1f1f]">Distribuir Ítems en Bultos</h3>
+                                    <p className="text-[11px] text-[#616161]">Asigne las cantidades escaneadas a cada bulto antes de finalizar la auditoría</p>
                                 </div>
-                                <span className="bg-blue-50 text-[#285f94] text-xs font-semibold px-3 py-1 rounded-full border border-blue-200">
+                                <span className="bg-[#f0f7ff] text-[#0067c0] text-[11px] font-normal px-2.5 py-0.5 rounded border border-[#cce4ff]">
                                     Total Bultos: {packagesCount || 1}
                                 </span>
                             </div>
 
                             {/* Scrollable Content */}
                             <div className="flex-1 overflow-y-auto pr-1">
-                                {/* Desktop View */}
-                                <div className="hidden sm:block overflow-x-auto">
-                                    <table className="w-full text-sm border-collapse">
-                                        <thead>
-                                            <tr className="bg-gray-100">
-                                                <th className="p-2 text-left border w-16">Línea</th>
-                                                <th className="p-2 text-left border">Item</th>
-                                                <th className="p-2 text-center border w-24">Total Scan</th>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-[11.5px] border-collapse">
+                                        <thead className="bg-[#354a5f] text-white font-normal text-[11px]">
+                                            <tr>
+                                                <th className="p-1.5 text-left border border-[#4a5f7f] w-16 font-normal">Línea</th>
+                                                <th className="p-1.5 text-left border border-[#4a5f7f] font-normal">Item</th>
+                                                <th className="p-1.5 text-center border border-[#4a5f7f] w-24 font-normal">Total Scan</th>
                                                 {Array.from({ length: parseInt(packagesCount) || 1 }).map((_, i) => (
-                                                    <th key={i} className="p-2 text-center border w-20">Bulto {i + 1}</th>
+                                                    <th key={i} className="p-1.5 text-center border border-[#4a5f7f] w-20 font-normal">Bulto {i + 1}</th>
                                                 ))}
-                                                <th className="p-2 text-center border w-24">Asignado</th>
+                                                <th className="p-1.5 text-center border border-[#4a5f7f] w-24 font-normal">Asignado</th>
                                             </tr>
                                         </thead>
-                                        <tbody>
+                                        <tbody className="divide-y divide-[#f1f1f1]">
                                             {orderItems.map((item, idx) => {
                                                 const itemKey = `${item.code}:${item.order_line || ''}`;
                                                 const assignments = packageAssignments[itemKey] || {};
@@ -798,26 +745,26 @@ const PickingAudit = () => {
                                                 const isMatch = totalAssigned === item.qty_scan;
 
                                                 return (
-                                                    <tr key={idx} className="border-b hover:bg-gray-50">
-                                                        <td className="p-2 border text-center font-mono text-xs">{item.order_line}</td>
-                                                        <td className="p-2 border font-medium">
-                                                            {item.code}
-                                                            <div className="text-xs text-gray-500 truncate max-w-xs">{item.description}</div>
+                                                    <tr key={idx} className="border-b border-[#e5e5e5] hover:bg-[#f9f9f9]">
+                                                        <td className="p-1.5 border border-[#e5e5e5] text-center text-[#616161]">{item.order_line}</td>
+                                                        <td className="p-1.5 border border-[#e5e5e5] font-normal">
+                                                            <span className="text-[#0067c0]">{item.code}</span>
+                                                            <div className="text-[11px] text-[#616161] truncate max-w-xs">{item.description}</div>
                                                         </td>
-                                                        <td className="p-2 text-center border font-medium ">{item.qty_scan}</td>
+                                                        <td className="p-1.5 text-center border border-[#e5e5e5] text-[#1f1f1f]">{item.qty_scan}</td>
                                                         {Array.from({ length: parseInt(packagesCount) || 1 }).map((_, i) => (
-                                                            <td key={i} className="p-1 border text-center">
+                                                            <td key={i} className="p-1 border border-[#e5e5e5] text-center">
                                                                 <input
                                                                     type="number"
                                                                     min="0"
-                                                                    className="w-16 text-center border rounded p-1"
+                                                                    className="w-14 text-center border border-[#d1d5db] rounded h-6 text-[12px] outline-none focus:border-[#0067c0]"
                                                                     value={assignments[i + 1] || 0}
                                                                     onChange={(e) => handleAssignmentChange(itemKey, i + 1, e.target.value)}
                                                                     onFocus={(e) => e.target.select()}
                                                                 />
                                                             </td>
                                                         ))}
-                                                        <td className={`p-2 text-center border font-medium  ${isMatch ? 'text-green-600' : 'text-red-600'}`}>
+                                                        <td className={`p-1.5 text-center border border-[#e5e5e5] ${isMatch ? 'text-[#107c41]' : 'text-[#a80000]'}`}>
                                                             {totalAssigned}
                                                         </td>
                                                     </tr>
@@ -826,78 +773,23 @@ const PickingAudit = () => {
                                         </tbody>
                                     </table>
                                 </div>
-
-                                {/* Mobile View */}
-                                <div className="block sm:hidden space-y-4">
-                                    {orderItems.map((item, idx) => {
-                                        const itemKey = `${item.code}:${item.order_line || ''}`;
-                                        const assignments = packageAssignments[itemKey] || {};
-                                        const totalAssigned = Object.values(assignments).reduce((a, b) => a + b, 0);
-                                        const isMatch = totalAssigned === item.qty_scan;
-                                        const pkgCount = parseInt(packagesCount) || 1;
-
-                                        return (
-                                            <div key={idx} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <div>
-                                                        <div className="font-medium  text-gray-800">{item.code}</div>
-                                                        <div className="text-xs text-gray-500 truncate">{item.description}</div>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <span className="text-[10px] font-mono text-gray-400">LÍNEA {item.order_line}</span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex justify-between items-center mb-3 text-sm">
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[10px] uppercase text-gray-500">Escaneado</span>
-                                                        <span className="font-medium  text-lg">{item.qty_scan}</span>
-                                                    </div>
-                                                    <div className="flex flex-col items-end">
-                                                        <span className="text-[10px] uppercase text-gray-500">Asignado</span>
-                                                        <span className={`font-medium  text-lg ${isMatch ? 'text-green-600' : 'text-red-600'}`}>
-                                                            {totalAssigned}
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    {Array.from({ length: pkgCount }).map((_, i) => (
-                                                        <div key={i} className="flex flex-col">
-                                                            <label className="text-[10px] uppercase text-gray-500 mb-1">Bulto {i + 1}</label>
-                                                            <input
-                                                                type="number"
-                                                                min="0"
-                                                                className="w-full text-center border rounded p-2 text-lg font-medium  bg-white focus:ring-2 focus:ring-[#285f94]"
-                                                                value={assignments[i + 1] || 0}
-                                                                onChange={(e) => handleAssignmentChange(itemKey, i + 1, e.target.value)}
-                                                                onFocus={(e) => e.target.select()}
-                                                            />
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
                             </div>
 
                             {/* Sticky Modal Footer */}
-                            <div className="flex-shrink-0 flex justify-end gap-3 pt-4 mt-4 border-t border-gray-200 bg-white">
+                            <div className="flex-shrink-0 flex justify-end gap-2 pt-3 mt-3 border-t border-[#e5e5e5] bg-white">
                                 <button
                                     type="button"
                                     onClick={() => setShowAssignmentModal(false)}
-                                    className="px-5 py-2.5 border border-gray-300 rounded-md text-gray-700 font-medium hover:bg-gray-100 transition-colors"
+                                    className="h-7 px-3 border border-[#d1d5db] rounded text-[#1f1f1f] hover:bg-[#f5f5f5] text-[12px] font-normal cursor-pointer"
                                 >
                                     Atrás
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => submitAudit()}
-                                    className="px-6 py-2.5 bg-green-600 text-white font-semibold rounded-md shadow-md hover:bg-green-700 transition-all flex items-center gap-2 text-base"
+                                    className="h-7 px-3 bg-[#0067c0] hover:bg-[#005a9e] text-white font-normal rounded shadow-sm text-[12px] transition-colors cursor-pointer"
                                 >
-                                    <span>💾</span>
-                                    <span>Guardar y Finalizar Auditoría</span>
+                                    Guardar y Finalizar Auditoría
                                 </button>
                             </div>
                         </div>
@@ -922,30 +814,32 @@ const PickingAudit = () => {
     }
 
     return (
-        <div className="container-wrapper max-w-3xl mx-auto px-2 py-2">
+        <div className="container-wrapper max-w-3xl mx-auto px-2 py-2 font-['Segoe_UI',Tahoma,sans-serif] font-normal tracking-normal text-[12px] text-[#1f1f1f]">
 
-            <div className="bg-white p-4 rounded-lg border border-gray-200">
-                <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-[16px] font-normal text-black">Cargar Pedido Picking</h1>
-                    {!isOnline && <span className="text-[9px] font-medium  text-red-500 border border-red-200 px-2 py-0.5 rounded">MODO OFFLINE</span>}
+            <div className="bg-white p-4 rounded border border-[#e5e5e5] shadow-sm">
+                <div className="flex justify-between items-center mb-4">
+                    <h1 className="text-[15px] font-normal text-[#1f1f1f]">Cargar Pedido Picking</h1>
+                    {!isOnline && <span className="text-[10px] font-normal text-[#a80000] border border-[#fecaca] px-2 py-0.5 rounded bg-[#fef2f2]">MODO OFFLINE</span>}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                     <div>
-                        <label className="form-label">Order Number</label>
+                        <label className="text-[10px] uppercase text-[#616161] block mb-0.5">Order Number</label>
                         <input
                             type="text"
                             value={orderNumber}
                             onChange={e => setOrderNumber(e.target.value)}
+                            className="w-full h-7 px-2 text-[12px] border border-[#d1d5db] rounded outline-none focus:border-[#0067c0] font-normal"
                             placeholder="Ej: 0043785"
                         />
                     </div>
                     <div>
-                        <label className="form-label">Despatch Number</label>
+                        <label className="text-[10px] uppercase text-[#616161] block mb-0.5">Despatch Number</label>
                         <input
                             type="text"
                             value={despatchNumber}
                             onChange={e => setDespatchNumber(e.target.value)}
+                            className="w-full h-7 px-2 text-[12px] border border-[#d1d5db] rounded outline-none focus:border-[#0067c0] font-normal"
                             placeholder="Ej: 00"
                         />
                     </div>
@@ -954,7 +848,7 @@ const PickingAudit = () => {
                 <button
                     onClick={handleLoadOrder}
                     disabled={loadingOrder}
-                    className="btn-sap btn-primary w-full py-3 mb-8 text-base shadow-sm"
+                    className="w-full h-8 bg-[#0067c0] hover:bg-[#005a9e] text-white text-[12px] font-normal rounded transition-colors cursor-pointer shadow-sm mb-6"
                 >
                     {loadingOrder ? 'Cargando...' : 'Comenzar Auditoría'}
                 </button>
@@ -962,15 +856,15 @@ const PickingAudit = () => {
                 {/* Tracking Table */}
                 <div>
                     <div className="flex justify-between items-center mb-2">
-                        <h3 className="font-medium text-gray-700">Pedidos Recientes</h3>
+                        <h3 className="text-[13px] font-normal text-[#1f1f1f]">Pedidos Recientes</h3>
                         <button
                             onClick={loadTrackingData}
                             disabled={loadingTracking}
-                            className={`flex items-center gap-2 text-sm transition-all ${loadingTracking ? 'text-gray-400 cursor-not-allowed' : 'text-[#285f94] hover:underline'}`}
+                            className={`flex items-center gap-1.5 text-[11.5px] transition-colors cursor-pointer ${loadingTracking ? 'text-[#a1a1aa] cursor-not-allowed' : 'text-[#0067c0] hover:underline'}`}
                         >
                             <span>Actualizar</span>
                             {loadingTracking && (
-                                <svg className="animate-spin h-3.5 w-3.5 text-[#285f94]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <svg className="animate-spin h-3 w-3 text-[#0067c0]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
@@ -978,30 +872,29 @@ const PickingAudit = () => {
                         </button>
                     </div>
                     {/* Desktop View */}
-                    <div className="hidden sm:block border border-gray-200 rounded overflow-hidden max-h-[500px] overflow-y-auto">
-                        <table className="w-full text-left text-sm sap-table">
-                            <thead className="sticky top-0 z-10 bg-slate-700 text-white shadow-sm">
+                    <div className="hidden sm:block border border-[#e5e5e5] rounded overflow-hidden max-h-[500px] overflow-y-auto">
+                        <table className="w-full text-left text-[11.5px] border-collapse">
+                            <thead className="sticky top-0 z-10 bg-[#354a5f] text-white text-[11px] font-normal">
                                 <tr>
-                                    <th className="py-2.5 px-3 font-medium ">Order</th>
-                                    <th className="py-2.5 px-3 font-medium ">Despatch</th>
-                                    <th className="py-2.5 px-3 font-medium ">Cód. Cliente</th>
-                                    <th className="py-2.5 px-3 font-medium ">Cliente</th>
-                                    <th className="py-2.5 px-3 font-medium  text-center">Líneas</th>
+                                    <th className="py-2 px-2.5 font-normal">Order</th>
+                                    <th className="py-2 px-2.5 font-normal">Despatch</th>
+                                    <th className="py-2 px-2.5 font-normal">Cód. Cliente</th>
+                                    <th className="py-2 px-2.5 font-normal">Cliente</th>
+                                    <th className="py-2 px-2.5 font-normal text-center">Líneas</th>
                                     <th
-                                        className="py-2.5 px-3 font-medium  cursor-pointer hover:bg-slate-600 select-none flex items-center gap-1"
+                                        className="py-2 px-2.5 font-normal cursor-pointer select-none"
                                         onClick={() => {
                                             setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc');
                                         }}
                                         title="Ordenar por fecha"
                                     >
-                                        Fecha
-                                        <span className="text-xs">{sortOrder === 'asc' ? '▲' : '▼'}</span>
+                                        Fecha {sortOrder === 'asc' ? '▲' : '▼'}
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-[#f1f1f1]">
                                 {filteredTracking.length === 0 ? (
-                                    <tr><td colSpan="6" className="text-center p-4 text-gray-500">No hay pedidos recientes</td></tr>
+                                    <tr><td colSpan="6" className="text-center py-6 text-[#616161]">No hay pedidos recientes</td></tr>
                                 ) : (
                                     [...filteredTracking]
                                         .sort((a, b) => {
@@ -1013,37 +906,37 @@ const PickingAudit = () => {
                                             const isAudited = Boolean(t.is_audited) || t.status === 'AUDITADO' || t.status === 'Completo' || t.status === 'Con Diferencia';
                                             return (
                                             <tr key={idx}
-                                                className={`cursor-pointer transition-colors ${isAudited ? 'bg-slate-100/80 hover:bg-slate-200/70' : 'hover:bg-blue-50'}`}
+                                                className={`cursor-pointer transition-colors ${isAudited ? 'bg-[#f5f5f5] hover:bg-[#eaeaea]' : 'hover:bg-[#edf3f9]'}`}
                                                 onClick={() => {
                                                     setOrderNumber(t.order_number);
                                                     setDespatchNumber(t.despatch_number);
                                                 }}
                                             >
-                                                <td className="font-medium">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className={isAudited ? 'text-slate-800' : 'text-[#1e4a74]'}>{t.order_number}</span>
+                                                <td className="py-1.5 px-2.5">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className={isAudited ? 'text-[#1f1f1f]' : 'text-[#0067c0]'}>{t.order_number}</span>
                                                         {isAudited && (
-                                                            <span className="text-[10px] bg-emerald-600 text-white font-semibold px-2 py-0.5 rounded shadow-xs tracking-wider uppercase">
+                                                            <span className="text-[10px] bg-[#dff6dd] text-[#107c41] px-1.5 py-0.2 rounded border border-[#a1e59e]">
                                                                 AUDITADO
                                                             </span>
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td>{t.despatch_number}</td>
-                                                <td>{t.customer_code}</td>
-                                                <td className="truncate max-w-[150px]">{t.customer_name}</td>
-                                                <td className="text-center font-medium  text-[#285f94]">{t.total_lines}</td>
-                                                <td className="text-gray-500 text-xs">{t.print_date}</td>
+                                                <td className="py-1.5 px-2.5 text-[#1f1f1f]">{t.despatch_number}</td>
+                                                <td className="py-1.5 px-2.5 text-[#1f1f1f]">{t.customer_code}</td>
+                                                <td className="py-1.5 px-2.5 truncate max-w-[150px] text-[#1f1f1f]">{t.customer_name}</td>
+                                                <td className="py-1.5 px-2.5 text-center text-[#0067c0]">{t.total_lines}</td>
+                                                <td className="py-1.5 px-2.5 text-[#616161] text-[11px]">{t.print_date}</td>
                                             </tr>
                                             );
                                         })
                                 )}
                             </tbody>
                             {filteredTracking.length > 0 && (
-                                <tfoot className="sticky bottom-0 bg-slate-50 border-t-2 border-slate-200 z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
+                                <tfoot className="sticky bottom-0 bg-[#fafafa] border-t border-[#e5e5e5] z-10">
                                     <tr>
-                                        <td colSpan="4" className="py-2.5 px-3 text-right font-medium  text-gray-600 uppercase text-[10px] tracking-wider">Total Líneas Recientes:</td>
-                                        <td className="py-2.5 px-3 text-center font-black text-lg text-[#285f94]">
+                                        <td colSpan="4" className="py-2 px-2.5 text-right text-[#616161] uppercase text-[10px]">Total Líneas Recientes:</td>
+                                        <td className="py-2 px-2.5 text-center text-[#0067c0] text-[13px] font-normal">
                                             {filteredTracking.reduce((sum, t) => sum + (t.total_lines || 0), 0)}
                                         </td>
                                         <td></td>
@@ -1113,51 +1006,49 @@ const PickingAudit = () => {
                             No hay información disponible para generar la matriz
                         </div>
                     ) : (
-                        <div className="overflow-x-auto border border-gray-200 rounded shadow-sm max-h-[500px]">
-                            <table className="w-full text-left text-sm sap-table border-collapse min-w-[750px]">
+                        <div className="overflow-x-auto border border-[#e5e5e5] rounded shadow-sm max-h-[500px]">
+                            <table className="w-full text-left text-[11.5px] border-collapse min-w-[750px]">
                                 <thead>
                                     <tr>
-                                        <th className="py-2 px-3 font-semibold border-b border-r border-slate-600 text-white" style={{ background: 'linear-gradient(180deg, #4a5f7f 0%, #3d5068 100%)', position: 'sticky', top: 0, zIndex: 12 }}>
+                                        <th className="py-2 px-3 font-normal border-b border-r border-[#2a3c4d] text-white bg-[#354a5f] sticky top-0 z-12">
                                             Fecha
                                         </th>
                                         {matrixData.dates.map(date => (
                                             <th
                                                 key={date}
-                                                className="py-2 px-3 font-semibold text-center border-b border-r border-slate-600 text-white"
+                                                className="py-2 px-3 font-normal text-center border-b border-r border-[#2a3c4d] text-white bg-[#354a5f] sticky top-0 z-12"
                                                 colSpan={2}
-                                                style={{ background: 'linear-gradient(180deg, #4a5f7f 0%, #3d5068 100%)', position: 'sticky', top: 0, zIndex: 12 }}
                                             >
                                                 {formatDateLabel(date)}
                                             </th>
                                         ))}
                                         {/* Columna Total General en Cabecera */}
                                         <th
-                                            className="py-2 px-3 font-semibold text-center border-b border-r border-slate-600 text-white"
+                                            className="py-2 px-3 font-normal text-center border-b border-r border-[#2a3c4d] text-white bg-[#354a5f] sticky top-0 z-12"
                                             colSpan={2}
-                                            style={{ background: 'linear-gradient(180deg, #4a5f7f 0%, #3d5068 100%)', position: 'sticky', top: 0, zIndex: 12 }}
                                         >
                                             Total General
                                         </th>
                                     </tr>
-                                    <tr className="bg-slate-600 text-white">
-                                        <th className="py-1.5 px-3 font-medium border-b border-r border-slate-500 text-xs uppercase text-white" style={{ background: '#3d5068', position: 'sticky', top: '33px', zIndex: 12 }}>
+                                    <tr className="bg-[#2a3c4d] text-white">
+                                        <th className="py-1.5 px-3 font-normal border-b border-r border-[#3d5068] text-[11px] uppercase text-white bg-[#2a3c4d] sticky top-[33px] z-12">
                                             Customer
                                         </th>
                                         {matrixData.dates.map(date => (
                                             <React.Fragment key={date}>
-                                                <th className="py-1.5 px-3 font-medium text-center border-b border-r border-slate-500 text-xs uppercase text-white w-24" style={{ background: '#3d5068', position: 'sticky', top: '33px', zIndex: 12 }}>
+                                                <th className="py-1.5 px-3 font-normal text-center border-b border-r border-[#3d5068] text-[11px] uppercase text-white w-24 bg-[#2a3c4d] sticky top-[33px] z-12">
                                                     Ordenes
                                                 </th>
-                                                <th className="py-1.5 px-3 font-medium text-center border-b border-r border-slate-500 text-xs uppercase text-white w-24" style={{ background: '#3d5068', position: 'sticky', top: '33px', zIndex: 12 }}>
+                                                <th className="py-1.5 px-3 font-normal text-center border-b border-r border-[#3d5068] text-[11px] uppercase text-white w-24 bg-[#2a3c4d] sticky top-[33px] z-12">
                                                     Lineas
                                                 </th>
                                             </React.Fragment>
                                         ))}
                                         {/* Subcolumnas de Total en Cabecera */}
-                                        <th className="py-1.5 px-3 font-medium text-center border-b border-r border-slate-500 text-xs uppercase text-white w-24" style={{ background: '#3d5068', position: 'sticky', top: '33px', zIndex: 12 }}>
+                                        <th className="py-1.5 px-3 font-normal text-center border-b border-r border-[#3d5068] text-[11px] uppercase text-white w-24 bg-[#2a3c4d] sticky top-[33px] z-12">
                                             Ordenes
                                         </th>
-                                        <th className="py-1.5 px-3 font-medium text-center border-b border-r border-slate-500 text-xs uppercase text-white w-24" style={{ background: '#3d5068', position: 'sticky', top: '33px', zIndex: 12 }}>
+                                        <th className="py-1.5 px-3 font-normal text-center border-b border-r border-[#3d5068] text-[11px] uppercase text-white w-24 bg-[#2a3c4d] sticky top-[33px] z-12">
                                             Lineas
                                         </th>
                                     </tr>
@@ -1166,29 +1057,29 @@ const PickingAudit = () => {
                                     {matrixData.rows.map((row, idx) => (
                                         <tr
                                             key={idx}
-                                            className={`border-b border-gray-200 transition-colors ${selectedCustomerFilter === row.customerCode
-                                                ? 'bg-blue-50/20'
-                                                : 'hover:bg-slate-50'
+                                            className={`border-b border-[#e5e5e5] transition-colors ${selectedCustomerFilter === row.customerCode
+                                                ? 'bg-[#f0f7ff]'
+                                                : 'hover:bg-[#edf3f9]'
                                                 }`}
                                         >
                                             {/* Columna de Customer mostrando Código + Nombre de Cliente */}
                                             <td
-                                                className={`py-1.5 px-3 border-r border-gray-200 cursor-pointer select-none transition-colors ${selectedCustomerFilter === row.customerCode
-                                                    ? 'bg-blue-50/60 hover:bg-blue-100/60'
-                                                    : 'hover:bg-slate-100'
+                                                className={`py-1.5 px-3 border-r border-[#e5e5e5] cursor-pointer select-none transition-colors ${selectedCustomerFilter === row.customerCode
+                                                    ? 'bg-[#e0f0ff]'
+                                                    : 'hover:bg-[#f5f5f5]'
                                                     }`}
                                                 onClick={() => toggleCustomerFilter(row.customerCode)}
                                                 title="Haga clic para filtrar pedidos de este cliente"
                                             >
                                                 <div className="flex items-center gap-2 flex-wrap">
-                                                    <span className="text-[10px] text-slate-600 font-mono font-bold bg-slate-100 px-1 py-0.5 rounded border border-slate-200 leading-none">
+                                                    <span className="text-[10px] text-[#616161] bg-[#f5f5f5] px-1 py-0.5 rounded border border-[#d1d5db] leading-none">
                                                         {row.customerCode}
                                                     </span>
-                                                    <span className="text-sm font-medium text-gray-800 leading-none">
+                                                    <span className="text-[12px] text-[#1f1f1f] leading-none">
                                                         {row.customerName}
                                                     </span>
                                                     {selectedCustomerFilter === row.customerCode && (
-                                                        <span className="text-[8px] bg-[#285f94] text-white px-1 py-0.5 rounded font-bold uppercase leading-none tracking-wide animate-pulse">
+                                                        <span className="text-[9px] bg-[#0067c0] text-white px-1.5 py-0.5 rounded uppercase leading-none">
                                                             Filtrado
                                                         </span>
                                                     )}
@@ -1198,28 +1089,28 @@ const PickingAudit = () => {
                                                 const dayData = row.dates[date] || { orders: 0, lines: 0 };
                                                 return (
                                                     <React.Fragment key={date}>
-                                                        <td className="py-2 px-3 text-right font-mono border-r border-gray-200 text-gray-700">
+                                                        <td className="py-1.5 px-3 text-right border-r border-[#e5e5e5] text-[#1f1f1f]">
                                                             {dayData.orders > 0 ? dayData.orders : ''}
                                                         </td>
-                                                        <td className="py-2 px-3 text-right font-mono border-r border-gray-200 text-gray-700">
+                                                        <td className="py-1.5 px-3 text-right border-r border-[#e5e5e5] text-[#1f1f1f]">
                                                             {dayData.lines > 0 ? dayData.lines : ''}
                                                         </td>
                                                     </React.Fragment>
                                                 );
                                             })}
                                             {/* Totales Horizontales del Cliente */}
-                                            <td className="py-2 px-3 text-right font-mono border-r border-gray-200 text-gray-950 font-bold bg-slate-50/50">
+                                            <td className="py-1.5 px-3 text-right border-r border-[#e5e5e5] text-[#1f1f1f] bg-[#fafafa]">
                                                 {row.totalOrders > 0 ? row.totalOrders : ''}
                                             </td>
-                                            <td className="py-2 px-3 text-right font-mono border-r border-gray-200 text-gray-950 font-bold bg-slate-50/50">
+                                            <td className="py-1.5 px-3 text-right border-r border-[#e5e5e5] text-[#1f1f1f] bg-[#fafafa]">
                                                 {row.totalLines > 0 ? row.totalLines : ''}
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
-                                <tfoot className="bg-slate-50 border-t-2 border-gray-200 font-semibold sticky bottom-0 z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
-                                    <tr className="bg-slate-50 border-b border-gray-200">
-                                        <td className="py-2.5 px-3 border-r border-gray-200 text-gray-800 font-bold uppercase text-[11px] tracking-wider">
+                                <tfoot className="bg-[#fafafa] border-t-2 border-[#e5e5e5] font-normal sticky bottom-0 z-10">
+                                    <tr className="border-b border-[#e5e5e5]">
+                                        <td className="py-2 px-3 border-r border-[#e5e5e5] text-[#1f1f1f] uppercase text-[11px]">
                                             Total
                                         </td>
                                         {matrixData.dates.map(date => {
@@ -1227,20 +1118,20 @@ const PickingAudit = () => {
                                             const totalLines = matrixData.totals[date].lines;
                                             return (
                                                 <React.Fragment key={date}>
-                                                    <td className="py-2.5 px-3 text-right font-mono border-r border-gray-200 text-base text-[#285f94] font-black">
+                                                    <td className="py-2 px-3 text-right border-r border-[#e5e5e5] text-[12px] text-[#0067c0]">
                                                         {totalOrders > 0 ? totalOrders : 0}
                                                     </td>
-                                                    <td className="py-2.5 px-3 text-right font-mono border-r border-gray-200 text-base text-[#285f94] font-black">
+                                                    <td className="py-2 px-3 text-right border-r border-[#e5e5e5] text-[12px] text-[#0067c0]">
                                                         {totalLines > 0 ? totalLines : 0}
                                                     </td>
                                                 </React.Fragment>
                                             );
                                         })}
                                         {/* Gran Total Acumulado en el Pie */}
-                                        <td className="py-2.5 px-3 text-right font-mono border-r border-gray-200 text-base text-[#1e4a74] font-black bg-blue-50/50">
+                                        <td className="py-2 px-3 text-right border-r border-[#e5e5e5] text-[12px] text-[#0067c0] bg-[#f0f7ff]">
                                             {matrixData.grandTotal.orders}
                                         </td>
-                                        <td className="py-2.5 px-3 text-right font-mono border-r border-gray-200 text-base text-[#1e4a74] font-black bg-blue-50/50">
+                                        <td className="py-2 px-3 text-right border-r border-[#e5e5e5] text-[12px] text-[#0067c0] bg-[#f0f7ff]">
                                             {matrixData.grandTotal.lines}
                                         </td>
                                     </tr>

@@ -155,7 +155,7 @@ const ConsolidatedPackingList = () => {
     const commonCustomerHeader = uniqueClients.join(' / ');
 
     return (
-        <div className="bg-white min-h-screen text-black p-4 font-sans print:p-0 print:bg-white print:min-h-0 print:block">
+        <div className="bg-white min-h-screen text-[#1f1f1f] p-4 font-['Segoe_UI',Tahoma,sans-serif] text-[12px] print:p-0 print:bg-white print:min-h-0 print:block">
             <style dangerouslySetInnerHTML={{
                 __html: `
                 @media print {
@@ -167,22 +167,22 @@ const ConsolidatedPackingList = () => {
             `}} />
 
             {/* Barra de control — NO se imprime */}
-            <div className="no-print mb-4 sticky top-0 bg-white border-b shadow-sm z-10 print:hidden">
-                <div className="max-w-4xl mx-auto flex justify-between items-center p-4">
+            <div className="no-print mb-4 sticky top-0 bg-white border-b border-[#d1d5db] shadow-xs z-10 print:hidden">
+                <div className="max-w-4xl mx-auto flex justify-between items-center py-2 px-4">
                     <div>
-                        <h1 className="text-lg text-[#285f94]">Packing List Consolidado — Envío #{data.shipment_id}</h1>
-                        <p className="text-xs text-gray-500">{data.total_orders} pedido(s) · {data.carrier || 'Sin transportadora'}</p>
+                        <h1 className="text-[14px] font-normal text-gray-800">Packing List Consolidado — Envío #{data.shipment_id}</h1>
+                        <p className="text-[11px] text-gray-500 font-normal">{data.total_orders} pedido(s) · {data.carrier || 'Sin transportadora'}</p>
                     </div>
-                    <div className="flex gap-4">
+                    <div className="flex gap-2">
                         <button
                             onClick={() => navigate(-1)}
-                            className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 transition-colors"
+                            className="h-7 px-3 bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] text-[#1f1f1f] text-[12px] font-normal rounded transition-colors cursor-pointer"
                         >
                             Cerrar
                         </button>
                         <button
                             onClick={handlePrint}
-                            className="bg-[#285f94] text-white px-4 py-2 rounded hover:bg-[#1e4a74] shadow-md transition-all active:scale-95"
+                            className="h-7 px-3 bg-[#0067c0] hover:bg-[#005a9e] text-white text-[12px] font-normal rounded transition-colors cursor-pointer"
                         >
                             Imprimir Todo
                         </button>
@@ -193,12 +193,12 @@ const ConsolidatedPackingList = () => {
             {/* Contenido: Diseño compacto sin saltos de página obligatorios */}
             <div className="max-w-4xl mx-auto print:max-w-none print:w-full">
                 {data.orders.length === 0 ? (
-                    <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50">
-                        <h3 className="text-xl text-gray-400 mb-2">Sin Pedidos</h3>
-                        <p className="text-gray-500">Este envío no tiene pedidos asociados.</p>
+                    <div className="text-center py-12 border border-dashed border-[#d1d5db] rounded bg-[#f8f9fa]">
+                        <h3 className="text-base text-gray-400 mb-1 font-normal">Sin Pedidos</h3>
+                        <p className="text-gray-500 text-[12px] font-normal">Este envío no tiene pedidos asociados.</p>
                     </div>
                 ) : (
-                    <div className="border p-6 bg-white shadow-md rounded-lg print:border-none print:shadow-none print:p-0 print:m-0 print:rounded-none">
+                    <div className="border border-[#d1d5db] p-6 bg-white shadow-xs rounded print:border-none print:shadow-none print:p-0 print:m-0 print:rounded-none">
                         <ShipmentHeader 
                             pageLabel={`CONSOLIDADO DE ${totalPages} PEDIDO(S)`} 
                             customerInfo={commonCustomerHeader}
@@ -226,7 +226,7 @@ const ConsolidatedPackingList = () => {
                                                 />
                                             ))
                                         ) : (
-                                            <div className="text-center py-2 text-gray-400 italic border border-dashed rounded-lg text-[10px]">
+                                            <div className="text-center py-2 text-gray-400 italic border border-dashed border-[#d1d5db] rounded text-[11px] font-normal">
                                                 Sin bultos registrados para este pedido
                                             </div>
                                         )}
@@ -235,29 +235,29 @@ const ConsolidatedPackingList = () => {
                                     {/* New table for order lines */}
                                     {order.items && order.items.length > 0 && (
                                         <div className="border border-black overflow-hidden print:border-black mt-2">
-                                            <div className="bg-white text-black px-4 py-1 border-b border-black flex justify-between items-center print:py-0.5">
-                                                <h3 className="text-sm font-medium  uppercase leading-tight">
+                                            <div className="bg-white text-black px-3 py-1 border-b border-black flex justify-between items-center print:py-0.5">
+                                                <h3 className="text-[12px] font-normal uppercase leading-tight">
                                                     Detalle del Pedido #{order.order_number}
                                                 </h3>
                                             </div>
-                                            <table className="min-w-full text-sm">
+                                            <table className="min-w-full text-xs">
                                                 <thead>
-                                                    <tr className="bg-slate-50 text-slate-500 font-medium  border-b border-slate-200">
-                                                        <th className="p-1 px-2 text-left w-12 text-[10px]">LÍNEA</th>
-                                                        <th className="p-1 px-2 text-left text-[10px]">CÓDIGO</th>
-                                                        <th className="p-1 text-left text-[10px]">DESCRIPCIÓN</th>
-                                                        <th className="p-1 text-center w-16 text-[10px]">CANT.</th>
+                                                    <tr className="bg-gray-100 text-gray-700 font-normal border-b border-gray-300">
+                                                        <th className="p-1 px-2 text-left w-12 text-[10px] font-normal">LÍNEA</th>
+                                                        <th className="p-1 px-2 text-left text-[10px] font-normal">CÓDIGO</th>
+                                                        <th className="p-1 text-left text-[10px] font-normal">DESCRIPCIÓN</th>
+                                                        <th className="p-1 text-center w-16 text-[10px] font-normal">CANT.</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {order.items.map((item, idx) => (
-                                                        <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                                                            <td className="p-1 px-2 font-mono text-[10px] text-gray-400">{item.order_line}</td>
-                                                            <td className="p-1 px-2 font-mono text-[11px] font-medium  text-slate-700">{item.item_code}</td>
-                                                            <td className="p-1 text-[11px] text-slate-600 truncate max-w-[150px]" title={item.description}>
+                                                        <tr key={idx} className="border-b border-gray-200 last:border-0 hover:bg-gray-50">
+                                                            <td className="p-1 px-2 font-mono text-[10px] text-gray-500 font-normal">{item.order_line}</td>
+                                                            <td className="p-1 px-2 font-mono text-[11px] font-normal text-gray-800">{item.item_code}</td>
+                                                            <td className="p-1 text-[11px] text-gray-600 truncate max-w-[150px] font-normal" title={item.description}>
                                                                 {item.description}
                                                             </td>
-                                                            <td className="p-1 text-center font-medium  text-slate-800 text-[11px]">{item.quantity}</td>
+                                                            <td className="p-1 text-center font-normal text-gray-800 text-[11px]">{item.quantity}</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
@@ -268,7 +268,7 @@ const ConsolidatedPackingList = () => {
                             );
                         })}
 
-                        <div className="mt-8 pt-2 border-t border-gray-100 flex justify-center items-center text-[9px] text-gray-400 print:mt-10 print:border-gray-300 print:text-black">
+                        <div className="mt-8 pt-2 border-t border-gray-200 flex justify-center items-center text-[10px] text-gray-500 print:mt-10 print:border-gray-300 print:text-black font-normal">
                             <p className="tracking-widest uppercase">LOGIX - WMS</p>
                         </div>
                     </div>

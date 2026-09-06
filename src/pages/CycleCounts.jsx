@@ -483,24 +483,19 @@ const CycleCounts = () => {
 
     if (!activeSession) {
         return (
-            <div className="max-w-md mx-auto my-12 p-6 bg-white rounded-xl shadow-md border border-slate-200 text-center text-black">
-                <div className="w-14 h-14 bg-slate-100 text-black rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-200 shadow-inner">
-                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                    </svg>
-                </div>
-                <h2 className="text-base font-normal text-black uppercase tracking-tight mb-1">Inventario General (W2W)</h2>
-                <p className="text-xs text-black mb-6 leading-relaxed">No hay ninguna sesión activa. Inicie una nueva sesión para comenzar la captura física wall-to-wall.</p>
+            <div className="max-w-md mx-auto my-12 p-6 bg-white rounded border border-[#d1d5db] text-center text-[#1f1f1f] font-['Segoe_UI',Tahoma,sans-serif] shadow-sm">
+                <h2 className="text-[14px] font-normal text-[#1f1f1f] mb-1">Inventario General (W2W)</h2>
+                <p className="text-[12px] text-[#5c5c5c] mb-5 leading-relaxed font-normal">No hay ninguna sesión activa. Inicie una nueva sesión para comenzar la captura física wall-to-wall.</p>
                 <button
                     onClick={startSession}
                     disabled={!isOnline}
-                    className="w-full py-2.5 px-4 bg-black hover:bg-zinc-800 text-white text-xs font-normal uppercase tracking-wider rounded-lg shadow transition-all active:scale-[0.99] disabled:opacity-50 cursor-pointer"
+                    className="w-full h-8 px-4 bg-[#0067c0] hover:bg-[#005a9e] text-white text-[12px] font-normal rounded transition-colors shadow-xs disabled:opacity-50 cursor-pointer"
                 >
                     Iniciar Sesión de Inventario
                 </button>
                 {!isOnline && (
-                    <p className="mt-3 text-red-600 text-[10px] uppercase font-normal tracking-wide animate-pulse">
-                        ⚠️ Se requiere conexión a la red para iniciar sesión
+                    <p className="mt-3 text-[#991b1b] text-[11px] font-normal">
+                        Se requiere conexión a la red para iniciar sesión
                     </p>
                 )}
             </div>
@@ -510,65 +505,60 @@ const CycleCounts = () => {
     // PÁGINA INTERMEDIA: Selección de Fase de Conteo
     if (selectedPhase === null) {
         return (
-            <div className="max-w-4xl mx-auto px-4 py-8 text-black font-sans">
+            <div className="max-w-4xl mx-auto px-4 py-6 text-[#1f1f1f] font-['Segoe_UI',Tahoma,sans-serif]">
                 <ToastContainer position="top-right" autoClose={2000} />
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-                    <div className="flex justify-between items-center pb-4 border-b border-slate-100 mb-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-black text-white flex items-center justify-center font-normal text-sm shadow-xs">
-                                W2W
-                            </div>
-                            <div>
-                                <h1 className="text-sm font-normal text-black uppercase tracking-tight">
-                                    Sesión de Inventario #{activeSession.id || activeSession.session_id}
-                                </h1>
-                                <p className="text-[11px] text-zinc-500 font-normal uppercase">
-                                    Auditor: <span className="text-black font-normal">{activeSession.user_username || activeSession.username}</span>
-                                </p>
-                            </div>
+                <div className="bg-white rounded border border-[#d1d5db] p-5 mb-4 shadow-sm">
+                    <div className="flex justify-between items-center pb-3 border-b border-[#e5e7eb] mb-5">
+                        <div>
+                            <h1 className="text-[14px] font-normal text-[#1f1f1f] m-0">
+                                Sesión de Inventario #{activeSession.id || activeSession.session_id}
+                            </h1>
+                            <p className="text-[11.5px] text-[#5c5c5c] font-normal mt-0.5 mb-0">
+                                Auditor: <span className="text-[#1f1f1f] font-normal">{activeSession.user_username || activeSession.username}</span>
+                            </p>
                         </div>
                         <button
                             onClick={endSession}
-                            className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-black border border-slate-300 rounded text-[11px] font-normal uppercase tracking-wider transition-colors cursor-pointer"
+                            className="h-7 px-3 bg-white hover:bg-[#f5f5f5] text-[#1f1f1f] border border-[#d1d5db] rounded text-[12px] font-normal transition-colors cursor-pointer"
                         >
                             Finalizar Sesión
                         </button>
                     </div>
 
-                    <div className="text-center mb-8">
-                        <h2 className="text-base font-normal text-black uppercase tracking-tight mb-1">
+                    <div className="text-center mb-6">
+                        <h2 className="text-[14px] font-normal text-[#1f1f1f] mb-1">
                             Seleccione la Fase de Conteo a Ejecutar
                         </h2>
-                        <p className="text-xs text-zinc-500 uppercase font-normal tracking-wide">
-                            Fase Activa en Sistema: <span className="font-sans text-black font-normal bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded border border-emerald-300">● Fase 0{recountData?.stage || 1}</span>
+                        <p className="text-[12px] text-[#5c5c5c] font-normal m-0">
+                            Fase Activa en Sistema: <span className="text-[#065f46] font-normal bg-[#ecfdf5] px-2 py-0.5 rounded border border-[#a7f3d0]">Fase 0{recountData?.stage || 1}</span>
                         </p>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-2.5">
                         {[
                             {
                                 s: 1,
                                 title: 'FASE 1: CONTEO GENERAL W2W',
                                 desc: 'Captura inicial física wall-to-wall de ítems en almacén con formulario limpio directo.',
-                                btnText: 'Ingresar a Conteo Fase 1 ➔'
+                                btnText: 'Ingresar a Conteo Fase 1'
                             },
                             {
                                 s: 2,
                                 title: 'FASE 2: RECONTEO R1',
                                 desc: 'Lista de ítems con discrepancia o faltantes de Fase 1 para verificación obligatoria.',
-                                btnText: 'Ver Lista de Reconteo R1 ➔'
+                                btnText: 'Ver Lista de Reconteo R1'
                             },
                             {
                                 s: 3,
                                 title: 'FASE 3: RECONTEO R2',
                                 desc: 'Segunda validación técnica enfocada en discrepancias persistentes.',
-                                btnText: 'Ver Lista de Reconteo R2 ➔'
+                                btnText: 'Ver Lista de Reconteo R2'
                             },
                             {
                                 s: 4,
                                 title: 'FASE 4: AUDITORÍA FINAL',
                                 desc: 'Revisión final de auditoría técnica previa a la consolidación e informe.',
-                                btnText: 'Ver Lista Auditoría Final ➔'
+                                btnText: 'Ver Lista Auditoría Final'
                             }
                         ].map(f => {
                             const currentSystemStage = recountData?.stage || 1;
@@ -587,49 +577,49 @@ const CycleCounts = () => {
                                             toast.info(`La Fase ${f.s} estará disponible cuando el administrador avance la etapa.`);
                                         }
                                     }}
-                                    className={`p-4 rounded-xl border text-left transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                                    className={`p-3.5 rounded border text-left transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
                                         isSystemActive
-                                            ? 'border-black ring-2 ring-black bg-white shadow-md cursor-pointer hover:bg-slate-50/50'
+                                            ? 'border-[#0067c0] ring-1 ring-[#0067c0] bg-white shadow-xs cursor-pointer hover:bg-[#f8f9fa]'
                                             : isPassed
-                                            ? 'border-slate-200 bg-slate-100/70 opacity-60 cursor-not-allowed'
-                                            : 'border-slate-200 bg-slate-50/30 opacity-40 cursor-not-allowed'
+                                            ? 'border-[#e5e7eb] bg-[#f9fafb] opacity-70 cursor-not-allowed'
+                                            : 'border-[#e5e7eb] bg-[#fafafa] opacity-50 cursor-not-allowed'
                                     }`}
                                 >
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <h3 className="text-xs font-normal text-black uppercase tracking-tight">
+                                            <h3 className="text-[12px] font-normal text-[#1f1f1f] m-0">
                                                 {f.title}
                                             </h3>
                                             {isSystemActive ? (
-                                                <span className="text-[9px] font-normal px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 uppercase tracking-wider shrink-0">
-                                                    ● ACTIVA EN SISTEMA
+                                                <span className="text-[10px] font-normal px-2 py-0.5 rounded bg-[#ecfdf5] text-[#065f46] border border-[#a7f3d0] shrink-0">
+                                                    Activa en Sistema
                                                 </span>
                                             ) : isPassed ? (
-                                                <span className="text-[9px] font-normal px-2 py-0.5 rounded bg-slate-200 text-black border border-slate-300 uppercase tracking-wider shrink-0">
-                                                    ✓ FINALIZADA
+                                                <span className="text-[10px] font-normal px-2 py-0.5 rounded bg-[#f3f4f6] text-[#1f1f1f] border border-[#d1d5db] shrink-0">
+                                                    Finalizada
                                                 </span>
                                             ) : (
-                                                <span className="text-[9px] font-normal px-2 py-0.5 rounded bg-zinc-100 text-zinc-400 border border-zinc-200 uppercase tracking-wider shrink-0">
-                                                    EN ESPERA
+                                                <span className="text-[10px] font-normal px-2 py-0.5 rounded bg-[#f9fafb] text-[#8c8c8c] border border-[#e5e7eb] shrink-0">
+                                                    En Espera
                                                 </span>
                                             )}
                                         </div>
-                                        <p className="text-[11px] text-zinc-600 font-normal leading-relaxed">
+                                        <p className="text-[11.5px] text-[#5c5c5c] font-normal leading-relaxed m-0">
                                             {f.desc}
                                         </p>
                                     </div>
                                     <button
                                         type="button"
                                         disabled={!isSystemActive}
-                                        className={`sm:w-48 py-2 px-4 text-[11px] font-normal uppercase tracking-wider rounded transition-colors shrink-0 ${
+                                        className={`sm:w-44 h-7 px-3 text-[12px] font-normal rounded transition-colors shrink-0 ${
                                             isSystemActive
-                                                ? 'bg-black text-white hover:bg-zinc-800 shadow-xs cursor-pointer'
+                                                ? 'bg-[#0067c0] text-white hover:bg-[#005a9e] shadow-xs cursor-pointer'
                                                 : isPassed
-                                                ? 'bg-slate-200 text-slate-500 border border-slate-300 cursor-not-allowed'
-                                                : 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed'
+                                                ? 'bg-[#f3f4f6] text-[#8c8c8c] border border-[#d1d5db] cursor-not-allowed'
+                                                : 'bg-[#f9fafb] text-[#8c8c8c] border border-[#e5e7eb] cursor-not-allowed'
                                         }`}
                                     >
-                                        {isSystemActive ? f.btnText : isPassed ? '✓ Fase Finalizada' : 'En Espera'}
+                                        {isSystemActive ? f.btnText : isPassed ? 'Fase Finalizada' : 'En Espera'}
                                     </button>
                                 </div>
                             );
@@ -641,80 +631,73 @@ const CycleCounts = () => {
     }
 
     return (
-        <div className="max-w-[1600px] mx-auto px-2 py-1.5 font-sans text-[11px] text-black leading-tight">
+        <div className="max-w-[1920px] mx-auto px-4 py-3 font-['Segoe_UI',Tahoma,sans-serif] text-[12px] text-[#1f1f1f] bg-[#f8f9fa] min-h-screen">
             <ToastContainer position="top-right" autoClose={2000} />
 
             {/* Header de Navegación entre Fases */}
-            <div className="mb-2 p-2 bg-slate-50 border border-slate-200 rounded flex justify-between items-center">
+            <div className="mb-3 p-2 bg-white border border-[#d1d5db] rounded flex justify-between items-center shadow-sm">
                 <button
                     type="button"
                     onClick={() => setSelectedPhase(null)}
-                    className="px-3 py-1 bg-white hover:bg-slate-100 text-black border border-slate-300 rounded text-[10px] font-normal uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                    className="h-7 px-3 bg-white hover:bg-[#f5f5f5] text-[#1f1f1f] border border-[#d1d5db] rounded text-[12px] font-normal transition-colors cursor-pointer shadow-xs"
                 >
                     ← Cambiar de Fase
                 </button>
-                <div className="text-[10px] font-normal text-black uppercase tracking-wider flex items-center gap-2">
-                    <span>Fase Actual: <strong className="font-sans font-normal">0{selectedPhase}</strong></span>
+                <div className="text-[12px] font-normal text-[#1f1f1f] flex items-center gap-2">
+                    <span>Fase Actual: <strong className="font-normal text-[#0067c0]">0{selectedPhase}</strong></span>
                     {recountData?.stage === selectedPhase && (
-                        <span className="bg-emerald-100 text-emerald-800 text-[9px] px-2 py-0.5 rounded border border-emerald-300">
-                            ● ACTIVA EN SISTEMA
+                        <span className="bg-[#ecfdf5] text-[#065f46] text-[11px] px-2 py-0.5 rounded border border-[#a7f3d0]">
+                            Activa en Sistema
                         </span>
                     )}
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
 
                 {/* Main Form Panel */}
-                <div className="lg:col-span-2 bg-white rounded shadow-sm border border-slate-200 p-2">
+                <div className="lg:col-span-2 bg-white rounded shadow-sm border border-[#d1d5db] p-3">
                     {/* Header */}
-                    <div className="flex justify-between items-center pb-1.5 mb-2 border-b border-slate-100">
-                        <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded bg-black text-white flex items-center justify-center font-normal text-[10px]">
-                                W2W
+                    <div className="flex justify-between items-center pb-2 mb-3 border-b border-[#e5e7eb]">
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <h1 className="text-[13px] font-normal text-[#1f1f1f] m-0">
+                                    Sesión #{activeSession.id || activeSession.session_id}
+                                </h1>
+                                {!isOnline && (
+                                    <span className="text-[10px] bg-[#fef2f2] text-[#991b1b] px-1.5 py-0.5 rounded border border-[#fecaca] font-normal">
+                                        Offline
+                                    </span>
+                                )}
                             </div>
-                            <div>
-                                <div className="flex items-center gap-1.5">
-                                    <h1 className="text-xs font-normal text-black uppercase tracking-tight">
-                                        Sesión #{activeSession.id || activeSession.session_id}
-                                    </h1>
-                                    {!isOnline && (
-                                        <span className="text-[8px] bg-red-50 text-red-600 px-1 py-0 rounded border border-red-200 font-normal uppercase">
-                                            OFFLINE
-                                        </span>
-                                    )}
-                                </div>
-                                <p className="text-[9px] text-black uppercase font-normal">
-                                    Auditor: <span className="text-black font-normal">{activeSession.user_username || activeSession.username}</span>
-                                </p>
-                            </div>
+                            <p className="text-[11px] text-[#5c5c5c] font-normal mt-0.5 mb-0">
+                                Auditor: <span className="text-[#1f1f1f] font-normal">{activeSession.user_username || activeSession.username}</span>
+                            </p>
                         </div>
                         <button
                             onClick={endSession}
-                            className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-black border border-slate-300 rounded text-[10px] font-normal uppercase tracking-wider transition-colors cursor-pointer"
+                            className="h-7 px-3 bg-white hover:bg-[#f5f5f5] text-[#1f1f1f] border border-[#d1d5db] rounded text-[12px] font-normal transition-colors cursor-pointer shadow-xs"
                         >
                             Finalizar Sesión
                         </button>
                     </div>
 
-
-
                     {/* VISTA FASE 1: Formulario Limpio de Captura W2W */}
                     {selectedPhase === 1 && (
-                        <form onSubmit={handleSaveCount} className="space-y-1.5">
+                        <form onSubmit={handleSaveCount} className="space-y-3">
                             {/* Location Input Group */}
                             <div>
-                                <label className="block text-[9px] uppercase tracking-wider font-normal text-black mb-0.5">
-                                    Ubicación Física <span className="text-red-600">*</span>
+                                <label className="block text-[11px] font-normal text-[#5c5c5c] mb-1">
+                                    Ubicación Física <span className="text-[#991b1b]">*</span>
                                 </label>
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1.5">
                                     <div className="relative flex-grow">
                                         <input
                                             type="text"
                                             value={countedLocation}
                                             onChange={e => setCountedLocation(e.target.value.toUpperCase())}
-                                            className="w-full h-7 border border-slate-300 rounded px-2 text-xs font-normal text-black uppercase bg-white focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
-                                            placeholder="SCAN O DIGITE UBICACIÓN"
+                                            className="w-full h-7 border border-[#d1d5db] rounded px-2 text-[12px] font-normal text-[#1f1f1f] uppercase bg-white focus:outline-none focus:border-[#0067c0]"
+                                            placeholder="Scan o digite ubicación..."
                                             required
                                         />
                                     </div>
@@ -722,48 +705,42 @@ const CycleCounts = () => {
                                         type="button"
                                         onClick={() => startScanner('location')}
                                         title="Escanear QR / Barcode Ubicación"
-                                        className="h-7 w-7 p-0.5 border border-black bg-white hover:bg-slate-100 text-black rounded flex items-center justify-center cursor-pointer shrink-0"
+                                        className="h-7 px-2.5 border border-[#d1d5db] bg-white hover:bg-[#f5f5f5] text-[#1f1f1f] rounded text-[11.5px] font-normal flex items-center justify-center cursor-pointer shrink-0 shadow-xs"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
-                                        </svg>
+                                        Escanear
                                     </button>
                                 </div>
                             </div>
 
                             {/* Item Code Input Group */}
                             <div>
-                                <label className="block text-[9px] uppercase tracking-wider font-normal text-black mb-0.5">
-                                    Código de Artículo / SKU <span className="text-red-600">*</span>
+                                <label className="block text-[11px] font-normal text-[#5c5c5c] mb-1">
+                                    Código de Artículo / SKU <span className="text-[#991b1b]">*</span>
                                 </label>
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1.5">
                                     <input
                                         id="itemCode"
                                         type="text"
                                         value={itemCode}
                                         onChange={e => setItemCode(e.target.value.toUpperCase())}
                                         onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), fetchItemData(itemCode))}
-                                        className="flex-grow h-7 border border-slate-300 rounded px-2 text-xs font-normal text-black uppercase bg-white focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
-                                        placeholder="SCAN O DIGITE SKU"
+                                        className="flex-grow h-7 border border-[#d1d5db] rounded px-2 text-[12px] font-normal text-[#1f1f1f] uppercase bg-white focus:outline-none focus:border-[#0067c0]"
+                                        placeholder="Scan o digite SKU..."
                                         required
                                     />
                                     <button
                                         type="button"
                                         onClick={() => startScanner('item')}
                                         title="Escanear QR / Barcode SKU"
-                                        className="h-7 w-7 p-0.5 border border-black bg-white hover:bg-slate-100 text-black rounded flex items-center justify-center cursor-pointer shrink-0"
+                                        className="h-7 px-2.5 border border-[#d1d5db] bg-white hover:bg-[#f5f5f5] text-[#1f1f1f] rounded text-[11.5px] font-normal flex items-center justify-center cursor-pointer shrink-0 shadow-xs"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
-                                        </svg>
+                                        Escanear
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => fetchItemData(itemCode)}
                                         disabled={loadingItem}
-                                        className="h-7 px-2.5 bg-black hover:bg-zinc-800 border border-black text-white text-[9px] font-normal uppercase tracking-wider rounded transition-colors shrink-0 cursor-pointer"
+                                        className="h-7 px-3 bg-[#0067c0] hover:bg-[#005a9e] text-white text-[12px] font-normal rounded transition-colors shrink-0 cursor-pointer shadow-xs disabled:opacity-50"
                                     >
                                         {loadingItem ? '...' : 'Buscar'}
                                     </button>
@@ -772,33 +749,33 @@ const CycleCounts = () => {
 
                             {/* Description Display Card */}
                             <div>
-                                <label className="block text-[9px] uppercase tracking-wider font-normal text-black mb-0.5">
+                                <label className="block text-[11px] font-normal text-[#5c5c5c] mb-1">
                                     Descripción del Artículo
                                 </label>
-                                <div className="h-7 px-2 bg-slate-50 border border-slate-200 rounded text-xs font-normal text-black flex items-center uppercase truncate">
-                                    {description || <span className="text-zinc-500 italic">No consultado</span>}
+                                <div className="h-7 px-2 bg-[#f8f9fa] border border-[#d1d5db] rounded text-[12px] font-normal text-[#1f1f1f] flex items-center truncate">
+                                    {description || <span className="text-[#8c8c8c] italic">No consultado</span>}
                                 </div>
                             </div>
 
                             {/* Master Bin & Counted Qty */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
-                                    <label className="block text-[9px] uppercase tracking-wider font-normal text-black mb-0.5">
+                                    <label className="block text-[11px] font-normal text-[#5c5c5c] mb-1">
                                         Ubicación Maestro
                                     </label>
-                                    <div className="h-7 px-2 bg-slate-50 border border-slate-200 rounded text-xs font-normal text-black flex items-center uppercase">
+                                    <div className="h-7 px-2 bg-[#f8f9fa] border border-[#d1d5db] rounded text-[12px] font-normal text-[#1f1f1f] flex items-center">
                                         {binSys || '—'}
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-[9px] uppercase tracking-wider font-normal text-black mb-0.5">
-                                        Cantidad Observada <span className="text-red-600">*</span>
+                                    <label className="block text-[11px] font-normal text-[#5c5c5c] mb-1">
+                                        Cantidad Observada <span className="text-[#991b1b]">*</span>
                                     </label>
                                     <div className="flex items-center">
                                         <button
                                             type="button"
                                             onClick={() => setCountedQty(prev => Math.max(0, (parseInt(prev) || 0) - 1))}
-                                            className="h-7 w-7 border border-slate-300 bg-slate-100 hover:bg-slate-200 text-black font-normal text-sm rounded-l flex items-center justify-center cursor-pointer select-none p-0"
+                                            className="h-7 w-7 border border-[#d1d5db] bg-[#f8f9fa] hover:bg-[#f0f0f0] text-[#1f1f1f] font-normal text-sm rounded-l flex items-center justify-center cursor-pointer select-none p-0"
                                         >
                                             -
                                         </button>
@@ -807,7 +784,7 @@ const CycleCounts = () => {
                                             type="number"
                                             value={countedQty}
                                             onChange={e => setCountedQty(e.target.value)}
-                                            className="h-7 flex-grow border-y border-slate-300 text-center font-sans text-xs font-normal text-black bg-white focus:outline-none focus:ring-1 focus:ring-black px-1"
+                                            className="h-7 flex-grow border-y border-[#d1d5db] text-center text-[12px] font-normal text-[#1f1f1f] bg-white focus:outline-none focus:border-[#0067c0] px-1"
                                             min="0"
                                             step="1"
                                             required
@@ -815,7 +792,7 @@ const CycleCounts = () => {
                                         <button
                                             type="button"
                                             onClick={() => setCountedQty(prev => (parseInt(prev) || 0) + 1)}
-                                            className="h-7 w-7 border border-slate-300 bg-slate-100 hover:bg-slate-200 text-black font-normal text-sm rounded-r flex items-center justify-center cursor-pointer select-none p-0"
+                                            className="h-7 w-7 border border-[#d1d5db] bg-[#f8f9fa] hover:bg-[#f0f0f0] text-[#1f1f1f] font-normal text-sm rounded-r flex items-center justify-center cursor-pointer select-none p-0"
                                         >
                                             +
                                         </button>
@@ -824,17 +801,17 @@ const CycleCounts = () => {
                             </div>
 
                             {/* Action Buttons */}
-                            <div className="flex justify-end gap-1.5 pt-2 border-t border-slate-100">
+                            <div className="flex justify-end gap-2 pt-2 border-t border-[#e5e7eb]">
                                 <button
                                     type="button"
                                     onClick={clearForm}
-                                    className="h-7 px-3 border border-black bg-white hover:bg-slate-50 text-black text-[9px] font-normal uppercase tracking-wider rounded transition-colors cursor-pointer"
+                                    className="h-7 px-3 border border-[#d1d5db] bg-white hover:bg-[#f5f5f5] text-[#1f1f1f] text-[12px] font-normal rounded transition-colors cursor-pointer shadow-xs"
                                 >
                                     Limpiar
                                 </button>
                                 <button
                                     type="submit"
-                                    className="h-7 px-5 bg-black hover:bg-zinc-800 text-white text-[9px] font-normal uppercase tracking-wider rounded shadow-xs transition-all cursor-pointer"
+                                    className="h-7 px-4 bg-[#0067c0] hover:bg-[#005a9e] text-white text-[12px] font-normal rounded shadow-xs transition-colors cursor-pointer"
                                 >
                                     Guardar Conteo
                                 </button>
@@ -845,13 +822,13 @@ const CycleCounts = () => {
                     {/* VISTA FASES 2+: Lista de Reconteo Principal (Estilo Conteos Cíclicos) */}
                     {selectedPhase >= 2 && (
                         <div className="space-y-3">
-                            <div className="bg-white border border-slate-200 rounded-lg p-3 text-black shadow-xs">
-                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 pb-2.5 mb-2.5 border-b border-slate-200">
+                            <div className="bg-white border border-[#d1d5db] rounded p-3 text-[#1f1f1f] shadow-xs">
+                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 pb-2 mb-2 border-b border-[#e5e7eb]">
                                     <div>
-                                        <h2 className="text-xs font-normal text-black uppercase tracking-tight">
+                                        <h2 className="text-[13px] font-normal text-[#1f1f1f] m-0">
                                             Lista de Ítems a Recontar — Fase 0{selectedPhase}
                                         </h2>
-                                        <p className="text-[10px] text-black font-normal mt-0.5">
+                                        <p className="text-[11px] text-[#5c5c5c] font-normal mt-0.5 mb-0">
                                             {recountData?.recounted_count || 0} de {recountData?.total || 0} recontados ({recountData?.pending_count || 0} pendientes)
                                         </p>
                                     </div>
@@ -861,15 +838,15 @@ const CycleCounts = () => {
                                             placeholder="Buscar SKU o Ubicación..."
                                             value={recountSearchQuery}
                                             onChange={e => setRecountSearchQuery(e.target.value)}
-                                            className="h-7 border border-slate-300 rounded px-2 text-xs text-black bg-white focus:outline-none focus:ring-1 focus:ring-black"
+                                            className="h-7 border border-[#d1d5db] rounded px-2 text-[12px] text-[#1f1f1f] bg-white focus:outline-none focus:border-[#0067c0]"
                                         />
                                         <button
                                             type="button"
                                             onClick={() => setRecountFilter('pending')}
-                                            className={`h-7 px-2 text-[9px] font-normal uppercase tracking-wider rounded border transition-colors ${
+                                            className={`h-7 px-2.5 text-[11.5px] font-normal rounded border transition-colors cursor-pointer ${
                                                 recountFilter === 'pending'
-                                                    ? 'bg-black border-black text-white'
-                                                    : 'bg-white border-slate-300 text-black hover:bg-slate-50'
+                                                    ? 'bg-[#354a5f] border-[#354a5f] text-white'
+                                                    : 'bg-white border-[#d1d5db] text-[#5c5c5c] hover:bg-[#f5f5f5]'
                                             }`}
                                         >
                                             Pendientes
@@ -877,10 +854,10 @@ const CycleCounts = () => {
                                         <button
                                             type="button"
                                             onClick={() => setRecountFilter('all')}
-                                            className={`h-7 px-2 text-[9px] font-normal uppercase tracking-wider rounded border transition-colors ${
+                                            className={`h-7 px-2.5 text-[11.5px] font-normal rounded border transition-colors cursor-pointer ${
                                                 recountFilter === 'all'
-                                                    ? 'bg-black border-black text-white'
-                                                    : 'bg-white border-slate-300 text-black hover:bg-slate-50'
+                                                    ? 'bg-[#354a5f] border-[#354a5f] text-white'
+                                                    : 'bg-white border-[#d1d5db] text-[#5c5c5c] hover:bg-[#f5f5f5]'
                                             }`}
                                         >
                                             Todos
@@ -893,7 +870,7 @@ const CycleCounts = () => {
                                 {/* Vista Móvil (< sm) */}
                                 <div className="block sm:hidden space-y-2 max-h-[500px] overflow-y-auto">
                                     {(!recountData?.items || recountData.items.length === 0) ? (
-                                        <div className="text-center py-8 text-black text-xs italic font-normal bg-slate-50 rounded border border-slate-200">
+                                        <div className="text-center py-6 text-[#8c8c8c] text-[12px] italic font-normal bg-[#f8f9fa] rounded border border-[#d1d5db]">
                                             No hay ítems registrados en la lista de reconteo para esta fase.
                                         </div>
                                     ) : (
@@ -911,47 +888,47 @@ const CycleCounts = () => {
                                             .map((item, idx) => (
                                                 <div
                                                     key={item.item_code || `mobile-recount-${idx}`}
-                                                    className={`p-3 border rounded-lg flex flex-col gap-2 transition-all ${
+                                                    className={`p-2.5 border rounded flex flex-col gap-1.5 transition-colors ${
                                                         item.is_recounted
-                                                            ? 'bg-slate-50 border-slate-200'
-                                                            : 'bg-white border-slate-300 shadow-2xs'
+                                                            ? 'bg-[#f8f9fa] border-[#d1d5db]'
+                                                            : 'bg-white border-[#d1d5db] shadow-2xs'
                                                     }`}
                                                 >
                                                     <div className="flex justify-between items-start gap-2">
                                                         <div>
-                                                            <span className="font-sans text-xs text-black font-normal block">
+                                                            <span className="text-[12px] text-[#0067c0] font-normal block">
                                                                 {item.item_code}
                                                             </span>
-                                                            <p className="text-[11px] text-black font-normal line-clamp-2 mt-0.5">
+                                                            <p className="text-[11.5px] text-[#5c5c5c] font-normal line-clamp-2 mt-0.5 mb-0">
                                                                 {item.description}
                                                             </p>
                                                         </div>
                                                         {item.is_recounted ? (
-                                                            <span className="bg-emerald-50 text-emerald-900 text-[9px] font-normal px-2 py-0.5 rounded border border-emerald-300 shrink-0">
-                                                                ✓ RECONTADO ({item.counted_qty_in_stage})
+                                                            <span className="bg-[#ecfdf5] text-[#065f46] text-[10px] font-normal px-2 py-0.5 rounded border border-[#a7f3d0] shrink-0">
+                                                                Recontado ({item.counted_qty_in_stage})
                                                             </span>
                                                         ) : (
-                                                            <span className="bg-amber-50 text-amber-900 text-[9px] font-normal px-2 py-0.5 rounded border border-amber-300 shrink-0">
-                                                                PENDIENTE
+                                                            <span className="bg-[#fffbeb] text-[#92400e] text-[10px] font-normal px-2 py-0.5 rounded border border-[#fde68a] shrink-0">
+                                                                Pendiente
                                                             </span>
                                                         )}
                                                     </div>
 
-                                                    <div className="flex justify-between items-center pt-2 border-t border-slate-100 gap-2">
-                                                        <div className="bg-slate-100 border border-slate-300 px-3 py-1 rounded text-center shrink-0">
-                                                            <span className="text-[8px] uppercase text-black block tracking-wider font-normal">UBICACIÓN</span>
-                                                            <span className="font-sans text-xs font-normal text-black uppercase">{item.bin_location || '—'}</span>
+                                                    <div className="flex justify-between items-center pt-2 border-t border-[#e5e7eb] gap-2">
+                                                        <div className="bg-[#f8f9fa] border border-[#d1d5db] px-2.5 py-0.5 rounded text-center shrink-0">
+                                                            <span className="text-[9px] text-[#5c5c5c] block font-normal">UBICACIÓN</span>
+                                                            <span className="font-mono text-[11.5px] font-normal text-[#1f1f1f] uppercase">{item.bin_location || '—'}</span>
                                                         </div>
                                                         <button
                                                             type="button"
                                                             onClick={() => selectItemForRecount(item)}
-                                                            className={`px-4 py-1.5 rounded text-[10px] font-normal uppercase tracking-wider transition-colors shadow-2xs cursor-pointer ${
+                                                            className={`h-7 px-3 rounded text-[11.5px] font-normal transition-colors cursor-pointer ${
                                                                 item.is_recounted
-                                                                    ? 'bg-slate-200 text-black border border-slate-300'
-                                                                    : 'bg-black text-white'
+                                                                    ? 'bg-white text-[#1f1f1f] border border-[#d1d5db] hover:bg-[#f5f5f5]'
+                                                                    : 'bg-[#0067c0] text-white hover:bg-[#005a9e]'
                                                             }`}
                                                         >
-                                                            {item.is_recounted ? 'Editar' : 'Recontar ➔'}
+                                                            {item.is_recounted ? 'Editar' : 'Recontar'}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -960,22 +937,22 @@ const CycleCounts = () => {
                                 </div>
 
                                 {/* Vista Escritorio / Tablet (>= sm) */}
-                                <div className="hidden sm:block bg-white shadow-xs rounded-lg overflow-hidden border border-slate-200">
+                                <div className="hidden sm:block bg-white shadow-xs rounded overflow-hidden border border-[#d1d5db]">
                                     <div className="overflow-x-auto max-h-[500px]">
-                                        <table className="w-full text-xs border-collapse min-w-[600px]">
-                                            <thead className="bg-slate-700 text-white sticky top-0 z-10">
+                                        <table className="w-full text-[12px] border-collapse min-w-[600px]">
+                                            <thead className="bg-[#354a5f] text-white text-[11px] font-normal tracking-normal sticky top-0 z-10 border-b border-[#2a3c4e]">
                                                 <tr>
-                                                    <th className="px-3 py-2 text-left font-medium">ITEM CODE</th>
-                                                    <th className="px-3 py-2 text-left font-medium">DESCRIPCIÓN</th>
-                                                    <th className="px-3 py-2 text-center font-medium">UBICACIÓN SISTEMA</th>
-                                                    <th className="px-3 py-2 text-center font-medium">ESTADO</th>
-                                                    <th className="px-3 py-2 text-center font-medium">ACCIÓN</th>
+                                                    <th className="px-3 py-1.5 text-left font-normal">ITEM CODE</th>
+                                                    <th className="px-3 py-1.5 text-left font-normal">DESCRIPCIÓN</th>
+                                                    <th className="px-3 py-1.5 text-center font-normal">UBICACIÓN SISTEMA</th>
+                                                    <th className="px-3 py-1.5 text-center font-normal">ESTADO</th>
+                                                    <th className="px-3 py-1.5 text-center font-normal">ACCIÓN</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-slate-200">
+                                            <tbody className="divide-y divide-[#e5e7eb]">
                                                 {(!recountData?.items || recountData.items.length === 0) ? (
                                                     <tr>
-                                                        <td colSpan="5" className="text-center py-8 text-black text-xs italic font-normal">
+                                                        <td colSpan="5" className="text-center py-6 text-[#8c8c8c] text-[12px] italic font-normal">
                                                             No hay ítems registrados en la lista de reconteo para esta fase.
                                                         </td>
                                                     </tr>
@@ -994,41 +971,41 @@ const CycleCounts = () => {
                                                         .map((item, idx) => (
                                                             <tr
                                                                 key={item.item_code || `main-recount-${idx}`}
-                                                                className={`${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/70'} hover:bg-blue-50/80 transition-colors`}
+                                                                className={`hover:bg-[#edf3f9] transition-colors leading-none h-7 ${idx % 2 === 1 ? 'bg-[#fafafa]' : 'bg-white'}`}
                                                             >
-                                                                <td className="px-3 py-2 whitespace-nowrap text-sm text-black font-normal">
+                                                                <td className="px-3 py-1 whitespace-nowrap text-[11.5px] text-[#0067c0] font-normal">
                                                                     {item.item_code}
                                                                 </td>
-                                                                <td className="px-3 py-2 text-sm text-black font-normal truncate max-w-md" title={item.description}>
+                                                                <td className="px-3 py-1 text-[11.5px] text-[#5c5c5c] font-normal truncate max-w-md" title={item.description}>
                                                                     {item.description}
                                                                 </td>
-                                                                <td className="px-3 py-2 text-center whitespace-nowrap">
-                                                                    <span className="inline-block bg-slate-100 border border-slate-300 px-3 py-1 rounded text-sm font-normal text-black uppercase">
+                                                                <td className="px-3 py-1 text-center whitespace-nowrap">
+                                                                    <span className="font-mono text-[11.5px] text-[#1f1f1f]">
                                                                         {item.bin_location || '—'}
                                                                     </span>
                                                                 </td>
-                                                                <td className="px-3 py-2 text-center whitespace-nowrap">
+                                                                <td className="px-3 py-1 text-center whitespace-nowrap">
                                                                     {item.is_recounted ? (
-                                                                        <span className="bg-emerald-50 text-emerald-900 text-[10px] font-normal px-2 py-0.5 rounded border border-emerald-300">
-                                                                            ✓ RECONTADO ({item.counted_qty_in_stage})
+                                                                        <span className="bg-[#ecfdf5] text-[#065f46] text-[10px] font-normal px-2 py-0.5 rounded border border-[#a7f3d0]">
+                                                                            Recontado ({item.counted_qty_in_stage})
                                                                         </span>
                                                                     ) : (
-                                                                        <span className="bg-amber-50 text-amber-900 text-[10px] font-normal px-2 py-0.5 rounded border border-amber-300">
-                                                                            PENDIENTE
+                                                                        <span className="bg-[#fffbeb] text-[#92400e] text-[10px] font-normal px-2 py-0.5 rounded border border-[#fde68a]">
+                                                                            Pendiente
                                                                         </span>
                                                                     )}
                                                                 </td>
-                                                                <td className="px-3 py-2 text-center whitespace-nowrap">
+                                                                <td className="px-3 py-1 text-center whitespace-nowrap">
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => selectItemForRecount(item)}
-                                                                        className={`px-3 py-1 rounded text-[10px] font-normal uppercase tracking-wider transition-colors shadow-2xs cursor-pointer ${
+                                                                        className={`h-6 px-2.5 rounded text-[11px] font-normal transition-colors cursor-pointer ${
                                                                             item.is_recounted
-                                                                                ? 'bg-slate-200 text-black hover:bg-slate-300 border border-slate-300'
-                                                                                : 'bg-black hover:bg-zinc-800 text-white'
+                                                                                ? 'bg-white text-[#1f1f1f] hover:bg-[#f5f5f5] border border-[#d1d5db]'
+                                                                                : 'bg-[#0067c0] hover:bg-[#005a9e] text-white'
                                                                         }`}
                                                                     >
-                                                                        {item.is_recounted ? 'Editar' : 'Recontar ➔'}
+                                                                        {item.is_recounted ? 'Editar' : 'Recontar'}
                                                                     </button>
                                                                 </td>
                                                             </tr>
@@ -1044,79 +1021,79 @@ const CycleCounts = () => {
                 </div>
 
                 {/* Sidebar Info */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                     {/* Indicador de Avance de Reconteo por Usuario y Zona Asignada */}
                     {selectedPhase >= 2 && recountData && (
-                        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-3 text-black">
+                        <div className="bg-white rounded shadow-sm border border-[#d1d5db] p-3 text-[#1f1f1f]">
                             <div className="flex justify-between items-center mb-1.5">
                                 <div>
-                                    <h3 className="text-[10px] font-normal uppercase tracking-wider text-black flex items-center gap-1.5">
-                                        <span>📊 Avance de Reconteo por Zona</span>
+                                    <h3 className="text-[11.5px] font-normal text-[#1f1f1f] m-0">
+                                        Avance de Reconteo por Zona
                                     </h3>
-                                    <p className="text-[9px] text-black font-normal mt-0.5">
-                                        Auditor: <span className="text-black font-normal uppercase">{activeSession?.user_username || activeSession?.username || 'AUDITOR'}</span>
+                                    <p className="text-[11px] text-[#5c5c5c] font-normal mt-0.5 mb-0">
+                                        Auditor: <span className="text-[#1f1f1f] font-normal">{activeSession?.user_username || activeSession?.username || 'Auditor'}</span>
                                     </p>
                                 </div>
-                                <span className="text-[10px] font-sans font-normal px-2 py-0.5 bg-black text-white rounded shadow-2xs">
+                                <span className="text-[11px] font-normal px-2 py-0.5 bg-[#f0f7ff] text-[#0067c0] border border-[#bae0ff] rounded">
                                     {(recountData.total || 0) > 0 ? Math.round(((recountData.recounted_count || 0) / recountData.total) * 100) : 0}%
                                 </span>
                             </div>
 
                             {/* Barra de Progreso Visual */}
-                            <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200 mb-2">
+                            <div className="w-full bg-[#f3f4f6] h-2 rounded-full overflow-hidden border border-[#e5e7eb] mb-2">
                                 <div
-                                    className="bg-emerald-600 h-full rounded-full transition-all duration-500 ease-out"
+                                    className="bg-[#0067c0] h-full rounded-full transition-all duration-300"
                                     style={{ width: `${(recountData.total || 0) > 0 ? Math.round(((recountData.recounted_count || 0) / recountData.total) * 100) : 0}%` }}
                                 />
                             </div>
 
-                            <div className="grid grid-cols-3 gap-1.5 text-center text-[10px] pt-1.5 border-t border-slate-100">
-                                <div className="bg-slate-50 p-1.5 rounded border border-slate-100">
-                                    <span className="text-black font-normal block text-[8px] uppercase">Recontados</span>
-                                    <span className="font-segoe-ui text-emerald-800 text-xs font-normal">{recountData.recounted_count || 0}</span>
+                            <div className="grid grid-cols-3 gap-1.5 text-center text-[11px] pt-1.5 border-t border-[#e5e7eb]">
+                                <div className="bg-[#f8f9fa] p-1.5 rounded border border-[#e5e7eb]">
+                                    <span className="text-[#5c5c5c] font-normal block text-[10px]">Recontados</span>
+                                    <span className="text-[#065f46] text-[12px] font-normal">{recountData.recounted_count || 0}</span>
                                 </div>
-                                <div className="bg-slate-50 p-1.5 rounded border border-slate-100">
-                                    <span className="text-black font-normal block text-[8px] uppercase">Pendientes</span>
-                                    <span className="font-segoe-ui text-amber-800 text-xs font-normal">{recountData.pending_count || 0}</span>
+                                <div className="bg-[#f8f9fa] p-1.5 rounded border border-[#e5e7eb]">
+                                    <span className="text-[#5c5c5c] font-normal block text-[10px]">Pendientes</span>
+                                    <span className="text-[#92400e] text-[12px] font-normal">{recountData.pending_count || 0}</span>
                                 </div>
-                                <div className="bg-slate-50 p-1.5 rounded border border-slate-100">
-                                    <span className="text-black font-normal block text-[8px] uppercase">Total Zona</span>
-                                    <span className="font-segoe-ui text-black text-xs font-normal">{recountData.total || 0}</span>
+                                <div className="bg-[#f8f9fa] p-1.5 rounded border border-[#e5e7eb]">
+                                    <span className="text-[#5c5c5c] font-normal block text-[10px]">Total Zona</span>
+                                    <span className="text-[#1f1f1f] text-[12px] font-normal">{recountData.total || 0}</span>
                                 </div>
                             </div>
                         </div>
                     )}
 
                     {/* Counts in Current Location */}
-                    <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-3 text-black">
-                        <div className="flex justify-between items-center mb-2 pb-1 border-b border-slate-100">
-                            <h3 className="text-[10px] font-normal uppercase tracking-wider text-black">
-                                Ítems en <span className="font-normal text-black">{countedLocation || '...'}</span>
+                    <div className="bg-white rounded shadow-sm border border-[#d1d5db] p-3 text-[#1f1f1f]">
+                        <div className="flex justify-between items-center mb-2 pb-1 border-b border-[#e5e7eb]">
+                            <h3 className="text-[11px] font-normal text-[#1f1f1f] m-0">
+                                Ítems en <span className="font-normal text-[#0067c0]">{countedLocation || '...'}</span>
                             </h3>
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-black font-normal border border-slate-200">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#f3f4f6] text-[#1f1f1f] font-normal border border-[#d1d5db]">
                                 {locationCounts.length}
                             </span>
                         </div>
-                        <div className="max-h-56 overflow-y-auto divide-y divide-slate-100">
+                        <div className="max-h-56 overflow-y-auto divide-y divide-[#e5e7eb]">
                             {locationCounts.length === 0 ? (
-                                <p className="text-[10px] text-zinc-500 text-center py-6 italic font-normal">
+                                <p className="text-[11px] text-[#8c8c8c] text-center py-4 italic font-normal m-0">
                                     Sin registros en esta ubicación
                                 </p>
                             ) : (
                                 locationCounts.map((c, idx) => (
                                     <div
                                         key={c.id || `loc-count-${c.item_code}-${idx}`}
-                                        className={`flex justify-between items-center text-[11px] py-1.5 px-1 hover:bg-slate-50 rounded transition-colors ${
+                                        className={`flex justify-between items-center text-[11.5px] py-1 px-1 hover:bg-[#edf3f9] rounded transition-colors ${
                                             c.is_pending ? 'border-l-2 border-amber-400 pl-1.5' : ''
                                         }`}
                                     >
-                                        <span className="font-sans font-normal text-black tracking-tight">{c.item_code}</span>
+                                        <span className="font-normal text-[#1f1f1f]">{c.item_code}</span>
                                         <div className="flex items-center gap-2">
-                                            <span className="font-sans font-normal text-black">{c.counted_qty}</span>
+                                            <span className="font-normal text-[#0067c0]">{c.counted_qty}</span>
                                             <button
                                                 onClick={() => deleteCount(c.id)}
                                                 title="Eliminar registro"
-                                                className="text-black hover:text-red-600 font-normal px-1 text-xs transition-colors cursor-pointer"
+                                                className="text-[#8c8c8c] hover:text-[#991b1b] font-normal px-1 text-[11px] transition-colors cursor-pointer"
                                             >
                                                 ✕
                                             </button>
@@ -1128,32 +1105,32 @@ const CycleCounts = () => {
                     </div>
 
                     {/* Session Locations History */}
-                    <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-3 text-black">
-                        <div className="flex justify-between items-center mb-2 pb-1 border-b border-slate-100">
-                            <h3 className="text-[10px] font-normal uppercase tracking-wider text-black">
+                    <div className="bg-white rounded shadow-sm border border-[#d1d5db] p-3 text-[#1f1f1f]">
+                        <div className="flex justify-between items-center mb-2 pb-1 border-b border-[#e5e7eb]">
+                            <h3 className="text-[11px] font-normal text-[#1f1f1f] m-0">
                                 Historial de Ubicaciones
                             </h3>
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-black font-normal border border-slate-200">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#f3f4f6] text-[#1f1f1f] font-normal border border-[#d1d5db]">
                                 {sessionLocations.length}
                             </span>
                         </div>
-                        <div className="max-h-56 overflow-y-auto divide-y divide-slate-100 mb-3">
+                        <div className="max-h-56 overflow-y-auto divide-y divide-[#e5e7eb] mb-3">
                             {sessionLocations.length === 0 ? (
-                                <p className="text-[10px] text-zinc-500 text-center py-6 italic font-normal">
+                                <p className="text-[11px] text-[#8c8c8c] text-center py-4 italic font-normal m-0">
                                     No hay ubicaciones registradas
                                 </p>
                             ) : (
                                 sessionLocations.map((l, idx) => (
                                     <div
                                         key={l.id || l.location_code || `sess-loc-${idx}`}
-                                        className="flex justify-between items-center text-[10px] py-1.5 px-1 hover:bg-slate-50 rounded"
+                                        className="flex justify-between items-center text-[11.5px] py-1 px-1 hover:bg-[#edf3f9] rounded"
                                     >
-                                        <span className="font-normal uppercase text-black">{l.location_code}</span>
+                                        <span className="font-mono text-[#1f1f1f]">{l.location_code}</span>
                                         <span
-                                            className={`text-[9px] font-normal uppercase px-1.5 py-0.5 rounded border ${
+                                            className={`text-[10px] font-normal px-1.5 py-0.5 rounded border ${
                                                 l.status === 'open'
-                                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                                    : 'bg-slate-100 text-black border-slate-200'
+                                                    ? 'bg-[#ecfdf5] text-[#065f46] border-[#a7f3d0]'
+                                                    : 'bg-[#f3f4f6] text-[#1f1f1f] border-[#d1d5db]'
                                             }`}
                                         >
                                             {l.status === 'open' ? 'En proceso' : 'Cerrada'}
@@ -1166,10 +1143,10 @@ const CycleCounts = () => {
                             <button
                                 onClick={closeLocation}
                                 disabled={!isOnline}
-                                className={`w-full py-1.5 text-[10px] font-normal uppercase tracking-wider rounded border transition-colors shadow-xs cursor-pointer ${
+                                className={`w-full h-7 text-[11.5px] font-normal rounded border transition-colors shadow-xs cursor-pointer ${
                                     isOnline
-                                        ? 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200'
-                                        : 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                                        ? 'bg-white hover:bg-[#fef2f2] text-[#991b1b] border-[#fecaca]'
+                                        : 'bg-[#f3f4f6] text-[#8c8c8c] border-[#d1d5db] cursor-not-allowed'
                                 }`}
                             >
                                 {isOnline ? `Cerrar Ubicación ${countedLocation}` : '(Cerrar requiere red)'}
@@ -1179,7 +1156,7 @@ const CycleCounts = () => {
                 </div>
             </div>
 
-        {/* Scanner Modal */}
+            {/* Scanner Modal */}
             {scannerOpen && (
                 <ScannerModal
                     title={`Escanear ${scanTarget === 'location' ? 'Ubicación' : 'Código de Ítem'}`}
@@ -1190,44 +1167,44 @@ const CycleCounts = () => {
 
             {/* Recount List Modal */}
             {showRecountModal && recountData && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-                    <div className="bg-white w-full max-w-xl rounded-xl shadow-xl overflow-hidden flex flex-col max-h-[85vh] border border-slate-200 text-black">
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                    <div className="bg-white w-full max-w-xl rounded shadow-xl overflow-hidden flex flex-col max-h-[85vh] border border-[#d1d5db] text-[#1f1f1f]">
                         {/* Modal Header */}
-                        <div className="bg-black text-white px-4 py-3 flex justify-between items-center">
+                        <div className="bg-[#354a5f] text-white px-4 py-2.5 flex justify-between items-center">
                             <div>
-                                <h3 className="font-normal text-xs uppercase tracking-normal">
+                                <h3 className="font-normal text-[13px] m-0 text-white">
                                     Ítems a Recontar — Etapa {recountData.stage} (R{recountData.stage - 1})
                                 </h3>
-                                <p className="text-[10px] text-black font-normal">
+                                <p className="text-[11px] text-[#d1d5db] font-normal m-0">
                                     {recountData.recounted_count} de {recountData.total} recontados ({recountData.pending_count} pendientes)
                                 </p>
                             </div>
                             <button
                                 onClick={() => setShowRecountModal(false)}
-                                className="text-white/80 hover:text-white text-lg font-normal px-2 cursor-pointer"
+                                className="text-white hover:text-[#d1d5db] text-sm font-normal cursor-pointer"
                             >
                                 ✕
                             </button>
                         </div>
 
                         {/* Modal Filter Tabs */}
-                        <div className="flex border-b border-slate-200 bg-slate-50 px-4 pt-2 gap-2 text-xs">
+                        <div className="flex border-b border-[#d1d5db] bg-[#f8f9fa] px-3 pt-2 gap-2 text-[12px]">
                             <button
                                 onClick={() => setRecountFilter('pending')}
-                                className={`px-3 py-1.5 border-b-2 font-normal uppercase tracking-normal text-[10px] transition-colors cursor-pointer ${
+                                className={`px-3 py-1.5 border-b-2 font-normal text-[11.5px] transition-colors cursor-pointer ${
                                     recountFilter === 'pending'
-                                        ? 'border-black text-black bg-white rounded-t'
-                                        : 'border-transparent text-slate-600 hover:text-black'
+                                        ? 'border-[#0067c0] text-[#0067c0] bg-white rounded-t'
+                                        : 'border-transparent text-[#5c5c5c] hover:text-[#1f1f1f]'
                                 }`}
                             >
                                 Pendientes ({recountData.pending_count})
                             </button>
                             <button
                                 onClick={() => setRecountFilter('all')}
-                                className={`px-3 py-1.5 border-b-2 font-normal uppercase tracking-normal text-[10px] transition-colors cursor-pointer ${
+                                className={`px-3 py-1.5 border-b-2 font-normal text-[11.5px] transition-colors cursor-pointer ${
                                     recountFilter === 'all'
-                                        ? 'border-black text-black bg-white rounded-t'
-                                        : 'border-transparent text-slate-600 hover:text-black'
+                                        ? 'border-[#0067c0] text-[#0067c0] bg-white rounded-t'
+                                        : 'border-transparent text-[#5c5c5c] hover:text-[#1f1f1f]'
                                 }`}
                             >
                                 Todos ({recountData.total})
@@ -1241,43 +1218,43 @@ const CycleCounts = () => {
                                 .map((item, idx) => (
                                     <div
                                         key={item.item_code || `recount-item-${idx}`}
-                                        className={`p-2.5 border rounded flex justify-between items-center transition-all ${
+                                        className={`p-2.5 border rounded flex justify-between items-center transition-colors ${
                                             item.is_recounted
-                                                ? 'bg-slate-50 border-slate-200 opacity-80'
-                                                : 'bg-white border-slate-300 hover:border-black shadow-2xs'
+                                                ? 'bg-[#f8f9fa] border-[#d1d5db] opacity-80'
+                                                : 'bg-white border-[#d1d5db] hover:border-[#0067c0] shadow-2xs'
                                         }`}
                                     >
                                         <div className="flex-1 pr-3">
                                             <div className="flex items-center gap-2">
-                                                <span className="font-sans font-normal text-sm text-black">
+                                                <span className="font-normal text-[12px] text-[#0067c0]">
                                                     {item.item_code}
                                                 </span>
                                                 {item.is_recounted ? (
-                                                    <span className="bg-emerald-50 text-emerald-800 text-[9px] font-normal px-2 py-0.5 rounded border border-emerald-300">
-                                                        ✓ RECONTADO ({item.counted_qty_in_stage})
+                                                    <span className="bg-[#ecfdf5] text-[#065f46] text-[10px] font-normal px-2 py-0.5 rounded border border-[#a7f3d0]">
+                                                        Recontado ({item.counted_qty_in_stage})
                                                     </span>
                                                 ) : (
-                                                    <span className="bg-amber-50 text-amber-800 text-[9px] font-normal px-2 py-0.5 rounded border border-amber-300">
-                                                        PENDIENTE
+                                                    <span className="bg-[#fffbeb] text-[#92400e] text-[10px] font-normal px-2 py-0.5 rounded border border-[#fde68a]">
+                                                        Pendiente
                                                     </span>
                                                 )}
                                             </div>
-                                            <p className="text-[10px] text-black font-normal line-clamp-1 mt-0.5">
+                                            <p className="text-[11.5px] text-[#5c5c5c] font-normal line-clamp-1 mt-0.5 mb-0">
                                                 {item.description}
                                             </p>
-                                            <p className="text-[10px] text-black uppercase font-sans mt-0.5 font-normal">
-                                                Ubic. Sistema: <span className="font-normal text-black">{item.bin_location}</span>
+                                            <p className="text-[11px] text-[#5c5c5c] font-mono mt-0.5 mb-0 font-normal">
+                                                Ubic. Sistema: <span className="font-normal text-[#1f1f1f]">{item.bin_location}</span>
                                             </p>
                                         </div>
                                         <button
                                             onClick={() => selectItemForRecount(item)}
-                                            className={`px-3 py-1 rounded text-[10px] font-normal uppercase tracking-wider transition-colors shadow-2xs cursor-pointer ${
+                                            className={`h-7 px-3 rounded text-[11.5px] font-normal transition-colors cursor-pointer ${
                                                 item.is_recounted
-                                                    ? 'bg-slate-100 text-black hover:bg-slate-200'
-                                                    : 'bg-black hover:bg-zinc-800 text-white'
+                                                    ? 'bg-white text-[#1f1f1f] border border-[#d1d5db] hover:bg-[#f5f5f5]'
+                                                    : 'bg-[#0067c0] hover:bg-[#005a9e] text-white'
                                             }`}
                                         >
-                                            {item.is_recounted ? 'Editar' : 'Recontar ➔'}
+                                            {item.is_recounted ? 'Editar' : 'Recontar'}
                                         </button>
                                     </div>
                                 ))}
@@ -1288,53 +1265,53 @@ const CycleCounts = () => {
 
             {/* Modal Limpio de Captura de Reconteo */}
             {recountItemModal && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-                    <div className="bg-white max-w-md w-full rounded-xl shadow-xl border border-slate-200 p-5 text-black">
-                        <div className="flex justify-between items-start mb-3 pb-2 border-b border-slate-200">
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                    <div className="bg-white max-w-md w-full rounded shadow-xl border border-[#d1d5db] overflow-hidden text-[#1f1f1f]">
+                        <div className="bg-[#354a5f] px-4 py-2.5 text-white flex justify-between items-center">
                             <div>
-                                <h3 className="text-xs font-normal text-black uppercase tracking-tight">
+                                <h3 className="text-[13px] font-normal m-0 text-white">
                                     Capturar Reconteo — {recountItemModal.item_code}
                                 </h3>
-                                <p className="text-[10px] text-black font-normal truncate max-w-[280px]">
+                                <p className="text-[11px] text-[#d1d5db] font-normal truncate max-w-[280px] m-0">
                                     {recountItemModal.description}
                                 </p>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setRecountItemModal(null)}
-                                className="text-black hover:text-zinc-700 text-sm font-normal cursor-pointer"
+                                className="text-white hover:text-[#d1d5db] text-sm font-normal cursor-pointer"
                             >
                                 ✕
                             </button>
                         </div>
 
-                        <form onSubmit={handleSaveRecountItem} className="space-y-3">
+                        <form onSubmit={handleSaveRecountItem} className="p-4 space-y-3">
                             <div>
-                                <label className="block text-[9px] uppercase tracking-wider font-normal text-black mb-0.5">
+                                <label className="block text-[11px] font-normal text-[#5c5c5c] mb-1">
                                     Ubicación Sistema / Referencia
                                 </label>
-                                <div className="h-7 px-2 bg-slate-50 border border-slate-200 rounded text-xs font-sans font-normal text-black flex items-center uppercase">
+                                <div className="h-7 px-2 bg-[#f8f9fa] border border-[#d1d5db] rounded text-[12px] font-mono text-[#1f1f1f] flex items-center">
                                     {recountItemModal.bin_location}
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-[9px] uppercase tracking-wider font-normal text-black mb-0.5">
-                                    Ubicación Física Real <span className="text-red-600">*</span>
+                                <label className="block text-[11px] font-normal text-[#5c5c5c] mb-1">
+                                    Ubicación Física Real <span className="text-[#991b1b]">*</span>
                                 </label>
                                 <input
                                     type="text"
                                     value={recountItemModal.counted_location}
                                     onChange={e => setRecountItemModal({ ...recountItemModal, counted_location: e.target.value.toUpperCase() })}
-                                    className="w-full h-7 border border-slate-300 rounded px-2 text-xs font-normal text-black uppercase bg-white focus:outline-none focus:ring-1 focus:ring-black"
-                                    placeholder="SCAN O DIGITE UBICACIÓN"
+                                    className="w-full h-7 border border-[#d1d5db] rounded px-2 text-[12px] font-normal text-[#1f1f1f] uppercase bg-white focus:outline-none focus:border-[#0067c0]"
+                                    placeholder="Scan o digite ubicación..."
                                     required
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-[9px] uppercase tracking-wider font-normal text-black mb-0.5">
-                                    Cantidad Observada / Recontada <span className="text-red-600">*</span>
+                                <label className="block text-[11px] font-normal text-[#5c5c5c] mb-1">
+                                    Cantidad Observada / Recontada <span className="text-[#991b1b]">*</span>
                                 </label>
                                 <div className="flex items-center">
                                     <button
@@ -1343,7 +1320,7 @@ const CycleCounts = () => {
                                             ...prev,
                                             counted_qty: String(Math.max(0, (parseInt(prev.counted_qty) || 0) - 1))
                                         }))}
-                                        className="h-8 w-8 border border-slate-300 bg-slate-100 hover:bg-slate-200 text-black font-normal text-base rounded-l flex items-center justify-center cursor-pointer select-none p-0"
+                                        className="h-7 w-7 border border-[#d1d5db] bg-[#f8f9fa] hover:bg-[#f0f0f0] text-[#1f1f1f] font-normal text-sm rounded-l flex items-center justify-center cursor-pointer select-none p-0"
                                     >
                                         -
                                     </button>
@@ -1351,7 +1328,7 @@ const CycleCounts = () => {
                                         type="number"
                                         value={recountItemModal.counted_qty}
                                         onChange={e => setRecountItemModal({ ...recountItemModal, counted_qty: e.target.value })}
-                                        className="h-8 flex-grow border-y border-slate-300 text-center font-sans text-sm font-normal text-black bg-white focus:outline-none focus:ring-1 focus:ring-black px-1"
+                                        className="h-7 flex-grow border-y border-[#d1d5db] text-center text-[12px] font-normal text-[#1f1f1f] bg-white focus:outline-none focus:border-[#0067c0] px-1"
                                         min="0"
                                         autoFocus
                                         required
@@ -1362,24 +1339,24 @@ const CycleCounts = () => {
                                             ...prev,
                                             counted_qty: String((parseInt(prev.counted_qty) || 0) + 1)
                                         }))}
-                                        className="h-8 w-8 border border-slate-300 bg-slate-100 hover:bg-slate-200 text-black font-normal text-base rounded-r flex items-center justify-center cursor-pointer select-none p-0"
+                                        className="h-7 w-7 border border-[#d1d5db] bg-[#f8f9fa] hover:bg-[#f0f0f0] text-[#1f1f1f] font-normal text-sm rounded-r flex items-center justify-center cursor-pointer select-none p-0"
                                     >
                                         +
                                     </button>
                                 </div>
                             </div>
 
-                            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                            <div className="flex justify-end gap-2 pt-2 border-t border-[#e5e7eb]">
                                 <button
                                     type="button"
                                     onClick={() => setRecountItemModal(null)}
-                                    className="px-4 py-1.5 border border-slate-300 bg-white hover:bg-slate-50 text-black text-[10px] font-normal uppercase tracking-wider rounded transition-colors cursor-pointer"
+                                    className="h-7 px-3 border border-[#d1d5db] bg-white hover:bg-[#f5f5f5] text-[#1f1f1f] text-[12px] font-normal rounded transition-colors cursor-pointer shadow-xs"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-5 py-1.5 bg-black hover:bg-zinc-800 text-white text-[10px] font-normal uppercase tracking-wider rounded shadow-xs transition-all cursor-pointer"
+                                    className="h-7 px-4 bg-[#0067c0] hover:bg-[#005a9e] text-white text-[12px] font-normal rounded shadow-xs transition-colors cursor-pointer"
                                 >
                                     Guardar Reconteo
                                 </button>

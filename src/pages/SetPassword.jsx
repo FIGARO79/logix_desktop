@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 
 const SetPassword = () => {
     const navigate = useNavigate();
@@ -53,53 +53,59 @@ const SetPassword = () => {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100">
-            <div className="px-8 py-6 mt-4 text-left bg-white shadow-lg rounded-lg w-full max-w-md">
-                <div className="flex justify-center mb-6">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-[#285f94]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                    </svg>
+        <div className="min-h-screen flex items-center justify-center bg-[#f3f4f6] p-4 font-['Segoe_UI',Tahoma,sans-serif] text-[#1f1f1f]">
+            <div className="bg-white p-7 rounded border border-[#e5e7eb] shadow-sm w-full max-w-sm">
+                <div className="text-center mb-5">
+                    <span className="text-[11px] font-normal text-[#6b7280] uppercase tracking-normal block mb-1">Logix Desktop</span>
+                    <h1 className="text-[18px] font-normal text-[#1f1f1f]">Restablecer Contraseña</h1>
                 </div>
-                <h3 className="text-2xl font-medium text-gray-900 text-center text-gray-800">Restablecer Contraseña</h3>
-                <p className="mt-2 text-sm text-center text-gray-600">Establece tu nueva contraseña de acceso</p>
 
-                {message && <div className="mt-4 p-3 bg-green-100 text-green-700 rounded text-sm">{message}</div>}
-                {error && <div className="mt-4 p-3 bg-red-100 text-red-700 rounded text-sm">{error}</div>}
+                {message && (
+                    <div className="bg-[#f0fdf4] border border-[#bbf7d0] text-[#166534] text-[12px] font-normal px-3 py-2 rounded mb-4">
+                        {message}
+                    </div>
+                )}
+                {error && (
+                    <div className="bg-[#fef2f2] border border-[#fecaca] text-[#b91c1c] text-[12px] font-normal px-3 py-2 rounded mb-4">
+                        {error}
+                    </div>
+                )}
 
                 {token && !message && (
-                    <form onSubmit={handleSubmit} className="mt-6">
+                    <form onSubmit={handleSubmit} className="space-y-3.5">
                         <div>
-                            <label className="block text-sm font-medium text-gray-900 text-gray-700">Nueva Contraseña</label>
+                            <label className="block text-[12px] font-normal text-[#374151] mb-1">Nueva Contraseña</label>
                             <input
                                 type="password"
                                 name="newPassword"
                                 required
-                                className="w-full px-4 py-2 mt-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-[#285f94]"
+                                className="w-full h-8 px-2.5 text-[12px] font-normal border border-[#d1d5db] rounded outline-none focus:border-[#0067c0] bg-white text-[#1f1f1f]"
                                 value={formData.newPassword}
                                 onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
                             />
                         </div>
-                        <div className="mt-4">
-                            <label className="block text-sm font-medium text-gray-900 text-gray-700">Confirmar Contraseña</label>
+                        <div>
+                            <label className="block text-[12px] font-normal text-[#374151] mb-1">Confirmar Contraseña</label>
                             <input
                                 type="password"
                                 name="confirmPassword"
                                 required
-                                className="w-full px-4 py-2 mt-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-[#285f94]"
+                                className="w-full h-8 px-2.5 text-[12px] font-normal border border-[#d1d5db] rounded outline-none focus:border-[#0067c0] bg-white text-[#1f1f1f]"
                                 value={formData.confirmPassword}
                                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                             />
                         </div>
-                        <div className="flex items-center justify-between mt-6">
-                            <button type="submit" className="w-full px-6 py-2 leading-5 text-white transition-colors duration-200 transform bg-[#285f94] rounded-md hover:bg-[#1e4a74] focus:outline-none focus:bg-[#1e4a74]">
-                                Guardar Contraseña
-                            </button>
-                        </div>
+                        <button
+                            type="submit"
+                            className="w-full h-8 bg-[#0067c0] hover:bg-[#005a9e] text-white text-[12px] font-normal rounded transition-colors cursor-pointer shadow-xs"
+                        >
+                            Guardar Contraseña
+                        </button>
                     </form>
                 )}
 
-                <div className="mt-6 text-center">
-                    <a href="/login" className="text-sm text-[#285f94] hover:underline">Volver a Inicio de Sesión</a>
+                <div className="pt-4 text-center text-[12px]">
+                    <Link to="/login" className="text-[#0067c0] hover:underline font-normal">Volver a Inicio de Sesión</Link>
                 </div>
             </div>
         </div>

@@ -77,3 +77,25 @@ El agente debe aplicar las guías y mejores prácticas de las siguientes skills 
   ```cypher
   trace_path(function_name="fetchOrders", direction="outbound")
   ```
+
+---
+
+## 6. Directivas Estrictas de Diseño UI / UX (Windows 11 Fluent UI)
+
+Todo agente o asistente que proponga, cree o modifique componentes de interfaz visual debe adherirse obligatoriamente a las siguientes directrices:
+
+1. **Tipografía y Legibilidad:**
+   - **Fuente obligatoria:** Segoe UI (`font-['Segoe_UI',Tahoma,sans-serif]` o clase personalizada de proyecto).
+   - **Peso tipográfico:** Estrictamente normal (`font-normal`, evitar negritas o `font-semibold`/`font-bold` salvo encabezados muy específicos de sección).
+   - **Color de texto:** Los textos y encabezados deben usar color negro pleno (`text-black` / `#000000` o `#1f1f1f`) en reemplazo de tonos tenues o zinc descolorido.
+   - **Cero emojis:** Queda estrictamente prohibido el uso de emojis decorativos (🚀, 📦, ⚙️, etc.) en interfaces, tablas, botones o títulos. Utilizar texto sobrio o iconos SVG monocromáticos discretos cuando sea indispensable.
+
+2. **Interacciones y Punteros (Cursores):**
+   - **Navegación y clics:** El cursor en enlaces, menús y opciones de navegación (incluido el panel lateral / Sidebar) debe ser siempre el puntero estándar de selección / dedo señalando (`cursor-pointer`). Evitar cursores de mano abierta/cerrada (`cursor-grab` / `cursor-grabbing`) para elementos de navegación simple.
+   - **Arrastre y soltar (Drag & Drop):**
+     - En entornos de escritorio Tauri / WebView2 sobre Windows, implementar drag & drop mediante **Pointer Events** nativos (`onPointerDown`, `pointermove`, `pointerup`) o librerías basadas en eventos de puntero, para evitar la interferencia del hook OLE `IDropTarget` que congela o torna transparente el cursor.
+     - Las tarjetas u opciones no deben mostrar indicadores invasivos (flechas o puntos innecesarios) que puedan tapar o comprometer el texto.
+     - Botones de acción complementarios (como "Restablecer Orden" o mensajes explicativos) deben ubicarse al pie de la página o en zonas no invasivas, manteniendo despejadas las cabeceras principales.
+
+3. **Excepción Intocable - Estándar de Etiqueta Industrial:**
+   - **Componentes de etiqueta:** [`SandvikLabel.jsx`](src/components/SandvikLabel.jsx) y su hoja de estilos [`Label.css`](src/styles/Label.css) representan un estándar milimétrico de empaque de planta industrial y **NUNCA deben modificarse** bajo ninguna directriz de rediseño de UI general.

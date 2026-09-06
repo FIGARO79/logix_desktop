@@ -201,24 +201,24 @@ const ManageCycleCountDifferences = () => {
 
 
     return (
-        <div className="max-w-[1800px] mx-auto px-6 pt-3 pb-6 font-sans bg-[#fcfcfc] min-h-screen text-zinc-800">
-            {/* Filtros */}
-            <div className="bg-white p-4 border border-zinc-200 mb-6 flex flex-wrap gap-6 items-end shadow-sm">
+        <div className="max-w-[1800px] mx-auto px-4 py-3 font-['Segoe_UI',Tahoma,sans-serif] bg-[#f8f9fa] min-h-screen text-[#1f1f1f]">
+            {/* Header y Filtros */}
+            <div className="bg-white p-3 border border-[#d1d5db] rounded mb-3 flex flex-wrap gap-4 items-end shadow-sm">
                 <div>
-                    <label className="block text-[12px] uppercase font-medium  text-black tracking-tight mb-1.5">Año</label>
+                    <label className="block text-[11px] font-normal text-[#5c5c5c] mb-1">Año</label>
                     <input
                         type="number"
                         value={year}
                         onChange={(e) => setYear(e.target.value)}
-                        className="h-8 border border-zinc-200 rounded px-3 w-24 text-xs focus:ring-1 focus:ring-zinc-900 outline-none transition-all"
+                        className="h-7 border border-[#d1d5db] rounded px-2 w-20 text-[12px] font-normal text-[#1f1f1f] focus:border-[#0067c0] outline-none bg-white"
                     />
                 </div>
                 <div>
-                    <label className="block text-[12px] uppercase font-medium  text-black tracking-tight mb-1.5">Mes</label>
+                    <label className="block text-[11px] font-normal text-[#5c5c5c] mb-1">Mes</label>
                     <select
                         value={month}
                         onChange={(e) => setMonth(e.target.value)}
-                        className="h-8 border border-zinc-200 rounded px-3 w-36 text-xs focus:ring-1 focus:ring-zinc-900 outline-none transition-all cursor-pointer"
+                        className="h-7 border border-[#d1d5db] rounded px-2 w-36 text-[12px] font-normal text-[#1f1f1f] focus:border-[#0067c0] outline-none bg-white cursor-pointer"
                     >
                         <option value="">Todos los meses</option>
                         {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
@@ -226,37 +226,37 @@ const ManageCycleCountDifferences = () => {
                         ))}
                     </select>
                 </div>
-                <div className="flex items-center pb-2">
+                <div className="flex items-center pb-1">
                     <input
                         type="checkbox"
                         checked={onlyDifferences}
                         onChange={(e) => setOnlyDifferences(e.target.checked)}
                         id="onlyDiff"
-                        className="w-3.5 h-3.5 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer"
+                        className="w-3.5 h-3.5 rounded border-[#d1d5db] text-[#0067c0] focus:ring-[#0067c0] cursor-pointer"
                     />
-                    <label htmlFor="onlyDiff" className="ml-2 text-[12px] uppercase font-medium  text-black tracking-tight cursor-pointer select-none">Solo Diferencias</label>
+                    <label htmlFor="onlyDiff" className="ml-1.5 text-[12px] font-normal text-[#1f1f1f] cursor-pointer select-none">Solo Diferencias</label>
                 </div>
                 <div className="flex-grow"></div>
                 <div className="flex gap-2">
                     <button
                         onClick={handleExportToExcel}
                         disabled={data.length === 0}
-                        className="h-8 bg-emerald-700 disabled:bg-zinc-200 text-white px-6 text-[10px] font-medium uppercase tracking-widest rounded hover:bg-emerald-800 disabled:text-zinc-400 disabled:cursor-not-allowed transition-all shadow-sm"
+                        className="h-7 bg-white hover:bg-[#f5f5f5] disabled:bg-[#f5f5f5] text-[#1f1f1f] border border-[#d1d5db] px-3 text-[12px] font-normal rounded disabled:text-[#8c8c8c] disabled:cursor-not-allowed transition-colors shadow-sm cursor-pointer"
                     >
                         Exportar a Excel
                     </button>
                     <button
                         onClick={() => fetchData(true)}
-                        className="h-8 bg-zinc-900 text-white px-6 text-[10px] font-medium uppercase tracking-widest rounded hover:bg-black transition-all shadow-sm"
+                        className="h-7 bg-[#0067c0] hover:bg-[#005a9e] text-white px-3 text-[12px] font-normal rounded transition-colors shadow-sm cursor-pointer"
                     >
-                        Actualizar Vista
+                        Actualizar
                     </button>
                 </div>
             </div>
 
-            <div className="bg-white shadow-sm border border-zinc-200 overflow-x-auto">
+            <div className="bg-white shadow-sm border border-[#d1d5db] rounded overflow-x-auto">
                 <table className="w-full text-left border-collapse">
-                    <thead className="bg-zinc-900 text-white select-none">
+                    <thead className="bg-[#354a5f] text-white select-none border-b border-[#2a3c4e]">
                         <tr>
                             {COLUMNS.map((col, i) => {
                                 const isSortable = col.key !== null;
@@ -271,13 +271,13 @@ const ManageCycleCountDifferences = () => {
                                     <th
                                         key={i}
                                         onClick={() => isSortable && handleSort(col.key)}
-                                        className={`px-4 py-1.5 text-[12px] font-normal uppercase tracking-tight whitespace-nowrap ${alignClass} ${isSortable ? 'cursor-pointer hover:bg-zinc-800 transition-colors' : ''}`}
+                                        className={`px-3 py-2 text-[11px] font-normal whitespace-nowrap ${alignClass} ${isSortable ? 'cursor-pointer hover:bg-[#2a3c4e] transition-colors' : ''}`}
                                     >
                                         <div className={`inline-flex items-center gap-1 ${col.align === 'right' ? 'justify-end w-full' : col.align === 'center' ? 'justify-center w-full' : ''}`}>
                                             <span>{col.label}</span>
                                             {isSortable && (
-                                                <span className="text-[10px] text-zinc-400">
-                                                    {isSorted ? (direction === 'asc' ? ' ▲' : ' ▼') : ' ↕'}
+                                                <span className="text-[10px] text-gray-300">
+                                                    {isSorted ? (direction === 'asc' ? ' ▲' : ' ▼') : ''}
                                                 </span>
                                             )}
                                         </div>
@@ -286,32 +286,32 @@ const ManageCycleCountDifferences = () => {
                             })}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-100">
+                    <tbody className="divide-y divide-[#e5e7eb]">
                         {loading ? (
-                            <tr><td colSpan="10" className="text-center py-8 text-zinc-400 text-[10px] uppercase font-medium  tracking-widest">Analizando discrepancias...</td></tr>
+                            <tr><td colSpan="10" className="text-center py-8 text-[#5c5c5c] text-[12px] font-normal">Cargando discrepancias...</td></tr>
                         ) : sortedData.length === 0 ? (
-                            <tr><td colSpan="10" className="text-center py-8 text-zinc-400 text-[10px] uppercase font-medium  tracking-widest">No se encontraron diferencias en este periodo.</td></tr>
+                            <tr><td colSpan="10" className="text-center py-8 text-[#5c5c5c] text-[12px] font-normal">No se encontraron diferencias en este periodo.</td></tr>
                         ) : (
                             sortedData.map((row) => (
-                                <tr key={row.id} className="hover:bg-zinc-50/50 transition-colors leading-none">
-                                    <td className="px-4 py-1.5 whitespace-nowrap text-black font-normal">{formatDate(row.executed_date)}</td>
-                                    <td className="px-4 py-1.5 font-normal text-black whitespace-nowrap">{row.item_code}</td>
-                                    <td className="px-4 py-1.5 truncate max-w-[350px] text-black font-normal whitespace-nowrap" title={row.item_description}>{row.item_description}</td>
-                                    <td className="px-4 py-1.5 text-black font-normal whitespace-nowrap">{row.bin_location}</td>
-                                    <td className="px-4 py-1.5 text-center text-black font-normal whitespace-nowrap">{row.abc_code}</td>
-                                    <td className="px-4 py-1.5 text-right text-black font-normal whitespace-nowrap">{row.system_qty}</td>
-                                    <td className="px-4 py-1.5 text-right text-black font-normal whitespace-nowrap">{row.physical_qty}</td>
-                                    <td className={`px-4 py-1.5 text-right whitespace-nowrap ${row.difference !== 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                                <tr key={row.id} className="hover:bg-[#edf3f9] transition-colors border-b border-[#f0f0f0] text-[11.5px] font-normal text-[#1f1f1f]">
+                                    <td className="px-3 py-1.5 whitespace-nowrap text-[#5c5c5c]">{formatDate(row.executed_date)}</td>
+                                    <td className="px-3 py-1.5 text-[#0067c0] whitespace-nowrap">{row.item_code}</td>
+                                    <td className="px-3 py-1.5 truncate max-w-[350px] whitespace-nowrap text-[#1f1f1f]" title={row.item_description}>{row.item_description}</td>
+                                    <td className="px-3 py-1.5 font-mono text-[#5c5c5c] whitespace-nowrap">{row.bin_location}</td>
+                                    <td className="px-3 py-1.5 text-center text-[#1f1f1f] whitespace-nowrap">{row.abc_code}</td>
+                                    <td className="px-3 py-1.5 text-right text-[#1f1f1f] whitespace-nowrap">{row.system_qty}</td>
+                                    <td className="px-3 py-1.5 text-right text-[#1f1f1f] whitespace-nowrap">{row.physical_qty}</td>
+                                    <td className={`px-3 py-1.5 text-right whitespace-nowrap ${row.difference !== 0 ? 'text-[#991b1b]' : 'text-[#065f46]'}`}>
                                         {row.difference > 0 ? `+${row.difference}` : row.difference}
                                     </td>
-                                    <td className="px-4 py-1.5 text-black font-normal whitespace-nowrap">{row.username}</td>
-                                    <td className="px-4 py-1.5 text-center whitespace-nowrap">
+                                    <td className="px-3 py-1.5 text-[#5c5c5c] whitespace-nowrap">{row.username}</td>
+                                    <td className="px-3 py-1.5 text-center whitespace-nowrap">
                                         <button
                                             onClick={() => handleEdit(row)}
-                                            className="text-[12px] font-normal  uppercase tracking-tight text-[#285f94] hover:text-black transition-colors leading-none"
-                                            title="Recuento"
+                                            className="h-6 px-2 bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] text-[#0067c0] text-[11px] font-normal rounded cursor-pointer transition-colors"
+                                            title="Reconteo"
                                         >
-                                            RECOUNT
+                                            Reconteo
                                         </button>
                                     </td>
                                 </tr>
@@ -323,28 +323,29 @@ const ManageCycleCountDifferences = () => {
 
             {/* Modal Editar */}
             {editingItem && (
-                <div className="fixed inset-0 bg-zinc-900/50 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="bg-white border border-zinc-200 shadow-2xl max-w-sm w-full overflow-hidden">
-                        <div className="bg-zinc-900 px-6 py-3">
-                            <h3 className="text-[10px] font-medium text-white uppercase tracking-widest">Actualizar Cantidad Física</h3>
+                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded shadow-xl max-w-sm w-full overflow-hidden border border-[#d1d5db]">
+                        <div className="bg-[#354a5f] text-white px-4 py-2 flex justify-between items-center">
+                            <h3 className="text-[13px] font-normal text-white m-0">Actualizar Cantidad Física</h3>
+                            <button onClick={() => setEditingItem(null)} className="text-white hover:text-gray-200 cursor-pointer">✕</button>
                         </div>
-                        <div className="p-6">
-                            <div className="mb-6 space-y-1">
-                                <label className="text-[8px] uppercase font-medium  text-zinc-400 tracking-widest block">Referencia</label>
-                                <p className="text-sm font-medium  text-zinc-900 tracking-tight">{editingItem.item_code}</p>
-                                <p className="text-[10px] text-zinc-500 uppercase">{editingItem.item_description}</p>
+                        <div className="p-4 space-y-3">
+                            <div className="border-b border-[#f0f0f0] pb-2">
+                                <span className="text-[10px] text-[#5c5c5c] block">Referencia</span>
+                                <p className="text-[13px] font-normal text-[#0067c0] m-0">{editingItem.item_code}</p>
+                                <p className="text-[11px] text-[#5c5c5c] m-0 truncate">{editingItem.item_description}</p>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4 mb-8">
-                                <div className="p-3 bg-zinc-50 border border-zinc-100">
-                                    <label className="text-[8px] uppercase font-medium  text-zinc-400 tracking-widest block mb-1">Stock Sistema</label>
-                                    <p className="text-xl font-light text-zinc-900">{editingItem.system_qty}</p>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="p-2.5 bg-[#f8f9fa] border border-[#e5e7eb] rounded">
+                                    <span className="text-[10px] text-[#5c5c5c] block mb-1">Stock Sistema</span>
+                                    <p className="text-[16px] font-normal text-[#1f1f1f] m-0">{editingItem.system_qty}</p>
                                 </div>
-                                <div className="p-3 bg-blue-50/30 border border-blue-100">
-                                    <label className="text-[8px] uppercase font-medium  text-blue-400 tracking-widest block mb-1">Stock Físico</label>
+                                <div className="p-2.5 bg-white border border-[#0067c0] rounded">
+                                    <span className="text-[10px] text-[#0067c0] block mb-1">Stock Físico</span>
                                     <input
                                         type="number"
-                                        className="w-full bg-transparent text-xl font-medium  text-[#285f94] focus:outline-none"
+                                        className="w-full bg-transparent text-[16px] font-normal text-[#1f1f1f] outline-none"
                                         value={newPhysicalQty}
                                         onChange={(e) => setNewPhysicalQty(e.target.value)}
                                         autoFocus
@@ -352,16 +353,16 @@ const ManageCycleCountDifferences = () => {
                                 </div>
                             </div>
 
-                            <div className="flex justify-end gap-3">
+                            <div className="flex justify-end gap-2 pt-2 border-t border-[#f0f0f0]">
                                 <button
                                     onClick={() => setEditingItem(null)}
-                                    className="px-4 py-2 text-[10px] font-medium  text-zinc-400 uppercase tracking-widest hover:text-zinc-900 transition-colors"
+                                    className="h-7 px-3 border border-[#d1d5db] rounded bg-white hover:bg-[#f5f5f5] text-[#1f1f1f] text-[12px] font-normal cursor-pointer"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     onClick={handleSaveEdit}
-                                    className="px-6 py-2 bg-zinc-900 text-white text-[10px] font-medium  uppercase tracking-widest rounded hover:bg-black transition-all shadow-md"
+                                    className="h-7 px-3 bg-[#0067c0] hover:bg-[#005a9e] text-white text-[12px] font-normal rounded transition-colors shadow-sm cursor-pointer"
                                 >
                                     Confirmar Ajuste
                                 </button>

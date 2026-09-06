@@ -258,26 +258,21 @@ const StockSearch = () => {
         : [];
 
     return (
-        <div className="container-wrapper max-w-5xl mx-auto px-4 py-6">
+        <div className="container-wrapper max-w-5xl mx-auto px-4 py-5 font-['Segoe_UI',Tahoma,sans-serif] text-[#1f1f1f]">
             <ToastContainer position="top-right" autoClose={3000} />
 
             {/* Header & Search Form */}
-            <div className="bg-white rounded-lg shadow-sm border border-zinc-200 overflow-hidden mb-6">
-                <div className="bg-[#354a5f] text-white px-6 py-4 flex flex-wrap justify-between items-center gap-3">
-                    <div className="flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-zinc-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        <h2 className="text-base font-medium text-white tracking-normal m-0">
-                            Consulta y Búsqueda de Stock
-                        </h2>
-                    </div>
+            <div className="bg-white rounded border border-[#d1d5db] shadow-sm overflow-hidden mb-5">
+                <div className="bg-[#354a5f] text-white px-4 py-2.5 flex flex-wrap justify-between items-center border-b border-[#2a3c4d]">
+                    <span className="text-[12px] font-normal text-white uppercase tracking-normal">
+                        Consulta y Búsqueda de Stock
+                    </span>
                 </div>
 
-                <div className="p-6 bg-white">
-                    <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-3">
-                        <div className="flex-grow">
-                            <label className="text-[12px] uppercase font-medium text-black tracking-normal block mb-1">
+                <div className="p-4 bg-white">
+                    <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-2.5 items-end">
+                        <div className="flex-grow w-full">
+                            <label className="text-[11px] font-normal text-[#5f5f5f] uppercase tracking-normal block mb-1">
                                 Código de Ítem, Ubicación o Descripción
                             </label>
                             <input
@@ -286,7 +281,7 @@ const StockSearch = () => {
                                 list="valid-bins-list"
                                 value={itemCode}
                                 onChange={(e) => setItemCode(e.target.value.toUpperCase())}
-                                className="w-full h-10 px-3 border border-zinc-300 rounded text-[14px] uppercase text-black focus:outline-none focus:border-[#285f94] focus:ring-1 focus:ring-[#285f94]"
+                                className="w-full h-7 px-2.5 border border-[#d1d5db] rounded text-[12px] uppercase text-[#1f1f1f] font-normal tracking-normal outline-none focus:border-[#0067c0] transition-colors"
                                 placeholder="Escanear o ingresar Código de Artículo, Ubicación o Descripción..."
                                 autoFocus
                             />
@@ -298,21 +293,18 @@ const StockSearch = () => {
                                 </datalist>
                             )}
                         </div>
-                        <div className="flex items-end gap-2">
+                        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
                             <button
                                 type="button"
                                 onClick={() => setScannerOpen(true)}
-                                className="h-10 w-10 border border-zinc-300 bg-zinc-50 hover:bg-zinc-100 rounded text-black flex items-center justify-center transition-colors"
+                                className="h-7 px-3 border border-[#d1d5db] bg-white hover:bg-[#f5f5f5] rounded text-[#1f1f1f] text-[12px] font-normal transition-colors cursor-pointer"
                                 title="Escanear Código de Barras"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
-                                </svg>
+                                Escanear
                             </button>
                             <button
                                 type="submit"
-                                className="h-10 px-5 bg-[#285f94] hover:bg-[#1e4a74] text-white text-[12px] font-normal uppercase tracking-normal rounded transition-colors shadow-sm"
+                                className="h-7 px-4 bg-[#0067c0] hover:bg-[#005a9e] text-white text-[12px] font-normal tracking-normal rounded transition-colors cursor-pointer"
                                 disabled={loading}
                             >
                                 {loading ? 'Buscando...' : t('stock.search_btn', 'Buscar')}
@@ -320,7 +312,7 @@ const StockSearch = () => {
                             <button
                                 type="button"
                                 onClick={clearSearch}
-                                className="h-10 px-4 bg-white hover:bg-zinc-100 border border-zinc-300 text-black text-[12px] font-normal uppercase tracking-normal rounded transition-colors"
+                                className="h-7 px-3 bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] text-[#1f1f1f] text-[12px] font-normal tracking-normal rounded transition-colors cursor-pointer"
                             >
                                 Limpiar
                             </button>
@@ -331,71 +323,69 @@ const StockSearch = () => {
 
             {/* Error Message Banner */}
             {error && (
-                <div className="p-4 mb-6 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
+                <div className="p-3 mb-4 bg-white border border-[#d13438] text-[#d13438] rounded text-[12px] font-normal flex items-center justify-between">
                     <span>{error}</span>
+                    <button onClick={() => setError('')} className="text-[#5f5f5f] hover:text-[#1f1f1f] text-[11px] cursor-pointer">✕</button>
                 </div>
             )}
 
             {/* Multiple Search Results List */}
             {searchResults.length > 0 && !itemData && (
-                <div className="bg-white rounded-lg shadow-sm border border-zinc-200 overflow-hidden mb-6 animate-fade-in">
-                    <div className="bg-zinc-100 px-6 py-3 border-b border-zinc-200 flex justify-between items-center">
-                        <h3 className="text-xs font-medium text-black uppercase tracking-normal">
-                            Coincidencias encontradas ({searchResults.length}) — Seleccione un ítem:
-                        </h3>
-                        <span className="text-[11px] text-zinc-500">Haga clic en una fila para ver el detalle</span>
+                <div className="bg-white rounded border border-[#d1d5db] shadow-sm overflow-hidden mb-5">
+                    <div className="bg-[#fbfbfb] px-4 py-2 border-b border-[#e5e5e5] flex justify-between items-center">
+                        <span className="text-[12px] font-normal text-[#1f1f1f] uppercase tracking-normal">
+                            Coincidencias encontradas ({searchResults.length}) — Seleccione un ítem
+                        </span>
+                        <span className="text-[11px] text-[#7f7f7f] font-normal">Haga clic en una fila para ver el detalle</span>
                     </div>
-                    <div className="divide-y divide-zinc-200 max-h-80 overflow-y-auto">
+                    <div className="divide-y divide-[#e5e5e5] max-h-80 overflow-y-auto">
                         {searchResults.map((item) => (
                             <div
                                 key={item.itemCode}
                                 onClick={() => handleSelectResult(item)}
-                                className="px-6 py-3.5 hover:bg-blue-50/70 cursor-pointer transition-colors flex flex-wrap justify-between items-center gap-2"
+                                className="px-4 py-2.5 hover:bg-[#edf3f9] cursor-pointer transition-colors flex flex-wrap justify-between items-center gap-2"
                             >
                                 <div className="flex-1 min-w-[240px]">
                                     <div className="flex items-center gap-2">
-                                        <span className="font-mono font-medium text-[13px] text-[#285f94] tracking-normal">
+                                        <span className="font-mono font-normal text-[12px] text-[#0067c0] tracking-normal">
                                             {item.itemCode}
                                         </span>
                                         {item.abcCode && (
-                                            <span className="px-1.5 py-0.2 text-[10px] font-semibold bg-zinc-100 text-black border border-zinc-300 rounded">
+                                            <span className="px-1.5 py-0.2 text-[10px] font-normal bg-[#f3f3f3] text-[#1f1f1f] border border-[#d1d5db] rounded">
                                                 ABC {item.abcCode}
                                             </span>
                                         )}
                                         {item.sicCode && item.sicCode !== '0' && (
-                                            <span className="px-1.5 py-0.2 text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 rounded">
+                                            <span className="px-1.5 py-0.2 text-[10px] font-normal bg-[#fdf4f0] text-[#d83b01] border border-[#f5c6cb] rounded">
                                                 SIC {item.sicCode}
                                             </span>
                                         )}
                                     </div>
-                                    <div className="text-[12px] text-black font-normal truncate max-w-lg mt-0.5" title={item.description}>
+                                    <div className="text-[12px] text-[#1f1f1f] font-normal truncate max-w-lg mt-0.5" title={item.description}>
                                         {item.description || 'Sin descripción'}
                                     </div>
-                                    <div className="flex items-center gap-3 text-[11px] text-zinc-600 mt-1">
-                                        <span>Ubicación: <strong className="text-black font-mono">{item.binLocation}</strong></span>
+                                    <div className="flex items-center gap-3 text-[11px] text-[#7f7f7f] font-normal mt-0.5">
+                                        <span>Ubicación: <span className="text-[#1f1f1f] font-mono">{item.binLocation}</span></span>
                                         {item.additionalBins && (
-                                            <span>Adicionales: <strong className="text-zinc-700 font-mono">{item.additionalBins}</strong></span>
+                                            <span>Adicionales: <span className="text-[#5f5f5f] font-mono">{item.additionalBins}</span></span>
                                         )}
                                     </div>
                                 </div>
                                 <div className="text-right flex items-center gap-4">
                                     <div>
-                                        <div className="text-[10px] uppercase font-normal text-zinc-500">Costo Unit.</div>
-                                        <div className="text-[12px] font-normal text-black font-mono">
+                                        <div className="text-[10px] uppercase font-normal text-[#7f7f7f]">Costo Unit.</div>
+                                        <div className="text-[12px] font-normal text-[#1f1f1f] font-mono">
                                             {formatMoney(item.unitCost)}
                                         </div>
                                     </div>
                                     <div className="min-w-[90px] text-right">
-                                        <div className="text-[10px] uppercase font-normal text-zinc-500">Stock Sistema</div>
-                                        <span className={`inline-block px-2.5 py-0.5 rounded text-[12px] font-semibold font-mono ${
+                                        <div className="text-[10px] uppercase font-normal text-[#7f7f7f]">Stock Sistema</div>
+                                        <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-normal font-mono border ${
                                             item.systemQty > 0 
-                                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
+                                                ? 'bg-[#f1faf3] text-[#107c41] border-[#c3e6cb]' 
                                                 : item.systemQty < 0
-                                                    ? 'bg-rose-100 text-rose-800 border border-rose-200'
-                                                    : 'bg-zinc-100 text-zinc-600 border border-zinc-300'
+                                                    ? 'bg-[#fde7e9] text-[#d13438] border-[#f5c6cb]'
+                                                    : 'bg-[#f3f3f3] text-[#5f5f5f] border-[#d1d5db]'
                                         }`}>
                                             {formatNumber(item.systemQty)} und
                                         </span>
@@ -409,207 +399,199 @@ const StockSearch = () => {
 
             {/* Selected Item Detail Card */}
             {itemData && (
-                <div className="bg-white rounded-lg shadow-sm border border-zinc-200 overflow-hidden animate-fade-in">
+                <div className="bg-white rounded border border-[#d1d5db] shadow-sm overflow-hidden mb-5">
                     {/* Return to search results breadcrumb banner */}
                     {searchResults.length > 1 && (
-                        <div className="bg-blue-50 px-6 py-2.5 border-b border-blue-200 flex justify-between items-center">
+                        <div className="bg-[#f0f6fc] px-4 py-2 border-b border-[#d1d5db] flex justify-between items-center">
                             <button
                                 type="button"
                                 onClick={() => setItemData(null)}
-                                className="text-xs font-semibold text-[#1e4a74] hover:text-[#285f94] flex items-center gap-1.5 transition-colors cursor-pointer"
+                                className="text-[12px] font-normal text-[#0067c0] hover:underline flex items-center gap-1.5 transition-colors cursor-pointer"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                                </svg>
-                                Volver a la lista de resultados {lastQuery ? `("${lastQuery}")` : ''} ({searchResults.length} ítems)
+                                ← Volver a la lista de resultados {lastQuery ? `("${lastQuery}")` : ''} ({searchResults.length} ítems)
                             </button>
                         </div>
                     )}
 
                     {/* Item Card Header */}
-                    <div className="bg-zinc-50 px-6 py-4 border-b border-zinc-200 flex flex-wrap justify-between items-center gap-4">
-                        <div className="flex items-center gap-3">
-                            <h3 className="font-mono text-xl font-bold text-black tracking-normal m-0 flex items-center gap-2">
+                    <div className="bg-[#fbfbfb] px-4 py-2.5 border-b border-[#e5e5e5] flex flex-wrap justify-between items-center gap-4">
+                        <div className="flex items-center gap-2.5">
+                            <span className="font-mono text-[16px] font-normal text-[#1f1f1f] tracking-normal m-0">
                                 {itemData.itemCode}
-                            </h3>
+                            </span>
                             <button
                                 onClick={() => copyToClipboard(itemData.itemCode)}
-                                className="px-2 py-1 bg-white hover:bg-zinc-100 border border-zinc-300 rounded text-[11px] text-black flex items-center gap-1 transition-colors"
+                                className="h-6 px-2 bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] rounded text-[11px] font-normal text-[#1f1f1f] flex items-center gap-1 transition-colors cursor-pointer"
                                 title="Copiar código"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                </svg>
                                 {copied ? 'Copiado' : 'Copiar'}
                             </button>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className={`px-3 py-1 rounded text-xs font-semibold uppercase tracking-wide border ${
+                            <span className={`px-2 py-0.5 rounded text-[11px] font-normal uppercase tracking-normal border ${
                                 itemData.systemQty > 0
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    ? 'bg-[#f1faf3] text-[#107c41] border-[#c3e6cb]'
                                     : itemData.systemQty < 0
-                                        ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                        : 'bg-zinc-100 text-zinc-600 border-zinc-300'
+                                        ? 'bg-[#fde7e9] text-[#d13438] border-[#f5c6cb]'
+                                        : 'bg-[#f3f3f3] text-[#5f5f5f] border-[#d1d5db]'
                             }`}>
                                 {itemData.systemQty > 0 
-                                    ? `DISPONIBLE (${formatNumber(itemData.systemQty)} UND)`
+                                    ? `Disponible (${formatNumber(itemData.systemQty)} und)`
                                     : itemData.systemQty < 0
-                                        ? `SALDO NEGATIVO (${formatNumber(itemData.systemQty)} UND)`
-                                        : 'SIN STOCK (0 UND)'}
+                                        ? `Saldo negativo (${formatNumber(itemData.systemQty)} und)`
+                                        : 'Sin stock (0 und)'}
                             </span>
                         </div>
                     </div>
 
-                    <div className="p-6 space-y-6">
+                    <div className="p-4 space-y-4">
                         {/* 4 Main Stat Metric Cards */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                             {/* Stock en Sistema */}
-                            <div className="bg-zinc-50 border border-zinc-200 rounded p-4 text-center">
-                                <span className="text-[11px] font-normal text-zinc-500 uppercase tracking-normal block mb-1">
+                            <div className="bg-[#fafafa] border border-[#e5e5e5] rounded p-3 text-center">
+                                <span className="text-[11px] font-normal text-[#7f7f7f] uppercase tracking-normal block mb-1">
                                     Stock en Sistema
                                 </span>
-                                <div className={`text-2xl font-bold font-mono ${
-                                    itemData.systemQty > 0 ? 'text-black' : itemData.systemQty < 0 ? 'text-rose-700' : 'text-zinc-500'
+                                <div className={`text-xl font-normal font-mono ${
+                                    itemData.systemQty > 0 ? 'text-[#1f1f1f]' : itemData.systemQty < 0 ? 'text-[#d13438]' : 'text-[#7f7f7f]'
                                 }`}>
                                     {formatNumber(itemData.systemQty)}
                                 </div>
-                                <span className="text-[10px] text-zinc-500 uppercase">Unidades</span>
+                                <span className="text-[10px] text-[#7f7f7f] uppercase font-normal">Unidades</span>
                             </div>
 
                             {/* Ubicación Principal */}
                             <div 
                                 onClick={() => handleSearchLocation(itemData.binLocation)}
-                                className="bg-zinc-50 hover:bg-blue-50/60 border border-zinc-200 hover:border-blue-300 rounded p-4 text-center cursor-pointer transition-all group"
-                                title="Clic para ver todos los artículos en esta ubicación 📍"
+                                className="bg-[#fafafa] hover:bg-[#f0f6fc] border border-[#e5e5e5] hover:border-[#0067c0] rounded p-3 text-center cursor-pointer transition-colors group"
+                                title="Clic para consultar artículos en esta ubicación"
                             >
-                                <span className="text-[11px] font-normal text-zinc-500 uppercase tracking-normal block mb-1 group-hover:text-[#285f94]">
-                                    Ubicación Principal 📍
+                                <span className="text-[11px] font-normal text-[#7f7f7f] uppercase tracking-normal block mb-1 group-hover:text-[#0067c0]">
+                                    Ubicación Principal
                                 </span>
-                                <div className="text-2xl font-bold font-mono text-[#285f94] group-hover:underline">
+                                <div className="text-xl font-normal font-mono text-[#0067c0] group-hover:underline">
                                     {itemData.binLocation || 'N/A'}
                                 </div>
-                                <span className="text-[10px] text-zinc-500 uppercase">Bin Primario (Ver todos)</span>
+                                <span className="text-[10px] text-[#7f7f7f] uppercase font-normal">Bin Primario</span>
                             </div>
 
                             {/* Costo Unitario */}
-                            <div className="bg-zinc-50 border border-zinc-200 rounded p-4 text-center">
-                                <span className="text-[11px] font-normal text-zinc-500 uppercase tracking-normal block mb-1">
+                            <div className="bg-[#fafafa] border border-[#e5e5e5] rounded p-3 text-center">
+                                <span className="text-[11px] font-normal text-[#7f7f7f] uppercase tracking-normal block mb-1">
                                     Costo Unitario
                                 </span>
-                                <div className="text-xl font-bold font-mono text-black">
+                                <div className="text-xl font-normal font-mono text-[#1f1f1f]">
                                     {formatMoney(itemData.unitCost)}
                                 </div>
-                                <span className="text-[10px] text-zinc-500 uppercase">Costo Estándar</span>
+                                <span className="text-[10px] text-[#7f7f7f] uppercase font-normal">Costo Estándar</span>
                             </div>
 
                             {/* Valor Total Inventario */}
-                            <div className="bg-zinc-50 border border-zinc-200 rounded p-4 text-center">
-                                <span className="text-[11px] font-normal text-zinc-500 uppercase tracking-normal block mb-1">
+                            <div className="bg-[#fafafa] border border-[#e5e5e5] rounded p-3 text-center">
+                                <span className="text-[11px] font-normal text-[#7f7f7f] uppercase tracking-normal block mb-1">
                                     Valor Total Stock
                                 </span>
-                                <div className="text-xl font-bold font-mono text-black">
+                                <div className="text-xl font-normal font-mono text-[#1f1f1f]">
                                     {formatMoney(itemData.systemQty * itemData.unitCost)}
                                 </div>
-                                <span className="text-[10px] text-zinc-500 uppercase">Valoración Total</span>
+                                <span className="text-[10px] text-[#7f7f7f] uppercase font-normal">Valoración Total</span>
                             </div>
                         </div>
 
                         {/* Descripción del Producto */}
-                        <div className="bg-white border border-zinc-200 rounded p-4">
-                            <label className="text-[11px] font-medium text-zinc-500 uppercase tracking-normal block mb-1">
+                        <div className="bg-white border border-[#e5e5e5] rounded p-3">
+                            <span className="text-[11px] font-normal text-[#7f7f7f] uppercase tracking-normal block mb-1">
                                 Descripción del Material / Producto
-                            </label>
-                            <div className="text-base font-semibold text-black uppercase">
+                            </span>
+                            <div className="text-[13px] font-normal text-[#1f1f1f]">
                                 {itemData.description || 'Sin descripción registrada'}
                             </div>
                         </div>
 
                         {/* Ubicaciones de Almacenamiento */}
-                        <div className="bg-white border border-zinc-200 rounded p-4">
-                            <label className="text-[11px] font-medium text-zinc-500 uppercase tracking-normal block mb-2">
-                                Ubicaciones en Bodega <span className="text-[10px] font-normal text-zinc-500 normal-case">(Haga clic en una ubicación para consultar todos sus artículos)</span>
-                            </label>
+                        <div className="bg-white border border-[#e5e5e5] rounded p-3">
+                            <span className="text-[11px] font-normal text-[#7f7f7f] uppercase tracking-normal block mb-2">
+                                Ubicaciones en Bodega <span className="text-[10px] text-[#7f7f7f] normal-case">(Haga clic en una ubicación para consultar todos sus artículos)</span>
+                            </span>
                             <div className="flex flex-wrap items-center gap-3">
                                 <div>
-                                    <span className="text-[10px] text-zinc-500 block uppercase mb-1">Principal:</span>
+                                    <span className="text-[10px] text-[#7f7f7f] block uppercase mb-1">Principal:</span>
                                     <button
                                         type="button"
                                         onClick={() => handleSearchLocation(itemData.binLocation)}
-                                        className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 hover:bg-blue-200 text-[#1e4a74] border border-blue-200 rounded font-mono font-bold text-sm transition-colors cursor-pointer"
-                                        title="Clic para ver todos los artículos en esta ubicación 📍"
+                                        className="h-6 px-2.5 bg-[#f0f6fc] hover:bg-[#e1dfdd] text-[#0067c0] border border-[#d1d5db] rounded font-mono font-normal text-[12px] transition-colors cursor-pointer"
+                                        title="Clic para consultar artículos en esta ubicación"
                                     >
-                                        <span>📍</span>
-                                        <span>{itemData.binLocation || 'N/A'}</span>
+                                        {itemData.binLocation || 'N/A'}
                                     </button>
                                 </div>
                                 {additionalBinsList.length > 0 ? (
                                     <div>
-                                        <span className="text-[10px] text-zinc-500 block uppercase mb-1">Adicionales:</span>
+                                        <span className="text-[10px] text-[#7f7f7f] block uppercase mb-1">Adicionales:</span>
                                         <div className="flex flex-wrap gap-1.5">
                                             {additionalBinsList.map((bin, idx) => (
                                                 <button
                                                     key={idx}
                                                     type="button"
                                                     onClick={() => handleSearchLocation(bin)}
-                                                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 text-black border border-zinc-300 rounded font-mono text-xs font-medium transition-colors cursor-pointer"
-                                                    title={`Clic para ver todos los artículos en ${bin} 📍`}
+                                                    className="h-6 px-2.5 bg-[#fafafa] hover:bg-[#f0f0f0] text-[#1f1f1f] border border-[#d1d5db] rounded font-mono text-[11px] font-normal transition-colors cursor-pointer"
+                                                    title={`Clic para consultar artículos en ${bin}`}
                                                 >
-                                                    <span>📍</span>
-                                                    <span>{bin}</span>
+                                                    {bin}
                                                 </button>
                                             ))}
                                         </div>
                                     </div>
                                 ) : (
                                     <div>
-                                        <span className="text-[10px] text-zinc-500 block uppercase mb-1">Adicionales:</span>
-                                        <span className="text-xs text-zinc-500 italic">Sin ubicaciones adicionales</span>
+                                        <span className="text-[10px] text-[#7f7f7f] block uppercase mb-1">Adicionales:</span>
+                                        <span className="text-[11px] text-[#7f7f7f] font-normal">Sin ubicaciones adicionales</span>
                                     </div>
                                 )}
                             </div>
                         </div>
 
                         {/* Ficha Técnica & Atributos de Almacenamiento */}
-                        <div className="bg-white border border-zinc-200 rounded p-4">
-                            <label className="text-[11px] font-medium text-zinc-500 uppercase tracking-normal block mb-3 border-b border-zinc-100 pb-1.5">
+                        <div className="bg-white border border-[#e5e5e5] rounded p-3">
+                            <span className="text-[11px] font-normal text-[#7f7f7f] uppercase tracking-normal block mb-2 border-b border-[#f0f0f0] pb-1">
                                 Atributos Técnicos y Logísticos
-                            </label>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-[12px]">
+                            </span>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[12px]">
                                 <div>
-                                    <span className="text-[11px] font-normal text-zinc-500 uppercase block mb-1">Clasificación ABC</span>
-                                    <span className="inline-block px-2 py-0.5 bg-zinc-100 border border-zinc-300 rounded font-bold text-black font-mono">
+                                    <span className="text-[11px] font-normal text-[#7f7f7f] uppercase block mb-0.5">Clasificación ABC</span>
+                                    <span className="inline-block px-1.5 py-0.5 bg-[#fafafa] border border-[#d1d5db] rounded font-normal text-[#1f1f1f] font-mono text-[11px]">
                                         {itemData.abcCode || 'N/A'}
                                     </span>
                                 </div>
                                 <div>
-                                    <span className="text-[11px] font-normal text-zinc-500 uppercase block mb-1">Código SIC</span>
-                                    <span className="inline-block px-2 py-0.5 bg-zinc-100 border border-zinc-300 rounded font-bold text-black font-mono">
+                                    <span className="text-[11px] font-normal text-[#7f7f7f] uppercase block mb-0.5">Código SIC</span>
+                                    <span className="inline-block px-1.5 py-0.5 bg-[#fafafa] border border-[#d1d5db] rounded font-normal text-[#1f1f1f] font-mono text-[11px]">
                                         {itemData.sicCode || '0'}
                                     </span>
                                 </div>
                                 <div>
-                                    <span className="text-[11px] font-normal text-zinc-500 uppercase block mb-1">Peso Unitario</span>
-                                    <span className="font-semibold text-black font-mono">
+                                    <span className="text-[11px] font-normal text-[#7f7f7f] uppercase block mb-0.5">Peso Unitario</span>
+                                    <span className="font-normal text-[#1f1f1f] font-mono">
                                         {itemData.weightPerUnit > 0 ? `${formatNumber(itemData.weightPerUnit)} kg` : '-'}
                                     </span>
                                 </div>
                                 <div>
-                                    <span className="text-[11px] font-normal text-zinc-500 uppercase block mb-1">Dimensiones (L × An × Al)</span>
-                                    <span className="font-semibold text-black font-mono">
+                                    <span className="text-[11px] font-normal text-[#7f7f7f] uppercase block mb-0.5">Dimensiones (L × An × Al)</span>
+                                    <span className="font-normal text-[#1f1f1f] font-mono">
                                         {itemData.lengthCm > 0 || itemData.widthCm > 0 || itemData.heightCm > 0
                                             ? `${formatNumber(itemData.lengthCm)} × ${formatNumber(itemData.widthCm)} × ${formatNumber(itemData.heightCm)} cm`
                                             : '-'}
                                     </span>
                                 </div>
                                 <div>
-                                    <span className="text-[11px] font-normal text-zinc-500 uppercase block mb-1">Volumen Estimado</span>
-                                    <span className="font-semibold text-black font-mono">
+                                    <span className="text-[11px] font-normal text-[#7f7f7f] uppercase block mb-0.5">Volumen Estimado</span>
+                                    <span className="font-normal text-[#1f1f1f] font-mono">
                                         {itemData.volumeCm3 > 0 ? `${formatNumber(itemData.volumeCm3)} cm³` : '-'}
                                     </span>
                                 </div>
                                 <div>
-                                    <span className="text-[11px] font-normal text-zinc-500 uppercase block mb-1">Última Actualización</span>
-                                    <span className="font-normal text-black font-mono text-[11px]">
+                                    <span className="text-[11px] font-normal text-[#7f7f7f] uppercase block mb-0.5">Última Actualización</span>
+                                    <span className="font-normal text-[#1f1f1f] font-mono text-[11px]">
                                         {itemData.updatedAt || itemData.dateLastReceived || '-'}
                                     </span>
                                 </div>
@@ -617,33 +599,27 @@ const StockSearch = () => {
                         </div>
 
                         {/* Direct Action Buttons */}
-                        <div className="flex flex-wrap justify-between items-center gap-3 pt-2 border-t border-zinc-200">
+                        <div className="flex flex-wrap justify-between items-center gap-2.5 pt-3 border-t border-[#e5e5e5]">
                             <div className="flex flex-wrap items-center gap-2">
                                 <button
                                     type="button"
                                     onClick={() => navigate('/spot-check')}
-                                    className="h-9 px-4 bg-[#285f94] hover:bg-[#1e4a74] text-white text-[12px] font-normal uppercase tracking-normal rounded flex items-center gap-1.5 transition-colors shadow-sm"
+                                    className="h-7 px-3 bg-[#0067c0] hover:bg-[#005a9e] text-white text-[12px] font-normal tracking-normal rounded transition-colors cursor-pointer"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
                                     Verificar Saldo (Spot Check)
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => navigate('/label', { state: { itemCode: itemData?.item_code || itemData?.itemCode } })}
-                                    className="h-9 px-4 bg-white hover:bg-zinc-100 border border-zinc-300 text-black text-[12px] font-normal uppercase tracking-normal rounded flex items-center gap-1.5 transition-colors"
+                                    className="h-7 px-3 bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] text-[#1f1f1f] text-[12px] font-normal tracking-normal rounded transition-colors cursor-pointer"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                    </svg>
                                     Imprimir Etiqueta
                                 </button>
                             </div>
                             <button
                                 type="button"
                                 onClick={clearSearch}
-                                className="h-9 px-4 bg-zinc-100 hover:bg-zinc-200 text-black text-[12px] font-normal uppercase tracking-normal rounded transition-colors"
+                                className="h-7 px-3 bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] text-[#1f1f1f] text-[12px] font-normal tracking-normal rounded transition-colors cursor-pointer"
                             >
                                 Nueva Consulta
                             </button>
@@ -654,14 +630,9 @@ const StockSearch = () => {
 
             {/* Empty State Prompt */}
             {!itemData && searchResults.length === 0 && !error && (
-                <div className="bg-white rounded-lg border border-zinc-200 p-12 text-center text-zinc-500 shadow-sm mt-6">
-                    <div className="w-12 h-12 rounded-full bg-zinc-100 text-zinc-400 flex items-center justify-center mx-auto mb-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                    </div>
-                    <h3 className="text-sm font-medium text-black uppercase mb-1">Consulte el saldo y ubicación de un material</h3>
-                    <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+                <div className="bg-white rounded border border-[#d1d5db] p-8 text-center text-[#7f7f7f] shadow-sm mt-5">
+                    <span className="text-[12px] font-normal text-[#1f1f1f] uppercase tracking-normal block mb-1">Consulte el saldo y ubicación de un material</span>
+                    <p className="text-[11px] text-[#7f7f7f] max-w-sm mx-auto font-normal">
                         Ingrese el código del ítem, una ubicación de almacén o parte de la descripción para consultar sus saldos y atributos.
                     </p>
                 </div>

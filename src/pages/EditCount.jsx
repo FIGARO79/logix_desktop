@@ -48,59 +48,67 @@ const EditCount = ({ id: propId }) => {
         }
     };
 
-    if (loading) return <div className="p-8 text-slate-500 font-medium">Cargando datos del conteo...</div>;
-    if (error) return <div className="p-8 text-red-600 font-medium">Error: {error}</div>;
-    if (!count) return <div className="p-8 text-slate-500 font-medium">Registro de conteo no encontrado.</div>;
+    if (loading) return <div className="p-8 text-[#5c5c5c] font-normal text-[12px] font-['Segoe_UI',Tahoma,sans-serif]">Cargando datos del conteo...</div>;
+    if (error) return <div className="p-8 text-[#991b1b] font-normal text-[12px] font-['Segoe_UI',Tahoma,sans-serif]">Error: {error}</div>;
+    if (!count) return <div className="p-8 text-[#5c5c5c] font-normal text-[12px] font-['Segoe_UI',Tahoma,sans-serif]">Registro de conteo no encontrado.</div>;
 
     return (
-        <div className="max-w-2xl mx-auto px-4 py-8">
-            <div className="bg-white shadow rounded-lg p-6 border border-slate-200">
-                <h1 className="text-2xl font-bold text-slate-900 mb-6">Editar Conteo #{id}</h1>
-
-                <div className="grid grid-cols-2 gap-4 mb-6 text-sm text-slate-600 bg-slate-50 p-4 rounded-md border border-slate-100">
-                    <div>
-                        <span className="font-semibold text-slate-900">Item:</span> {count.item_code}
-                    </div>
-                    <div>
-                        <span className="font-semibold text-slate-900">Sesión:</span> {count.session_id}
-                    </div>
-                    <div className="col-span-2">
-                        <span className="font-semibold text-slate-900">Descripción:</span> {count.item_description || 'N/A'}
-                    </div>
-                    <div>
-                        <span className="font-semibold text-slate-900">Ubicación:</span> {count.counted_location}
-                    </div>
+        <div className="max-w-xl mx-auto px-4 py-6 font-['Segoe_UI',Tahoma,sans-serif] text-[12px] text-[#1f1f1f]">
+            <div className="bg-white shadow-sm rounded border border-[#d1d5db] overflow-hidden">
+                <div className="bg-[#354a5f] text-white px-4 py-2.5">
+                    <h1 className="text-[13px] font-normal text-white m-0">Editar Conteo #{id}</h1>
                 </div>
 
-                <form onSubmit={handleSave}>
-                    <div className="mb-6">
-                        <label className="block text-slate-700 font-semibold mb-2">Cantidad Contada</label>
-                        <input
-                            type="number"
-                            step="any"
-                            value={countedQty}
-                            onChange={(e) => setCountedQty(e.target.value)}
-                            className="w-full border border-slate-300 p-2.5 rounded-lg text-lg focus:ring-2 focus:ring-[#285f94] focus:outline-none"
-                            required
-                        />
+                <div className="p-4">
+                    <div className="grid grid-cols-2 gap-3 mb-4 text-[12px] bg-[#f8f9fa] p-3 rounded border border-[#e5e7eb]">
+                        <div>
+                            <span className="text-[#5c5c5c] block text-[10px]">Item:</span>
+                            <span className="text-[#0067c0] font-normal">{count.item_code}</span>
+                        </div>
+                        <div>
+                            <span className="text-[#5c5c5c] block text-[10px]">Sesión:</span>
+                            <span className="text-[#1f1f1f] font-normal">{count.session_id}</span>
+                        </div>
+                        <div className="col-span-2">
+                            <span className="text-[#5c5c5c] block text-[10px]">Descripción:</span>
+                            <span className="text-[#1f1f1f] font-normal">{count.item_description || 'N/A'}</span>
+                        </div>
+                        <div>
+                            <span className="text-[#5c5c5c] block text-[10px]">Ubicación:</span>
+                            <span className="text-[#1f1f1f] font-mono font-normal">{count.counted_location}</span>
+                        </div>
                     </div>
 
-                    <div className="flex justify-end gap-4">
-                        <button
-                            type="button"
-                            onClick={() => navigate('/counts/manage')}
-                            className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-200 font-medium transition-colors"
-                        >
-                            Cancelar
-                        </button>
-                        <button
-                            type="submit"
-                            className="bg-[#285f94] text-white px-6 py-2 rounded-lg hover:bg-[#1e4a74] font-medium transition-colors"
-                        >
-                            Guardar Cambios
-                        </button>
-                    </div>
-                </form>
+                    <form onSubmit={handleSave}>
+                        <div className="mb-4">
+                            <label className="block text-[#5c5c5c] text-[11px] font-normal mb-1">Cantidad Contada</label>
+                            <input
+                                type="number"
+                                step="any"
+                                value={countedQty}
+                                onChange={(e) => setCountedQty(e.target.value)}
+                                className="w-full h-8 border border-[#d1d5db] px-2.5 rounded text-[13px] font-normal text-[#1f1f1f] focus:border-[#0067c0] focus:outline-none bg-white"
+                                required
+                            />
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-2 border-t border-[#f0f0f0]">
+                            <button
+                                type="button"
+                                onClick={() => navigate('/counts/manage')}
+                                className="h-7 px-3 bg-white hover:bg-[#f5f5f5] text-[#1f1f1f] border border-[#d1d5db] rounded text-[12px] font-normal transition-colors cursor-pointer"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="submit"
+                                className="h-7 px-3 bg-[#0067c0] hover:bg-[#005a9e] text-white rounded text-[12px] font-normal transition-colors shadow-sm cursor-pointer"
+                            >
+                                Guardar Cambios
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     );

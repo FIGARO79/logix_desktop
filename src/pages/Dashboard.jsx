@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { useLanguage } from '../context/LanguageContext';
 
 export const CATEGORIES_CONFIG = [
-    { id: 'recepcion', title: 'Gestión de Recepción', accent: 'bg-blue-600', dropBg: 'bg-blue-50/60' },
-    { id: 'despacho', title: 'Operaciones de Despacho', accent: 'bg-emerald-600', dropBg: 'bg-emerald-50/60' },
-    { id: 'inventario', title: 'Control de Inventario', accent: 'bg-amber-600', dropBg: 'bg-amber-50/60' },
-    { id: 'admin', title: 'Administración del Sistema', accent: 'bg-slate-700', dropBg: 'bg-slate-50/60' }
+    { id: 'recepcion', title: 'Gestión de Recepción', accent: 'bg-[#0067c0]', dropBg: 'bg-[#f0f6fc]' },
+    { id: 'despacho', title: 'Operaciones de Despacho', accent: 'bg-[#107c41]', dropBg: 'bg-[#f1faf3]' },
+    { id: 'inventario', title: 'Control de Inventario', accent: 'bg-[#d83b01]', dropBg: 'bg-[#fdf4f0]' },
+    { id: 'admin', title: 'Administración del Sistema', accent: 'bg-[#4a5568]', dropBg: 'bg-[#f7f8f9]' }
 ];
 
 const DEFAULT_CATEGORIES = [
     {
         id: 'recepcion',
         title: 'Gestión de Recepción',
-        accent: 'bg-blue-600',
+        accent: 'bg-[#0067c0]',
         items: [
             { href: '/inbound', text: 'REGISTRO INBOUND', desc: 'Entrada de mercancía y referencias', categoryId: 'recepcion' },
             { href: '/reconciliation', text: 'CONCILIACIÓN', desc: 'Cruce de documentos y discrepancias', categoryId: 'recepcion' },
@@ -25,7 +25,7 @@ const DEFAULT_CATEGORIES = [
     {
         id: 'despacho',
         title: 'Operaciones de Despacho',
-        accent: 'bg-emerald-600',
+        accent: 'bg-[#107c41]',
         items: [
             { href: '/picking', text: 'AUDITORÍA PICKING', desc: 'Verificación de pedidos y empaque', categoryId: 'despacho' },
             { href: '/view_picking_audits', text: 'REPORTES EMPAQUE', desc: 'Listas de empaque y auditorías', categoryId: 'despacho' },
@@ -36,7 +36,7 @@ const DEFAULT_CATEGORIES = [
     {
         id: 'inventario',
         title: 'Control de Inventario',
-        accent: 'bg-amber-600',
+        accent: 'bg-[#d83b01]',
         items: [
             { href: '/planner', text: 'PLANIFICACIÓN', desc: 'Programación de conteos cíclicos', categoryId: 'inventario' },
             { href: '/inventory-dashboard', text: 'MÉTRICAS ERI', desc: 'Indicadores de exactitud', categoryId: 'inventario' },
@@ -48,7 +48,7 @@ const DEFAULT_CATEGORIES = [
     {
         id: 'admin',
         title: 'Administración del Sistema',
-        accent: 'bg-slate-700',
+        accent: 'bg-[#4a5568]',
         items: [
             { href: '/admin/inventory', text: 'ADMINISTRACIÓN INVENTARIO', desc: 'Control de ciclos de conteo', categoryId: 'admin' },
             { href: '/admin/slotting', text: 'REGLAS SLOTTING', desc: 'Parámetros de ubicaciones', categoryId: 'admin' },
@@ -61,6 +61,7 @@ const DEFAULT_CATEGORIES = [
 const STORAGE_KEY = 'logix_dashboard_layout_v2';
 
 const Dashboard = () => {
+    const navigate = useNavigate();
     const { setTitle } = useOutletContext();
     const { t, language } = useLanguage();
     const [categories, setCategories] = useState(() => {
@@ -76,9 +77,24 @@ const Dashboard = () => {
         return DEFAULT_CATEGORIES;
     });
 
-    const [activeDropCategory, setActiveDropCategory] = useState(null);
-    const [draggedItem, setDraggedItem] = useState(null);
+    const [dragging, setDragging] = useState(null); // { item, fromCatId, fromIndex, x, y }
+    const [dropTarget, setDropTarget] = useState(null); // { catId, targetIndex, position: 'before' | 'after' | 'end' }
     const [feedbackMessage, setFeedbackMessage] = useState(null);
+
+    const pointerStateRef = useRef({
+        isDown: false,
+        hasMoved: false,
+        startX: 0,
+        startY: 0,
+        item: null,
+        catId: null,
+        index: 0
+    });
+    const dropTargetRef = useRef(null);
+
+    useEffect(() => {
+        dropTargetRef.current = dropTarget;
+    }, [dropTarget]);
 
     useEffect(() => {
         setTitle(t('dashboard.title', 'Dashboard'));
@@ -99,16 +115,32 @@ const Dashboard = () => {
         setTimeout(() => setFeedbackMessage(null), 3000);
     };
 
-    // Escuchar eventos de fijación desde el menú lateral
-    useEffect(() => {
-        const handleGlobalPin = (e) => {
-            if (e.detail) {
-                pinItem(e.detail);
-            }
-        };
-        window.addEventListener('logix_dashboard_pin_item', handleGlobalPin);
-        return () => window.removeEventListener('logix_dashboard_pin_item', handleGlobalPin);
-    }, [categories]);
+    const resetToDefault = () => {
+        saveCategories(DEFAULT_CATEGORIES);
+        showFeedback("Orden original restablecido.");
+    };
+
+    // Mover un ítem una posición arriba o abajo directamente con un clic
+    const moveItem = (e, catId, index, direction) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        setCategories(prev => {
+            const newCats = prev.map(c => ({ ...c, items: [...c.items] }));
+            const cat = newCats.find(c => c.id === catId);
+            if (!cat) return prev;
+
+            const targetIdx = direction === 'up' ? index - 1 : index + 1;
+            if (targetIdx < 0 || targetIdx >= cat.items.length) return prev;
+
+            const temp = cat.items[index];
+            cat.items[index] = cat.items[targetIdx];
+            cat.items[targetIdx] = temp;
+
+            saveCategories(newCats);
+            return newCats;
+        });
+    };
 
     // Fijar / Añadir un ítem a una categoría
     const pinItem = (moduleItem, targetCategoryId = null) => {
@@ -149,151 +181,282 @@ const Dashboard = () => {
         showFeedback("Opción retirada del Dashboard.");
     };
 
-    // Drag & Drop Handlers
-    const handleDragStartCard = (e, item, fromCatId, index) => {
-        setDraggedItem({ item, fromCatId, index });
-        e.dataTransfer.setData('application/json', JSON.stringify(item));
-        e.dataTransfer.effectAllowed = 'move';
-    };
+    // Pointer Events para Drag & Drop 100% nativo sin OLE
+    const handlePointerDown = (e, item, catId, index) => {
+        if (e.button !== 0) return; // Solo click principal
+        if (e.target.closest('button')) return; // Evitar si se hace clic en botones
 
-    const handleDragOverCategory = (e, categoryId) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'copyMove';
-        if (activeDropCategory !== categoryId) {
-            setActiveDropCategory(categoryId);
-        }
-    };
+        pointerStateRef.current = {
+            isDown: true,
+            hasMoved: false,
+            startX: e.clientX,
+            startY: e.clientY,
+            item,
+            catId,
+            index
+        };
 
-    const handleDragLeaveCategory = (e, categoryId) => {
-        if (activeDropCategory === categoryId) {
-            setActiveDropCategory(null);
-        }
-    };
+        const handlePointerMove = (moveEvent) => {
+            const p = pointerStateRef.current;
+            if (!p.isDown) return;
 
-    const handleDropOnCategory = (e, categoryId) => {
-        e.preventDefault();
-        setActiveDropCategory(null);
+            const dx = moveEvent.clientX - p.startX;
+            const dy = moveEvent.clientY - p.startY;
 
-        let data = null;
-        try {
-            const raw = e.dataTransfer.getData('application/json');
-            if (raw) data = JSON.parse(raw);
-        } catch (err) {
-            console.warn("Error leyendo drop data:", err);
-        }
+            if (!p.hasMoved && Math.hypot(dx, dy) > 5) {
+                p.hasMoved = true;
+                setDragging({
+                    item: p.item,
+                    fromCatId: p.catId,
+                    fromIndex: p.index,
+                    x: moveEvent.clientX,
+                    y: moveEvent.clientY
+                });
+            }
 
-        if (!data && draggedItem) {
-            data = draggedItem.item;
-        }
+            if (p.hasMoved) {
+                setDragging(prev => prev ? { ...prev, x: moveEvent.clientX, y: moveEvent.clientY } : null);
 
-        if (!data || !data.href) return;
-
-        // Si viene de arrastre interno de una categoría a otra
-        if (draggedItem && draggedItem.fromCatId) {
-            const fromCatId = draggedItem.fromCatId;
-            const updated = categories.map(cat => {
-                if (cat.id === fromCatId && fromCatId !== categoryId) {
-                    return {
-                        ...cat,
-                        items: cat.items.filter(i => i.href !== data.href)
-                    };
+                // Detectar el elemento bajo el cursor
+                const el = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
+                if (!el) {
+                    setDropTarget(null);
+                    return;
                 }
-                if (cat.id === categoryId) {
-                    const alreadyIn = cat.items.some(i => i.href === data.href);
-                    if (!alreadyIn) {
-                        return {
-                            ...cat,
-                            items: [...cat.items, { ...data, categoryId }]
-                        };
+
+                const cardEl = el.closest('[data-dashboard-card]');
+                const catEl = el.closest('[data-dashboard-category]');
+
+                if (cardEl) {
+                    const targetCatId = cardEl.getAttribute('data-cat-id');
+                    const targetIdx = parseInt(cardEl.getAttribute('data-card-idx'), 10);
+                    const rect = cardEl.getBoundingClientRect();
+                    const isTopHalf = (moveEvent.clientY - rect.top) < (rect.height / 2);
+                    const position = isTopHalf ? 'before' : 'after';
+
+                    if (p.catId === targetCatId && p.index === targetIdx) {
+                        setDropTarget(null);
+                    } else {
+                        setDropTarget({ catId: targetCatId, targetIndex: targetIdx, position });
                     }
+                } else if (catEl) {
+                    const targetCatId = catEl.getAttribute('data-cat-id');
+                    setDropTarget({ catId: targetCatId, targetIndex: -1, position: 'end' });
+                } else {
+                    setDropTarget(null);
                 }
-                return cat;
-            });
-            saveCategories(updated);
-            setDraggedItem(null);
-            showFeedback(`"${data.text}" reubicado en ${categories.find(c => c.id === categoryId)?.title || 'categoría'}.`);
-            return;
-        }
+            }
+        };
 
-        // Si se arrastra desde el menú lateral
-        pinItem(data, categoryId);
-        setDraggedItem(null);
+        const handlePointerUp = () => {
+            window.removeEventListener('pointermove', handlePointerMove);
+            window.removeEventListener('pointerup', handlePointerUp);
+
+            const p = pointerStateRef.current;
+            const target = dropTargetRef.current;
+
+            const wasDragging = p.hasMoved;
+            const clickedItem = p.item;
+
+            pointerStateRef.current = { isDown: false, hasMoved: false, item: null, catId: null, index: 0 };
+            setDragging(null);
+            setDropTarget(null);
+
+            if (!wasDragging) {
+                // Fue un clic simple -> Navegar a la página
+                if (clickedItem?.href) {
+                    navigate(clickedItem.href);
+                }
+                return;
+            }
+
+            // Fue un arrastre -> Reordenar
+            if (!target || !p.item) return;
+
+            const { catId: fromCatId, index: fromIndex, item } = p;
+            const { catId: targetCatId, targetIndex, position } = target;
+
+            setCategories(prev => {
+                const newCats = prev.map(c => ({ ...c, items: [...c.items] }));
+                const sourceCat = newCats.find(c => c.id === fromCatId);
+                const destCat = newCats.find(c => c.id === targetCatId);
+
+                if (!sourceCat || !destCat) return prev;
+
+                const [moved] = sourceCat.items.splice(fromIndex, 1);
+                if (!moved) return prev;
+
+                const itemToInsert = { ...moved, categoryId: targetCatId };
+
+                if (position === 'end' || targetIndex === -1) {
+                    destCat.items.push(itemToInsert);
+                } else {
+                    let insertIdx = targetIndex;
+                    if (fromCatId === targetCatId) {
+                        if (position === 'after') {
+                            insertIdx = fromIndex < targetIndex ? targetIndex : targetIndex + 1;
+                        } else {
+                            insertIdx = fromIndex < targetIndex ? targetIndex - 1 : targetIndex;
+                        }
+                    } else {
+                        if (position === 'after') {
+                            insertIdx = targetIndex + 1;
+                        }
+                    }
+
+                    insertIdx = Math.max(0, Math.min(insertIdx, destCat.items.length));
+                    destCat.items.splice(insertIdx, 0, itemToInsert);
+                }
+
+                saveCategories(newCats);
+                return newCats;
+            });
+
+            showFeedback(`"${item.text}" reordenado exitosamente.`);
+        };
+
+        window.addEventListener('pointermove', handlePointerMove);
+        window.addEventListener('pointerup', handlePointerUp);
     };
 
     return (
-        <div className="min-h-[calc(100vh-80px)] bg-[#f8fafc] px-6 pt-4 pb-12 lg:px-12 lg:pt-6 lg:pb-12">
+        <div className="min-h-[calc(100vh-80px)] bg-[#f8fafc] px-6 pt-4 pb-12 lg:px-10 lg:pt-5 lg:pb-12 text-[#1f1f1f] font-['Segoe_UI',Tahoma,sans-serif]">
             <div className="max-w-7xl mx-auto">
+
                 {/* Feedback Toast */}
                 {feedbackMessage && (
-                    <div className="mb-4 px-4 py-2 bg-blue-50 border border-blue-200 text-blue-800 text-xs font-medium rounded-md shadow-sm transition-all animate-fadeIn flex items-center justify-between">
-                        <span>{feedbackMessage}</span>
-                        <button onClick={() => setFeedbackMessage(null)} className="text-blue-500 hover:text-blue-700 font-bold ml-4">✕</button>
+                    <div className="mb-4 px-3.5 py-2 bg-white border border-[#d1d5db] text-[#1f1f1f] text-[12px] font-normal rounded shadow-sm transition-all flex items-center justify-between">
+                        <span className="leading-snug">{feedbackMessage}</span>
+                        <button
+                            onClick={() => setFeedbackMessage(null)}
+                            className="w-5 h-5 flex items-center justify-center text-[#5f5f5f] hover:text-[#1f1f1f] rounded hover:bg-[#f0f0f0] font-normal text-[11px] ml-4 transition-colors cursor-pointer"
+                            title="Cerrar"
+                        >
+                            ✕
+                        </button>
                     </div>
                 )}
 
-                {/* Grid de Categorías con Drop Zones */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                {/* Grid de Categorías */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {categories.map((category) => {
-                        const isHovered = activeDropCategory === category.id;
+                        const isCatTarget = dropTarget?.catId === category.id;
                         const config = CATEGORIES_CONFIG.find(c => c.id === category.id) || CATEGORIES_CONFIG[0];
 
                         return (
                             <div
                                 key={category.id}
-                                onDragOver={(e) => handleDragOverCategory(e, category.id)}
-                                onDragLeave={(e) => handleDragLeaveCategory(e, category.id)}
-                                onDrop={(e) => handleDropOnCategory(e, category.id)}
-                                className={`flex flex-col p-2 rounded-xl transition-all duration-200 border-2 ${
-                                    isHovered ? `border-dashed border-blue-500 ${config.dropBg} scale-[1.01] shadow-lg` : 'border-transparent bg-transparent'
+                                data-dashboard-category="true"
+                                data-cat-id={category.id}
+                                className={`flex flex-col p-2.5 rounded-lg transition-all duration-150 border ${
+                                    isCatTarget && dropTarget?.position === 'end'
+                                        ? `border-dashed border-[#0067c0] ${config.dropBg} shadow-sm`
+                                        : 'border-transparent bg-transparent'
                                 }`}
                             >
-                                <div className="flex items-center gap-3 mb-4">
-                                    <div className={`h-4 w-1 ${category.accent || config.accent} rounded-full`}></div>
-                                    <h2 className="text-sm font-normal text-black uppercase tracking-normal">{t(category.title)}</h2>
+                                <div className="flex items-center gap-2.5 mb-3 px-0.5 select-none pointer-events-none">
+                                    <div className={`h-3.5 w-1 ${category.accent || config.accent} rounded-full`}></div>
+                                    <h2 className="text-[12px] font-normal text-[#1f1f1f] uppercase tracking-normal">{t(category.title)}</h2>
                                 </div>
 
-                                <div className="space-y-3 min-h-[140px] flex flex-col">
+                                <div className="space-y-2 min-h-[140px] flex flex-col">
                                     {category.items.length === 0 ? (
-                                        <div className="flex-1 flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-lg text-center bg-white/50">
-                                            <p className="text-[11px] text-slate-400 font-normal">{t('dashboard.drag_hint', 'Arrastra opciones aquí para fijarlas')}</p>
+                                        <div className="flex-1 flex flex-col items-center justify-center p-6 border border-dashed border-[#d1d5db] rounded text-center bg-white/60 pointer-events-none">
+                                            <p className="text-[11px] text-[#7f7f7f] font-normal">{t('dashboard.drag_hint', 'Arrastra opciones aquí para fijarlas')}</p>
                                         </div>
                                     ) : (
-                                        category.items.map((item, idx) => (
-                                            <div
-                                                key={item.href || idx}
-                                                draggable
-                                                onDragStart={(e) => handleDragStartCard(e, item, category.id, idx)}
-                                                className="group relative block bg-white border border-slate-200 rounded-lg p-4 hover:border-slate-400 hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing select-none"
-                                            >
-                                                <Link to={item.href} className="block pr-5">
-                                                    <div className="text-xs font-normal text-black group-hover:text-blue-700 transition-colors tracking-normal">
-                                                        {t(item.text)}
-                                                    </div>
-                                                    <div className="text-[11px] text-black font-normal mt-1 uppercase tracking-normal">
-                                                        {t(item.desc)}
-                                                    </div>
-                                                </Link>
+                                        category.items.map((item, idx) => {
+                                            const isBeingDragged = dragging?.fromCatId === category.id && dragging?.fromIndex === idx;
+                                            const isTarget = dropTarget?.catId === category.id && dropTarget?.targetIndex === idx;
+                                            const isDropBefore = isTarget && dropTarget?.position === 'before';
+                                            const isDropAfter = isTarget && dropTarget?.position === 'after';
 
-                                                {/* Botón de Desfijar / Retirar */}
-                                                <button
-                                                    onClick={(e) => unpinItem(e, item.href)}
-                                                    className="absolute top-2 right-2 p-1 text-slate-300 hover:text-red-600 rounded hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all duration-150"
-                                                    title="Retirar del Dashboard"
-                                                    aria-label="Retirar del Dashboard"
-                                                >
-                                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        ))
+                                            return (
+                                                <React.Fragment key={item.href || idx}>
+                                                    {isDropBefore && (
+                                                        <div className="h-1 bg-[#0067c0] rounded-full my-0.5 shadow-xs pointer-events-none transition-all" />
+                                                    )}
+
+                                                    <div
+                                                        data-dashboard-card="true"
+                                                        data-cat-id={category.id}
+                                                        data-card-idx={idx}
+                                                        onPointerDown={(e) => handlePointerDown(e, item, category.id, idx)}
+                                                        className={`group relative flex items-center justify-between gap-2.5 bg-white border rounded p-2.5 transition-all duration-150 cursor-pointer select-none ${
+                                                            isBeingDragged
+                                                                ? 'opacity-25 scale-[0.98] border-dashed border-[#0067c0]'
+                                                                : 'border-[#e5e5e5] hover:border-[#0067c0] hover:shadow-xs'
+                                                        }`}
+                                                    >
+                                                        {/* Text content */}
+                                                        <div className="flex-1 min-w-0 pointer-events-none">
+                                                            <div className="text-[12px] font-normal text-[#1f1f1f] group-hover:text-[#0067c0] transition-colors tracking-normal leading-snug truncate">
+                                                                {t(item.text)}
+                                                            </div>
+                                                            <div className="text-[11px] text-[#7f7f7f] font-normal mt-0.5 tracking-normal leading-normal truncate">
+                                                                {t(item.desc)}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Acción de retirar del Dashboard */}
+                                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-1">
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => unpinItem(e, item.href)}
+                                                                className="w-5 h-5 flex items-center justify-center text-[#999] hover:text-[#d13438] hover:bg-[#fde7e9] rounded text-[10px] font-normal transition-colors cursor-pointer"
+                                                                title="Retirar del Dashboard"
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    {isDropAfter && (
+                                                        <div className="h-1 bg-[#0067c0] rounded-full my-0.5 shadow-xs pointer-events-none transition-all" />
+                                                    )}
+                                                </React.Fragment>
+                                            );
+                                        })
                                     )}
                                 </div>
                             </div>
                         );
                     })}
                 </div>
+
+                {/* Footer Action Bar */}
+                <div className="mt-10 pt-4 border-t border-[#e5e7eb] flex flex-col sm:flex-row justify-between items-center gap-3">
+                    <span className="text-[12px] text-[#6b7280] font-normal">
+                        Arrastra las opciones para organizarlas libremente
+                    </span>
+                    <button
+                        type="button"
+                        onClick={resetToDefault}
+                        className="h-8 px-4 bg-white hover:bg-[#f5f5f5] active:bg-[#ebebeb] border border-[#d1d5db] text-[#1f1f1f] text-[12px] font-normal rounded shadow-xs transition-colors cursor-pointer flex items-center gap-2"
+                        title="Restablecer el orden y opciones por defecto del Dashboard"
+                    >
+                        <span>Restablecer Orden</span>
+                    </button>
+                </div>
             </div>
+
+            {/* Ghost preview flotante que sigue al cursor al arrastrar */}
+            {dragging && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        left: `${dragging.x + 12}px`,
+                        top: `${dragging.y + 12}px`,
+                        pointerEvents: 'none',
+                        zIndex: 9999
+                    }}
+                    className="bg-white border border-[#0067c0] rounded p-2.5 shadow-lg w-52 opacity-90 transition-none"
+                >
+                    <div className="text-[11px] text-[#0067c0] font-normal truncate">
+                        {t(dragging.item?.text)}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

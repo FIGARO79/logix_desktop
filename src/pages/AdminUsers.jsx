@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import AdminLayout from '../components/AdminLayout';
 import { useNavigate } from 'react-router-dom';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { isTauri, tauriGetAllUsersAdmin, tauriDeleteUserAdmin, tauriResetPasswordAdmin } from '../utils/tauriBridge';
@@ -154,138 +153,135 @@ const AdminUsers = () => {
     };
 
     return (
-        <AdminLayout title="Gestión de Usuarios">
+        <div className="max-w-[1920px] mx-auto px-4 py-3 font-['Segoe_UI',Tahoma,sans-serif] bg-[#f8f9fa] min-h-screen text-[#1f1f1f] text-[12px]">
+            {/* Action Bar */}
+            <div className="flex justify-between items-center mb-3 border-b border-[#e5e7eb] pb-2">
+                <div className="flex items-center gap-2">
+                    <h1 className="text-[14px] font-normal text-[#1f1f1f]">Gestión de Usuarios y Permisos</h1>
+                    <span className="text-[11px] text-[#6b7280] font-normal">({users.length} registrados)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={fetchUsers}
+                        className="h-7 px-3 bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] text-[#1f1f1f] rounded text-[12px] font-normal transition-colors cursor-pointer shadow-xs"
+                    >
+                        Actualizar Lista
+                    </button>
+                </div>
+            </div>
+
             {message && (
-                <div className="mb-6 p-4 border-l-4 border-green-600 bg-green-50 text-green-800 rounded-r shadow-sm flex items-center gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
+                <div className="mb-3 p-2 bg-[#f0fdf4] border border-[#bbf7d0] text-[#166534] rounded text-[12px] font-normal">
                     {message}
                 </div>
             )}
             {error && (
-                <div className="mb-6 p-4 border-l-4 border-red-600 bg-red-50 text-red-800 rounded-r shadow-sm flex items-center gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
+                <div className="mb-3 p-2 bg-[#fef2f2] border border-[#fecaca] text-[#b91c1c] rounded text-[12px] font-normal">
                     {error}
                 </div>
             )}
 
-            {/* Users Tile */}
-            <div className="bg-white rounded shadow-sm border border-transparent hover:shadow-md transition-shadow">
-                {/* Header */}
-                <div className="flex justify-between items-center p-6 bg-gray-50 border-b border-gray-200">
-                    <h2 className="text-xl font-normal text-gray-800">Usuarios Registrados</h2>
-                    <span className="text-sm text-gray-500">{users.length} Usuarios</span>
-                </div>
+                {/* Users Tile */}
+                <div className="bg-white rounded border border-[#d1d5db] shadow-xs overflow-hidden">
+                    {/* Header */}
+                    <div className="flex justify-between items-center px-4 py-2.5 bg-[#354a5f] text-white border-b border-[#2a3c4e]">
+                        <h2 className="text-[13px] font-normal text-white">Usuarios Registrados</h2>
+                        <span className="text-[11px] text-gray-300 font-normal">{users.length} Usuarios</span>
+                    </div>
 
-                {/* Table */}
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                        <thead className="uppercase font-normal text-xs border-b border-gray-200">
-                            <tr>
-                                <th className="px-6 py-3 text-center w-16">ID</th>
-                                <th className="px-6 py-3 font-normal">Usuario</th>
-                                <th className="px-6 py-3 text-center font-normal">Estado</th>
-                                {MODULES.map(m => (
-                                    <th key={m} className="px-2 py-3 text-center font-normal text-xs">{m.toUpperCase()}</th>
-                                ))}
-                                <th className="px-6 py-3 text-center font-normal">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                            {users.map(u => (
-                                <tr key={u.id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-6 py-4 text-center text-gray-500">{u.id}</td>
-                                    <td className="px-6 py-4 font-medium ">{u.username}</td>
-                                    <td className="px-6 py-4 text-center">
-                                        {u.is_approved ? (
-                                            <span className="px-3 py-1 rounded-full text-xs font-medium  bg-green-100 text-green-700 border border-green-200/50">
-                                                Aprobado
-                                            </span>
-                                        ) : (
-                                            <span className="px-3 py-1 rounded-full text-xs font-medium  bg-orange-100 text-orange-700 border border-orange-200/50">
-                                                Pendiente
-                                            </span>
-                                        )}
-                                    </td>
-                                    {MODULES.map(m => {
-                                        const perms = parsePermissions(u.permissions);
-                                        const hasPerm = perms.includes(m);
-                                        return (
-                                            <td key={m} className="px-2 py-4 text-center">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={hasPerm}
-                                                    onChange={() => handlePermissionChange(u.id, m)}
-                                                    className="rounded border-gray-300 text-[#285f94] shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 cursor-pointer"
-                                                />
-                                            </td>
-                                        );
-                                    })}
-                                    <td className="px-6 py-4 text-center">
-                                        <div className="flex justify-center items-center gap-2">
-                                            <button
-                                                className="px-3 py-1 border border-[#285f94] text-[#285f94] rounded text-xs hover:bg-blue-50 transition-colors"
-                                                onClick={() => { alert('Verificar contraseña (no implementado en React aún)'); }}
-                                            >
-                                                Verificar
-                                            </button>
-
-                                            {!u.is_approved && (
-                                                <button
-                                                    onClick={() => handleApprove(u.id)}
-                                                    className="px-3 py-1 bg-[#285f94] text-white rounded text-xs hover:bg-[#1e4a74] transition-colors border border-[#285f94]"
-                                                >
-                                                    Aprobar
-                                                </button>
-                                            )}
-
-                                            <button
-                                                onClick={() => handleResetPassword(u.id)}
-                                                className="px-3 py-1 border border-[#285f94] text-[#285f94] rounded text-xs hover:bg-blue-50 transition-colors"
-                                            >
-                                                Reset Pass
-                                            </button>
-
-                                            <button
-                                                onClick={() => handleDelete(u.id)}
-                                                className="p-1 text-red-600 hover:bg-red-50 rounded border border-red-200 ml-1"
-                                                title="Eliminar"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                            {users.length === 0 && (
+                    {/* Table */}
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead className="bg-[#354a5f] text-white text-[11px] font-normal border-b border-[#2a3c4e]">
                                 <tr>
-                                    <td colSpan="4" className="text-center py-8 text-gray-400 italic">
-                                        No hay usuarios registrados.
-                                    </td>
+                                    <th className="px-3 py-2 text-center w-12 font-normal">ID</th>
+                                    <th className="px-3 py-2 font-normal">Usuario</th>
+                                    <th className="px-3 py-2 text-center font-normal">Estado</th>
+                                    {MODULES.map(m => (
+                                        <th key={m} className="px-2 py-2 text-center font-normal text-[10.5px] uppercase">{m}</th>
+                                    ))}
+                                    <th className="px-3 py-2 text-center font-normal">Acciones</th>
                                 </tr>
-                            )}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {users.map((u, idx) => (
+                                    <tr key={u.id} className={`border-b border-[#f0f0f0] ${idx % 2 === 0 ? 'bg-white' : 'bg-[#fafafa]'} hover:bg-[#edf3f9] transition-colors`}>
+                                        <td className="px-3 py-2 text-center text-gray-500 font-mono text-[11px]">{u.id}</td>
+                                        <td className="px-3 py-2 font-normal text-gray-900">{u.username}</td>
+                                        <td className="px-3 py-2 text-center">
+                                            {u.is_approved ? (
+                                                <span className="px-2 py-0.5 rounded text-[11px] font-normal bg-green-50 text-green-700 border border-green-200">
+                                                    Aprobado
+                                                </span>
+                                            ) : (
+                                                <span className="px-2 py-0.5 rounded text-[11px] font-normal bg-amber-50 text-amber-700 border border-amber-200">
+                                                    Pendiente
+                                                </span>
+                                            )}
+                                        </td>
+                                        {MODULES.map(m => {
+                                            const perms = parsePermissions(u.permissions);
+                                            const hasPerm = perms.includes(m);
+                                            return (
+                                                <td key={m} className="px-2 py-2 text-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={hasPerm}
+                                                        onChange={() => handlePermissionChange(u.id, m)}
+                                                        className="w-3.5 h-3.5 rounded border-[#d1d5db] text-[#0067c0] focus:ring-0 cursor-pointer accent-[#0067c0]"
+                                                    />
+                                                </td>
+                                            );
+                                        })}
+                                        <td className="px-3 py-2 text-center">
+                                            <div className="flex justify-center items-center gap-1.5">
+                                                <button
+                                                    className="h-6 px-2 bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] text-[#0067c0] rounded text-[11px] font-normal transition-colors cursor-pointer"
+                                                    onClick={() => { alert('Verificar contraseña (no implementado en React aún)'); }}
+                                                >
+                                                    Verificar
+                                                </button>
+
+                                                {!u.is_approved && (
+                                                    <button
+                                                        onClick={() => handleApprove(u.id)}
+                                                        className="h-6 px-2.5 bg-[#0067c0] hover:bg-[#005a9e] text-white rounded text-[11px] font-normal transition-colors cursor-pointer"
+                                                    >
+                                                        Aprobar
+                                                    </button>
+                                                )}
+
+                                                <button
+                                                    onClick={() => handleResetPassword(u.id)}
+                                                    className="h-6 px-2 bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] text-[#1f1f1f] rounded text-[11px] font-normal transition-colors cursor-pointer"
+                                                >
+                                                    Restablecer Pass
+                                                </button>
+
+                                                <button
+                                                    onClick={() => handleDelete(u.id)}
+                                                    className="h-6 px-2 text-red-600 hover:bg-red-50 rounded border border-red-200 transition-colors cursor-pointer text-[11px] font-normal"
+                                                    title="Eliminar"
+                                                >
+                                                    Eliminar
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {users.length === 0 && (
+                                    <tr>
+                                        <td colSpan={4 + MODULES.length} className="text-center py-8 text-gray-400 font-normal">
+                                            No hay usuarios registrados.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-
-            <div className="mt-8 text-center">
-                <button
-                    onClick={() => navigate('/')}
-                    className="text-sm text-gray-500 hover:text-gray-800 flex items-center justify-center gap-2 mx-auto"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                    Volver a la aplicación principal
-                </button>
-            </div>
-        </AdminLayout>
     );
 };
 

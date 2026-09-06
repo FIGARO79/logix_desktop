@@ -38,30 +38,43 @@ const AdminLogin = () => {
     };
 
     return (
-        <div className="min-h-full flex items-center justify-center bg-transparent py-12">
-            <div className="fiori-login-card">
-                <div className="text-center mb-6">
-                    <h1 className="text-2xl font-medium text-gray-900 text-gray-800">Admin Login</h1>
-                    <p className="text-gray-500">Acceso restringido</p>
+        <div className="min-h-screen flex items-center justify-center bg-[#f3f4f6] p-4 font-['Segoe_UI',Tahoma,sans-serif] text-[#1f1f1f]">
+            <div className="bg-white p-7 rounded border border-[#e5e7eb] shadow-sm w-full max-w-sm">
+                <div className="text-center mb-5">
+                    <span className="text-[11px] font-normal text-[#6b7280] uppercase tracking-normal block mb-1">Administración</span>
+                    <h1 className="text-[18px] font-normal text-[#1f1f1f]">Acceso Restringido</h1>
                 </div>
-                {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4">{error}</div>}
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-4">
-                        <label className="block text-gray-700 text-sm font-medium text-gray-900 mb-2">Contraseña Admin</label>
+                {error && (
+                    <div className="bg-[#fef2f2] border border-[#fecaca] text-[#b91c1c] text-[12px] font-normal px-3 py-2 rounded mb-4">
+                        {error}
+                    </div>
+                )}
+                <form onSubmit={handleSubmit} className="space-y-3.5">
+                    <div>
+                        <label className="block text-[12px] font-normal text-[#374151] mb-1">Contraseña de Administrador</label>
                         <input
                             type="password"
-                            className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#285f94]"
+                            className="w-full h-8 px-2.5 text-[12px] font-normal border border-[#d1d5db] rounded outline-none focus:border-[#0067c0] bg-white text-[#1f1f1f]"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             autoFocus
                         />
                     </div>
-                    <button type="submit" className="w-full bg-[#285f94] text-white font-medium text-gray-900 py-2 rounded hover:bg-[#1e4a74]">
+                    <button
+                        type="submit"
+                        className="w-full h-8 bg-[#0067c0] hover:bg-[#005a9e] text-white text-[12px] font-normal rounded transition-colors cursor-pointer shadow-xs"
+                    >
                         Entrar
                     </button>
                 </form>
                 <div className="mt-4 text-center">
-                    <button onClick={() => navigate('/dashboard')} className="text-sm text-gray-500 hover:text-gray-700">Volver a Inicio</button>
+                    <button
+                        type="button"
+                        onClick={() => navigate('/dashboard')}
+                        className="text-[12px] font-normal text-[#6b7280] hover:text-[#1f1f1f] hover:underline cursor-pointer"
+                    >
+                        Volver al Inicio
+                    </button>
                 </div>
             </div>
         </div>

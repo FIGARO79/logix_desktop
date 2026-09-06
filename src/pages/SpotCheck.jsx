@@ -265,28 +265,29 @@ const SpotCheck = () => {
     );
 
     return (
-        <div className="max-w-[1200px] mx-auto px-6 py-3 font-sans bg-[#fcfcfc] min-h-screen text-black">
+        <div className="max-w-[1920px] mx-auto px-4 py-3 font-['Segoe_UI',Tahoma,sans-serif] bg-[#f8f9fa] min-h-screen text-[#1f1f1f] text-[12px]">
             <ToastContainer position="top-right" autoClose={2000} />
 
-            <div className="mb-2 border-b border-zinc-100 pb-1.5 flex justify-between items-center">
-                <div>
-                    {!isOnline && <span className="text-[9px] bg-red-100 text-red-600 px-2 py-0.5 rounded border border-red-200 font-medium  animate-pulse">MODO OFFLINE</span>}
+            <div className="mb-3 border-b border-[#e5e7eb] pb-2 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                    <h1 className="text-[14px] font-normal text-gray-800 tracking-normal">Spot Check (Inspección Rápida)</h1>
+                    {!isOnline && <span className="text-[11px] bg-red-100 text-red-700 px-2 py-0.5 rounded border border-red-200 font-normal">Modo Offline</span>}
                 </div>
                 <button
                     onClick={() => navigate('/stock')}
-                    className="btn-sap btn-secondary text-[11px] font-medium  uppercase tracking-widest px-6 h-9 flex items-center border-2 border-black"
+                    className="h-7 px-3 bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] text-[#1f1f1f] text-[12px] font-normal rounded transition-colors cursor-pointer"
                 >
                     Stock
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div className="lg:col-span-1">
-                    <div className="bg-white border border-zinc-300 shadow-sm p-6 rounded-lg space-y-6 sticky top-24">
+                    <div className="bg-white border border-[#d1d5db] rounded shadow-xs p-4 space-y-4 sticky top-20">
                         <style>{`input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}input[type=number]{-moz-appearance:textfield}`}</style>
 
                         <div>
-                            <label className="text-[11px] font-black text-gray-800 uppercase mb-2 block">Ubicación (BIN)</label>
+                            <label className="text-[11px] font-normal text-gray-700 mb-1 block">Ubicación (BIN)</label>
                             <div className="flex">
                                 <input
                                     ref={binRef}
@@ -294,22 +295,23 @@ const SpotCheck = () => {
                                     value={binLocation}
                                     onChange={(e) => setBinLocation(e.target.value.toUpperCase())}
                                     onKeyDown={(e) => e.key === 'Enter' && itemRef.current?.focus()}
-                                    style={{ height: '40px' }}
-                                    className="flex-1 px-3 border border-zinc-400 border-r-0 rounded-l font-mono font-medium  text-black text-lg outline-none focus:border-zinc-900 transition-colors py-0"
+                                    className="flex-1 h-7 px-2 border border-[#d1d5db] border-r-0 rounded-l font-mono font-normal text-[#1f1f1f] text-[12px] outline-none focus:border-[#0067c0] bg-white"
                                     placeholder="BIN"
                                 />
                                 <button
                                     onClick={() => { setScanTarget('bin'); setScannerOpen(true); }}
-                                    style={{ height: '40px', width: '40px' }}
-                                    className="shrink-0 border border-zinc-400 rounded-r bg-zinc-50 flex items-center justify-center !p-0 text-zinc-800 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-colors"
+                                    className="shrink-0 h-7 w-8 border border-[#d1d5db] rounded-r bg-[#f8f9fa] flex items-center justify-center text-gray-700 hover:bg-[#edf3f9] hover:text-[#0067c0] transition-colors cursor-pointer"
+                                    title="Escanear"
                                 >
-                                    {scannerIcon}
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
+                                    </svg>
                                 </button>
                             </div>
                         </div>
 
                         <div>
-                            <label className="text-[11px] font-black text-gray-800 uppercase mb-2 block">Código o Descripción</label>
+                            <label className="text-[11px] font-normal text-gray-700 mb-1 block">Código o Descripción</label>
                             <div className="flex">
                                 <input
                                     ref={itemRef}
@@ -317,86 +319,85 @@ const SpotCheck = () => {
                                     value={itemCode}
                                     onChange={(e) => setItemCode(e.target.value.toUpperCase())}
                                     onKeyDown={(e) => e.key === 'Enter' && handleSearchItem()}
-                                    style={{ height: '40px' }}
-                                    className="flex-1 px-3 border border-zinc-400 border-r-0 rounded-l font-medium  text-black outline-none focus:border-zinc-900 transition-colors py-0"
-                                    placeholder="SKU o DESCRIPCIÓN"
+                                    className="flex-1 h-7 px-2 border border-[#d1d5db] border-r-0 rounded-l font-normal text-[#1f1f1f] text-[12px] outline-none focus:border-[#0067c0] bg-white"
+                                    placeholder="SKU o Descripción"
                                 />
                                 <button
                                     onClick={() => { setScanTarget('item'); setScannerOpen(true); }}
-                                    style={{ height: '40px', width: '40px' }}
-                                    className="shrink-0 border border-zinc-400 rounded-r bg-zinc-50 flex items-center justify-center !p-0 text-zinc-800 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-colors"
+                                    className="shrink-0 h-7 w-8 border border-[#d1d5db] rounded-r bg-[#f8f9fa] flex items-center justify-center text-gray-700 hover:bg-[#edf3f9] hover:text-[#0067c0] transition-colors cursor-pointer"
+                                    title="Escanear"
                                 >
-                                    {scannerIcon}
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
+                                    </svg>
                                 </button>
                             </div>
                         </div>
 
                         {/* Lista de Resultados de Búsqueda */}
                         {searchResults.length > 0 && (
-                            <div className="bg-blue-50 border-2 border-blue-200 rounded-md overflow-hidden max-h-48 overflow-y-auto">
-                                <div className="p-2 bg-blue-100 text-[10px] font-medium  text-blue-800 uppercase">Seleccione un ítem:</div>
+                            <div className="bg-white border border-[#0067c0]/30 rounded overflow-hidden max-h-48 overflow-y-auto">
+                                <div className="p-1.5 bg-[#edf3f9] text-[11px] font-normal text-[#0067c0]">Seleccione un ítem:</div>
                                 {searchResults.map((item) => (
                                     <div 
                                         key={item.itemCode}
                                         onClick={() => selectItemFromResult(item)}
-                                        className="p-3 border-b border-blue-100 hover:bg-white cursor-pointer transition-colors"
+                                        className="p-2 border-b border-[#f0f0f0] hover:bg-[#edf3f9] cursor-pointer transition-colors"
                                     >
-                                        <div className="font-medium  text-zinc-900">{item.itemCode}</div>
-                                        <div className="text-[10px] text-zinc-600 truncate">{item.description}</div>
+                                        <div className="font-normal text-gray-900">{item.itemCode}</div>
+                                        <div className="text-[11px] text-gray-600 truncate">{item.description}</div>
                                     </div>
                                 ))}
                             </div>
                         )}
 
-                        <div className="p-3 bg-zinc-100 border border-zinc-300 rounded text-[12px] font-black text-black uppercase leading-tight shadow-inner">
+                        <div className="p-2.5 bg-[#f8f9fa] border border-[#d1d5db] rounded text-[12px] font-normal text-gray-800 leading-tight">
                             {loading ? (
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                                <div className="flex items-center gap-2 text-gray-600">
+                                    <div className="w-3 h-3 border-2 border-[#0067c0] border-t-transparent rounded-full animate-spin"></div>
                                     Buscando...
                                 </div>
-                            ) : (itemData?.description || '— ESPERANDO ARTÍCULO —')}
+                            ) : (itemData?.description || 'Esperando selección de artículo')}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
                             <div>
-                                <label className="text-[11px] font-black text-gray-800 uppercase mb-2 block">Cantidad</label>
+                                <label className="text-[11px] font-normal text-gray-700 mb-1 block">Cantidad</label>
                                 <input
                                     ref={qtyRef}
                                     type="number"
                                     value={physicalQty}
                                     onChange={(e) => setPhysicalQty(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-                                    style={{ height: '40px' }}
-                                    className="w-full px-3 border border-zinc-400 rounded text-center font-black text-2xl text-black outline-none focus:border-zinc-900 py-0"
+                                    className="w-full h-7 px-2 border border-[#d1d5db] rounded text-center font-normal text-[13px] text-[#1f1f1f] outline-none focus:border-[#0067c0] bg-white"
                                     placeholder="0"
                                 />
                             </div>
                             <button
                                 onClick={handleSave}
                                 disabled={isSaving || !itemData}
-                                style={{ height: '40px' }}
-                                className="w-full bg-zinc-900 text-white rounded font-medium  uppercase text-[11px] tracking-widest hover:bg-black disabled:bg-zinc-300 transition-colors shadow-lg active:scale-95"
+                                className="w-full h-7 bg-[#0067c0] hover:bg-[#005a9e] text-white rounded font-normal text-[12px] disabled:opacity-50 transition-colors cursor-pointer"
                             >
-                                {isSaving ? '...' : 'REGISTRAR'}
+                                {isSaving ? 'Guardando...' : 'Registrar'}
                             </button>
                         </div>
                     </div>
                 </div>
 
                 <div className="lg:col-span-2">
-                    <div className="bg-white border border-zinc-300 shadow-md overflow-hidden rounded-lg">
-                        <div className="bg-zinc-100 px-4 py-3 border-b-2 border-zinc-200 flex justify-between items-center">
-                            <h2 className="text-[11px] font-medium  text-black uppercase tracking-widest">Hallazgos Recientes</h2>
+                    <div className="bg-white border border-[#d1d5db] rounded shadow-xs overflow-hidden">
+                        <div className="bg-[#354a5f] text-white px-3 py-2 flex justify-between items-center border-b border-[#2a3c4e]">
+                            <h2 className="text-[12px] font-normal text-white">Hallazgos Recientes</h2>
                             <div className="flex gap-2">
                                 <button
                                     onClick={handleExport}
-                                    className="text-[10px] font-medium  uppercase text-[#1e4a74] hover:text-blue-800 flex items-center gap-1 border border-[#1e4a74]/30 px-3 py-1.5 rounded bg-white hover:bg-blue-50 transition-all shadow-sm"
+                                    className="h-6 px-2.5 bg-[#2a3c4e] hover:bg-[#1f2d3a] text-white text-[11px] font-normal rounded transition-colors cursor-pointer border border-[#4a637d]"
                                 >
-                                    Excel
+                                    Exportar Excel
                                 </button>
                                 <button
                                     onClick={handleClearTable}
-                                    className="text-[10px] font-medium  uppercase text-red-700 hover:text-red-900 flex items-center gap-1 border border-red-200 px-3 py-1.5 rounded bg-white hover:bg-red-50 transition-all shadow-sm"
+                                    className="h-6 px-2.5 bg-red-700 hover:bg-red-800 text-white text-[11px] font-normal rounded transition-colors cursor-pointer"
                                 >
                                     Limpiar
                                 </button>
@@ -404,37 +405,37 @@ const SpotCheck = () => {
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
-                                <thead className="bg-zinc-900 text-white text-[9px] uppercase tracking-widest">
+                                <thead className="bg-[#354a5f] text-white text-[11px] font-normal tracking-normal border-b border-[#2a3c4e]">
                                     <tr>
-                                        <th className="px-3 py-3">Hora</th>
-                                        <th className="px-3 py-3">Bin Encontrado</th>
-                                        <th className="px-3 py-3">Bin Default</th>
-                                        <th className="px-3 py-3">Item</th>
-                                        <th className="px-3 py-3 text-center">Cant</th>
-                                        <th className="px-3 py-3">Usuario</th>
+                                        <th className="px-3 py-2 font-normal">Hora</th>
+                                        <th className="px-3 py-2 font-normal">Bin Encontrado</th>
+                                        <th className="px-3 py-2 font-normal">Bin Defecto</th>
+                                        <th className="px-3 py-2 font-normal">Item</th>
+                                        <th className="px-3 py-2 text-center font-normal">Cant</th>
+                                        <th className="px-3 py-2 font-normal">Usuario</th>
                                     </tr>
                                 </thead>
-                                <tbody className="text-[10px]">
+                                <tbody className="text-[11.5px]">
                                     {recentChecks.length === 0 ? (
-                                        <tr><td colSpan="6" className="px-4 py-12 text-center text-zinc-400 font-medium uppercase">No hay registros recientes</td></tr>
+                                        <tr><td colSpan="6" className="px-4 py-8 text-center text-gray-500 font-normal">No hay registros recientes</td></tr>
                                     ) : (
-                                        recentChecks.map((check) => {
+                                        recentChecks.map((check, idx) => {
                                             const isMatch = check.system_bin && check.system_bin !== 'N/A' && check.bin_location === check.system_bin;
                                             return (
-                                                <tr key={check.id} className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors">
-                                                    <td className="px-3 py-3 text-zinc-600 font-medium font-mono">{formatDate(check.timestamp)}</td>
-                                                    <td className="px-3 py-3 font-black text-sm">
-                                                        <span className={`px-2 py-0.5 rounded font-mono ${isMatch ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-orange-100 text-orange-800 border border-orange-200'}`}>
+                                                <tr key={check.id || idx} className={`border-b border-[#f0f0f0] ${idx % 2 === 0 ? 'bg-white' : 'bg-[#fafafa]'} hover:bg-[#edf3f9] transition-colors`}>
+                                                    <td className="px-3 py-2 text-gray-600 font-normal font-mono">{formatDate(check.timestamp)}</td>
+                                                    <td className="px-3 py-2 font-normal">
+                                                        <span className={`px-2 py-0.5 rounded font-mono text-[11px] ${isMatch ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
                                                             {check.bin_location}
                                                         </span>
                                                     </td>
-                                                    <td className="px-3 py-3 font-mono font-bold text-zinc-700">{check.system_bin || check.default_bin || 'N/A'}</td>
-                                                    <td className="px-3 py-3">
-                                                        <div className="font-bold text-[#1e4a74] text-sm">{check.item_code}</div>
-                                                        <div className="text-[9px] text-zinc-600 font-medium truncate max-w-[200px]">{check.item_description}</div>
+                                                    <td className="px-3 py-2 font-mono text-gray-700 font-normal">{check.system_bin || check.default_bin || 'N/A'}</td>
+                                                    <td className="px-3 py-2">
+                                                        <div className="font-normal text-[#0067c0]">{check.item_code}</div>
+                                                        <div className="text-[11px] text-gray-600 truncate max-w-[240px] font-normal">{check.item_description}</div>
                                                     </td>
-                                                    <td className="px-3 py-3 text-center font-black text-lg text-black">{check.quantity}</td>
-                                                    <td className="px-3 py-3 uppercase text-zinc-600 font-medium">{check.username}</td>
+                                                    <td className="px-3 py-2 text-center font-normal text-[12px] text-[#1f1f1f]">{check.quantity}</td>
+                                                    <td className="px-3 py-2 text-gray-600 font-normal">{check.username}</td>
                                                 </tr>
                                             );
                                         })

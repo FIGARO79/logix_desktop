@@ -175,16 +175,15 @@ const InboundHistory = () => {
     });
 
     return (
-        <div className="w-full px-4 py-3">
+        <div className="w-full px-4 py-3 font-['Segoe_UI',Tahoma,sans-serif] font-normal tracking-normal text-[12px] text-[#1f1f1f]">
             {/* Header con Buscador y Selector de Versiones */}
-            <div className="flex flex-col md:flex-row justify-end items-center mb-2 bg-white p-1.5 rounded shadow-sm border border-gray-200">
-                <div className="flex gap-2 items-center">
+            <div className="flex flex-col md:flex-row justify-end items-center mb-2 bg-white p-2 rounded border border-[#e5e5e5] shadow-sm">
+                <div className="flex gap-2 items-center w-full md:w-auto">
                     <div className="relative w-full sm:w-64 flex-shrink-0">
                         <input
                             type="text"
-                            placeholder="Buscar..."
-                            style={{ height: '32px', paddingTop: '4px', paddingBottom: '4px' }}
-                            className="px-2 pr-7 text-xs border border-gray-300 rounded-md shadow-sm focus:ring-1 focus:ring-[#285f94] focus:border-[#285f94] focus:outline-none w-full transition-all duration-150"
+                            placeholder="Buscar por código, IR, descripción..."
+                            className="w-full h-7 px-2 pr-6 text-[12px] border border-[#d1d5db] rounded outline-none focus:border-[#0067c0] font-normal"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -192,70 +191,66 @@ const InboundHistory = () => {
                             <button
                                 type="button"
                                 onClick={() => setSearchTerm('')}
-                                className="absolute right-1 top-1/2 -translate-y-1/2 text-black/60 hover:text-black focus:outline-none"
+                                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[#707070] hover:text-[#1f1f1f] text-[11px] cursor-pointer"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
-                                </svg>
+                                ✕
                             </button>
                         )}
                     </div>
                     <select
                         onChange={(e) => loadLogs(e.target.value)}
-                        style={{ height: '32px', paddingTop: '4px', paddingBottom: '4px' }}
-                        className="p-1 text-[12px] font-normal bg-white border border-gray-300 rounded-md shadow-sm outline-none focus:border-[#285f94] w-full sm:w-40"
+                        value={currentVersion}
+                        className="h-7 px-2 text-[12px] font-normal bg-white border border-[#d1d5db] rounded outline-none focus:border-[#0067c0] w-full sm:w-44 cursor-pointer"
                     >
                         <option value="">Actual</option>
                         {versions.map(v => <option key={v} value={v}>{formatDate(v)}</option>)}
                     </select>
                     <button
                         onClick={() => window.location.href = currentVersion ? `/api/export_log?version_date=${currentVersion}` : '/api/export_log'}
-                        style={{ height: '32px', paddingTop: '4px', paddingBottom: '4px' }}
-                        className="p-1 font-normal bg-emerald-600 text-white rounded-md shadow-sm hover:bg-emerald-700 flex items-center gap-1.5 transition-all"
+                        className="h-7 px-3 font-normal bg-[#354a5f] hover:bg-[#2a3c4e] text-white rounded shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer text-[12px]"
                     >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" /></svg>
                         Exportar
                     </button>
                 </div>
             </div>
 
-            {error && <div className="bg-red-100 text-red-700 p-3 mb-4 rounded text-sm">{error}</div>}
+            {error && <div className="bg-[#fef2f2] border border-[#fecaca] text-[#a80000] p-2.5 mb-2 rounded text-[12px] font-normal">{error}</div>}
 
             {/* Tabla Enriquecida */}
-            <div className="bg-white shadow-sm rounded-lg overflow-hidden border border-gray-200">
+            <div className="bg-white rounded border border-[#e5e5e5] overflow-hidden shadow-sm">
                 <div className="overflow-x-auto max-h-[70vh]">
-                    <table className="w-full text-xs border-collapse">
-                        <thead className="bg-slate-700 text-white sticky top-0 z-10">
+                    <table className="w-full text-[11.5px] border-collapse">
+                        <thead className="bg-[#354a5f] text-white sticky top-0 z-10 font-normal text-[11px]">
                             <tr>
-                                <th className="px-2 py-1.5 text-left font-medium">TIMESTAMP</th>
-                                <th className="px-2 py-1.5 text-left font-medium">USUARIO</th>
-                                <th className="px-2 py-1.5 text-left font-medium">I.R.</th>
-                                <th className="px-2 py-1.5 text-left font-medium">WAYBILL</th>
-                                <th className="px-2 py-1.5 text-left font-medium">ITEM CODE</th>
-                                <th className="px-2 py-1.5 text-left font-medium">DESCRIPCIÓN</th>
-                                <th className="px-2 py-1.5 text-left font-medium">UBICACIÓN</th>
-                                <th className="px-2 py-1.5 text-left font-medium">REUBICACIÓN</th>
-                                <th className="px-2 py-1.5 text-center font-medium">CANT. RECIBIDA</th>
-                                <th className="px-2 py-1.5 text-center font-medium">CANT. ESPERADA</th>
-                                <th className="px-2 py-1.5 text-center font-medium">DIFERENCIA</th>
+                                <th className="px-2.5 py-1.5 text-left font-normal">TIMESTAMP</th>
+                                <th className="px-2.5 py-1.5 text-left font-normal">USUARIO</th>
+                                <th className="px-2.5 py-1.5 text-left font-normal">I.R.</th>
+                                <th className="px-2.5 py-1.5 text-left font-normal">WAYBILL</th>
+                                <th className="px-2.5 py-1.5 text-left font-normal">ITEM CODE</th>
+                                <th className="px-2.5 py-1.5 text-left font-normal">DESCRIPCIÓN</th>
+                                <th className="px-2.5 py-1.5 text-left font-normal">UBICACIÓN</th>
+                                <th className="px-2.5 py-1.5 text-left font-normal">REUBICACIÓN</th>
+                                <th className="px-2.5 py-1.5 text-center font-normal">CANT. RECIBIDA</th>
+                                <th className="px-2.5 py-1.5 text-center font-normal">CANT. ESPERADA</th>
+                                <th className="px-2.5 py-1.5 text-center font-normal">DIFERENCIA</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200">
-                            {loading && <tr><td colSpan="11" className="py-4 text-center text-black/60">Cargando...</td></tr>}
-                            {!loading && filteredLogs.length === 0 && <tr><td colSpan="11" className="py-4 text-center text-black/60">No se encontraron registros.</td></tr>}
+                        <tbody className="divide-y divide-[#f1f1f1]">
+                            {loading && <tr><td colSpan="11" className="py-8 text-center text-[#616161]">Cargando...</td></tr>}
+                            {!loading && filteredLogs.length === 0 && <tr><td colSpan="11" className="py-8 text-center text-[#616161]">No se encontraron registros.</td></tr>}
                             {filteredLogs.map((log, idx) => (
-                                <tr key={log.id || idx} className={`${log.is_pending ? 'bg-amber-50 animate-pulse' : (idx % 2 === 0 ? 'bg-white' : 'bg-gray-50')} hover:bg-blue-50 transition-colors`}>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black">{formatDate(log.timestamp)}</td>
-                                    <td className={`px-2 py-1.5 whitespace-nowrap font-normal text-sm ${log.is_pending ? 'text-amber-700' : 'text-black'} uppercase`}>{log.username || 'admin'}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black">{log.importReference || '-'}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black">{log.waybill || '-'}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black font-normal">{log.itemCode}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black truncate max-w-md" title={log.itemDescription}>{log.itemDescription || '-'}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black">{log.binLocation || '-'}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-black">{log.relocatedBin || '-'}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-center font-normal">{log.qtyReceived}</td>
-                                    <td className="px-2 py-1.5 whitespace-nowrap text-sm text-center text-black font-normal">{log.expected_qty}</td>
-                                    <td className={`px-2 py-1.5 whitespace-nowrap text-sm text-center font-normal ${log.calculatedDifference < 0 ? 'text-red-600' : log.calculatedDifference > 0 ? 'text-blue-600' : ''}`}>
+                                <tr key={log.id || idx} className={`${log.is_pending ? 'bg-[#fff4ce]' : (idx % 2 === 0 ? 'bg-white' : 'bg-[#fafafa]')} hover:bg-[#edf3f9] transition-colors`}>
+                                    <td className="px-2.5 py-1.5 whitespace-nowrap text-[#616161]">{formatDate(log.timestamp)}</td>
+                                    <td className={`px-2.5 py-1.5 whitespace-nowrap font-normal ${log.is_pending ? 'text-[#794e00]' : 'text-[#1f1f1f]'} uppercase`}>{log.username || 'admin'}</td>
+                                    <td className="px-2.5 py-1.5 whitespace-nowrap text-[#1f1f1f]">{log.importReference || '-'}</td>
+                                    <td className="px-2.5 py-1.5 whitespace-nowrap text-[#1f1f1f]">{log.waybill || '-'}</td>
+                                    <td className="px-2.5 py-1.5 whitespace-nowrap text-[#0067c0] font-normal">{log.itemCode}</td>
+                                    <td className="px-2.5 py-1.5 whitespace-nowrap text-[#1f1f1f] truncate max-w-md" title={log.itemDescription}>{log.itemDescription || '-'}</td>
+                                    <td className="px-2.5 py-1.5 whitespace-nowrap text-[#1f1f1f]">{log.binLocation || '-'}</td>
+                                    <td className="px-2.5 py-1.5 whitespace-nowrap text-[#1f1f1f]">{log.relocatedBin || '-'}</td>
+                                    <td className="px-2.5 py-1.5 whitespace-nowrap text-center text-[#1f1f1f]">{log.qtyReceived}</td>
+                                    <td className="px-2.5 py-1.5 whitespace-nowrap text-center text-[#1f1f1f]">{log.expected_qty}</td>
+                                    <td className={`px-2.5 py-1.5 whitespace-nowrap text-center ${log.calculatedDifference < 0 ? 'text-[#a80000]' : log.calculatedDifference > 0 ? 'text-[#0067c0]' : 'text-[#1f1f1f]'}`}>
                                         {log.calculatedDifference > 0 ? `+${log.calculatedDifference}` : log.calculatedDifference}
                                     </td>
                                 </tr>

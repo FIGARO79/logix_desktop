@@ -393,55 +393,59 @@ const Update = () => {
     };
 
     return (
-        <div className="max-w-[1440px] mx-auto px-6 py-4 font-sans bg-[#fcfcfc] min-h-screen text-zinc-900 text-[12px]">
+        <div className="max-w-[1440px] mx-auto px-6 py-4 font-['Segoe_UI',Tahoma,sans-serif] bg-[#f9f9fb] min-h-screen text-[#1f1f1f] text-[12px] font-normal tracking-normal">
             
             {/* Mensajes de Notificación */}
             {messages.error && (
-                <div className="mb-4 bg-red-50 text-red-900 px-4 py-2.5 border border-red-200 rounded-lg flex justify-between items-center text-[11px] font-normal shadow-sm transition-all animate-fade-in">
+                <div className="mb-3 bg-[#fdf2f2] text-[#a80000] px-3 py-2 border border-[#f3c5c5] rounded flex justify-between items-center text-[11px] font-normal tracking-normal">
                     <div className="flex items-center gap-2">
-                        <span className="text-red-700 uppercase font-medium tracking-tight">[Error]</span>
+                        <span className="font-normal">[Error]</span>
                         <span>{messages.error}</span>
                     </div>
-                    <button type="button" onClick={clearMessages} className="text-red-700 hover:text-red-950 text-[11px] font-normal px-2 py-0.5 rounded hover:bg-red-100 transition-colors ml-4 cursor-pointer" title="Cerrar">
+                    <button type="button" onClick={clearMessages} className="text-[#a80000] hover:underline text-[11px] font-normal px-1 cursor-pointer">
                         Cerrar
                     </button>
                 </div>
             )}
             {messages.info && (
-                <div className="mb-4 bg-sky-50 text-sky-900 px-4 py-2.5 border border-sky-200 rounded-lg flex justify-between items-center text-[11px] font-normal shadow-sm transition-all animate-fade-in">
+                <div className="mb-3 bg-[#f0f6ff] text-[#0067c0] px-3 py-2 border border-[#cce0ff] rounded flex justify-between items-center text-[11px] font-normal tracking-normal">
                     <div className="flex items-center gap-2">
-                        <span className="text-sky-700 uppercase font-medium tracking-tight">[Info]</span>
+                        <span className="font-normal">[Información]</span>
                         <span>{messages.info}</span>
                     </div>
-                    <button type="button" onClick={clearMessages} className="text-sky-700 hover:text-sky-950 text-[11px] font-normal px-2 py-0.5 rounded hover:bg-sky-100 transition-colors ml-4 cursor-pointer" title="Cerrar">
+                    <button type="button" onClick={clearMessages} className="text-[#0067c0] hover:underline text-[11px] font-normal px-1 cursor-pointer">
                         Cerrar
                     </button>
                 </div>
             )}
             {messages.success && (
-                <div className="mb-4 bg-emerald-50 text-emerald-900 px-4 py-2.5 border border-emerald-200 rounded-lg flex justify-between items-center text-[11px] font-normal shadow-sm transition-all animate-fade-in">
+                <div className="mb-3 bg-[#f4fbf6] text-[#107c41] px-3 py-2 border border-[#c2e8cf] rounded flex justify-between items-center text-[11px] font-normal tracking-normal">
                     <div className="flex items-center gap-2">
-                        <span className="text-emerald-700 uppercase font-medium tracking-tight">[OK]</span>
+                        <span className="font-normal">[Éxito]</span>
                         <span>{messages.success}</span>
                     </div>
-                    <button type="button" onClick={clearMessages} className="text-emerald-700 hover:text-emerald-950 text-[11px] font-normal px-2 py-0.5 rounded hover:bg-emerald-100 transition-colors ml-4 cursor-pointer" title="Cerrar">
+                    <button type="button" onClick={clearMessages} className="text-[#107c41] hover:underline text-[11px] font-normal px-1 cursor-pointer">
                         Cerrar
                     </button>
                 </div>
             )}
 
-            {/* Grid Principal 2x2 Perfectamente Alineado */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+            {/* Grid Principal */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
 
-                {/* ================= FILA 1 - COLUMNA IZQUIERDA: Carga Manual ================= */}
-                <div className="lg:col-span-7 bg-white border border-zinc-200 rounded-lg shadow-sm p-4 flex flex-col justify-between">
+                {/* Fila 1 - Columna Izquierda: Carga Manual */}
+                <div className="lg:col-span-7 bg-white border border-[#e5e5e5] rounded p-3.5 shadow-sm flex flex-col justify-between">
                     <div>
-                        <div className="flex items-center justify-between pb-2.5 mb-3.5 border-b border-zinc-100">
+                        <div className="flex items-center justify-between pb-2 mb-3 border-b border-[#f0f0f0]">
                             <div>
-                                <h3 className="text-[11px] font-medium text-zinc-900 uppercase tracking-tight">Carga Manual de Ficheros</h3>
-                                <p className="text-[10px] text-zinc-500 font-normal">Importación de archivos CSV o Excel a la base de datos local</p>
+                                <span className="text-[12px] font-normal text-[#1f1f1f] block">
+                                    Carga manual de ficheros
+                                </span>
+                                <span className="text-[11px] text-[#7f7f7f] font-normal">
+                                    Importación de archivos CSV o Excel a la base de datos local
+                                </span>
                             </div>
-                            <span className="text-[10px] uppercase font-normal px-2 py-0.5 rounded bg-zinc-100 text-zinc-600 border border-zinc-200">
+                            <span className="text-[11px] font-normal px-2 py-0.5 rounded bg-[#f3f3f3] text-[#5f5f5f] border border-[#d1d5db]">
                                 Formatos: CSV / XLSX
                             </span>
                         </div>
@@ -449,7 +453,7 @@ const Update = () => {
                         <form onSubmit={handleFileUpdate} className="flex flex-col">
                             {/* Dropzone */}
                             <div
-                                className={`border border-dashed rounded-lg p-6 text-center transition-all cursor-pointer mb-3.5 ${dragActive ? 'border-[#285f94] bg-sky-50/40' : 'border-zinc-300 hover:border-zinc-400 bg-zinc-50/40 hover:bg-zinc-50'}`}
+                                className={`border border-dashed rounded p-5 text-center transition-colors cursor-pointer mb-3 ${dragActive ? 'border-[#0067c0] bg-[#f0f6ff]' : 'border-[#d1d5db] hover:border-[#999] bg-[#fafafa] hover:bg-[#f3f3f3]'}`}
                                 onDragEnter={handleDragEnter}
                                 onDragOver={handleDragOver}
                                 onDragLeave={handleDragLeave}
@@ -472,11 +476,11 @@ const Update = () => {
                                         e.target.value = '';
                                     }}
                                 />
-                                <div className="flex flex-col items-center justify-center py-2">
-                                    <p className="text-[11px] font-medium text-zinc-800 uppercase tracking-tight mb-1">
+                                <div className="flex flex-col items-center justify-center py-1">
+                                    <p className="text-[12px] font-normal text-[#1f1f1f] mb-0.5">
                                         Haga clic para seleccionar o arrastre archivos aquí
                                     </p>
-                                    <p className="text-[10px] text-zinc-500 font-normal">
+                                    <p className="text-[11px] text-[#7f7f7f] font-normal">
                                         Archivos admitidos: CSV (250, 280, 240, LAMP0006) y Excel (.xlsx)
                                     </p>
                                 </div>
@@ -484,30 +488,30 @@ const Update = () => {
 
                             {/* Lista de Archivos Seleccionados */}
                             {files.length > 0 && (
-                                <div className="mb-3.5 space-y-1.5 bg-zinc-50/70 p-2.5 rounded-lg border border-zinc-200">
+                                <div className="mb-3 space-y-1 bg-[#fafafa] p-2 rounded border border-[#e5e5e5]">
                                     <div className="flex justify-between items-center mb-1">
-                                        <span className="text-[10px] font-medium text-zinc-700 uppercase tracking-tight">
-                                            Archivos Seleccionados ({files.length}):
+                                        <span className="text-[11px] font-normal text-[#1f1f1f]">
+                                            Archivos seleccionados ({files.length}):
                                         </span>
                                         <button
                                             type="button"
                                             onClick={() => setFiles([])}
-                                            className="text-[10px] text-red-600 hover:text-red-800 hover:underline uppercase font-normal cursor-pointer"
+                                            className="text-[11px] text-[#a80000] hover:underline font-normal cursor-pointer"
                                         >
-                                            Quitar Todos
+                                            Quitar todos
                                         </button>
                                     </div>
                                     <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
                                         {files.map((file, idx) => (
-                                             <div key={idx} className="flex items-center justify-between px-2 py-1.5 bg-white border border-zinc-200 rounded text-[11px]">
+                                             <div key={idx} className="flex items-center justify-between px-2 py-1 bg-white border border-[#e5e5e5] rounded text-[11px]">
                                                 <div className="flex items-center gap-2 overflow-hidden">
-                                                    <span className="font-normal text-zinc-900 uppercase tracking-tight truncate">{file.name}</span>
-                                                    <span className="text-[10px] text-zinc-400 font-normal">({(file.size / 1024).toFixed(1)} KB)</span>
+                                                    <span className="font-normal text-[#1f1f1f] truncate">{file.name}</span>
+                                                    <span className="text-[10px] text-[#7f7f7f] font-normal">({(file.size / 1024).toFixed(1)} KB)</span>
                                                 </div>
                                                 <button
                                                     type="button"
                                                     onClick={() => removeFile(idx)}
-                                                    className="text-red-600 hover:text-red-800 text-[10px] font-normal uppercase hover:underline ml-2 flex-shrink-0 cursor-pointer"
+                                                    className="text-[#a80000] hover:underline text-[10px] font-normal ml-2 flex-shrink-0 cursor-pointer"
                                                 >
                                                     Eliminar
                                                 </button>
@@ -519,48 +523,48 @@ const Update = () => {
 
                             {/* Selector / Filtro de GRN si hay archivo 280 */}
                             {availableGrns.length > 0 && (
-                                <div className="mb-3.5 bg-zinc-50/60 border border-zinc-200 p-3 rounded-lg">
-                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5 pb-2 border-b border-zinc-200">
-                                        <div className="flex items-center gap-2.5">
-                                            <span className="text-[10px] font-medium text-zinc-800 uppercase tracking-tight">
+                                <div className="mb-3 bg-[#fafafa] border border-[#e5e5e5] p-2.5 rounded">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2 pb-1.5 border-b border-[#e5e5e5]">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[11px] font-normal text-[#1f1f1f]">
                                                 Filtro de GRN (Archivo 280)
                                             </span>
-                                            <div className="flex gap-2 border-l border-zinc-200 pl-2.5">
+                                            <div className="flex gap-2 border-l border-[#d1d5db] pl-2">
                                                 <button
                                                     type="button"
                                                     onClick={() => setSelectedGrns([...availableGrns])}
-                                                    className={`text-[10px] font-normal uppercase tracking-tight transition-colors cursor-pointer ${selectedGrns.length === availableGrns.length ? 'text-[#1e4a74] underline' : 'text-zinc-500 hover:text-zinc-800'}`}
+                                                    className={`text-[10px] font-normal cursor-pointer ${selectedGrns.length === availableGrns.length ? 'text-[#0067c0] underline' : 'text-[#7f7f7f] hover:text-[#1f1f1f]'}`}
                                                 >
-                                                    Marcar Todas
+                                                    Marcar todas
                                                 </button>
-                                                <span className="text-zinc-300">|</span>
+                                                <span className="text-[#d1d5db]">|</span>
                                                 <button
                                                     type="button"
                                                     onClick={() => setSelectedGrns([])}
-                                                    className={`text-[10px] font-normal uppercase tracking-tight transition-colors cursor-pointer ${selectedGrns.length === 0 ? 'text-[#1e4a74] underline' : 'text-zinc-500 hover:text-zinc-800'}`}
+                                                    className={`text-[10px] font-normal cursor-pointer ${selectedGrns.length === 0 ? 'text-[#0067c0] underline' : 'text-[#7f7f7f] hover:text-[#1f1f1f]'}`}
                                                 >
-                                                    Desmarcar Todas
+                                                    Desmarcar todas
                                                 </button>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-3 bg-white px-2 py-0.5 rounded border border-zinc-200 text-[10px]">
+                                        <div className="flex items-center gap-3 bg-white px-2 py-0.5 rounded border border-[#d1d5db] text-[11px]">
                                             <label className="flex items-center gap-1 cursor-pointer">
-                                                <input type="radio" value="combine" checked={updateOption === 'combine'} onChange={e => setUpdateOption(e.target.value)} className="accent-[#285f94]" />
-                                                <span className="font-normal text-zinc-700 uppercase">Combinar</span>
+                                                <input type="radio" value="combine" checked={updateOption === 'combine'} onChange={e => setUpdateOption(e.target.value)} className="accent-[#0067c0]" />
+                                                <span className="font-normal text-[#1f1f1f]">Combinar</span>
                                             </label>
                                             <label className="flex items-center gap-1 cursor-pointer">
-                                                <input type="radio" value="replace" checked={updateOption === 'replace'} onChange={e => setUpdateOption(e.target.value)} className="accent-[#285f94]" />
-                                                <span className="font-normal text-zinc-700 uppercase">Reemplazar</span>
+                                                <input type="radio" value="replace" checked={updateOption === 'replace'} onChange={e => setUpdateOption(e.target.value)} className="accent-[#0067c0]" />
+                                                <span className="font-normal text-[#1f1f1f]">Reemplazar</span>
                                             </label>
                                         </div>
                                     </div>
 
-                                    <div className="max-h-28 overflow-y-auto bg-white p-2 border border-zinc-200 grid grid-cols-2 sm:grid-cols-3 gap-1.5 rounded">
+                                    <div className="max-h-28 overflow-y-auto bg-white p-1.5 border border-[#e5e5e5] grid grid-cols-2 sm:grid-cols-3 gap-1 rounded">
                                         {availableGrns.map(grn => (
-                                            <label key={grn} className="flex items-center gap-1.5 p-0.5 rounded hover:bg-zinc-50 cursor-pointer">
-                                                <input type="checkbox" checked={selectedGrns.includes(grn)} onChange={e => e.target.checked ? setSelectedGrns(p => [...p, grn]) : setSelectedGrns(p => p.filter(g => g !== grn))} className="accent-[#285f94]" />
-                                                <span className="text-[10px] font-normal text-zinc-800">{grn}</span>
+                                            <label key={grn} className="flex items-center gap-1.5 p-0.5 rounded hover:bg-[#f3f3f3] cursor-pointer">
+                                                <input type="checkbox" checked={selectedGrns.includes(grn)} onChange={e => e.target.checked ? setSelectedGrns(p => [...p, grn]) : setSelectedGrns(p => p.filter(g => g !== grn))} className="accent-[#0067c0]" />
+                                                <span className="text-[11px] font-normal text-[#1f1f1f]">{grn}</span>
                                             </label>
                                         ))}
                                     </div>
@@ -571,24 +575,28 @@ const Update = () => {
                             <button
                                 disabled={isLoading || files.length === 0}
                                 type="submit"
-                                className="w-full h-8 text-[11px] font-normal text-white uppercase tracking-normal rounded shadow-sm flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer mt-1"
-                                style={{ background: files.length > 0 && !isLoading ? '#285f94' : '#64748b' }}
+                                className="w-full h-7 text-[12px] font-normal text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer mt-1"
+                                style={{ background: files.length > 0 && !isLoading ? '#0067c0' : '#888' }}
                             >
-                                {isLoading ? 'PROCESANDO Y PUBLICANDO DATOS...' : 'PUBLICAR ACTUALIZACIÓN'}
+                                {isLoading ? 'Procesando y publicando datos...' : 'Publicar actualización'}
                             </button>
                         </form>
                     </div>
                 </div>
 
-                {/* ================= FILA 1 - COLUMNA DERECHA: Mantenimiento de Datos ================= */}
-                <div className="lg:col-span-5 bg-white border border-zinc-200 rounded-lg shadow-sm p-4 flex flex-col justify-between">
+                {/* Fila 1 - Columna Derecha: Mantenimiento de Datos */}
+                <div className="lg:col-span-5 bg-white border border-[#e5e5e5] rounded p-3.5 shadow-sm flex flex-col justify-between">
                     <div>
-                        <div className="pb-2.5 mb-3.5 border-b border-zinc-100">
-                            <h3 className="text-[11px] font-medium text-zinc-900 uppercase tracking-tight">Mantenimiento de Datos</h3>
-                            <p className="text-[10px] text-zinc-500 font-normal">Exportación y depuración selectiva del sistema</p>
+                        <div className="pb-2 mb-3 border-b border-[#f0f0f0]">
+                            <span className="text-[12px] font-normal text-[#1f1f1f] block">
+                                Mantenimiento de datos
+                            </span>
+                            <span className="text-[11px] text-[#7f7f7f] font-normal">
+                                Exportación y depuración selectiva del sistema
+                            </span>
                         </div>
 
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                             {/* Exportación de Históricos / Respaldo */}
                             <form onSubmit={async (e) => {
                                 e.preventDefault(); setIsLoading(true);
@@ -610,90 +618,83 @@ const Update = () => {
                                 finally { setIsLoading(false); setBackupPassword(''); }
                             }} className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <label className="text-[10px] font-medium text-zinc-800 uppercase tracking-tight">
-                                        Exportación de Históricos
+                                    <label className="text-[11px] font-normal text-[#1f1f1f]">
+                                        Exportación de históricos
                                     </label>
-                                    <span className="text-[10px] text-zinc-500 font-mono">Excel (.xlsx)</span>
+                                    <span className="text-[10px] text-[#7f7f7f] font-mono">Excel (.xlsx)</span>
                                 </div>
-                                <p className="text-[10px] text-zinc-500 font-normal">
+                                <p className="text-[11px] text-[#7f7f7f] font-normal leading-normal">
                                     Descarga de copia de seguridad consolidada con la totalidad de registros.
                                 </p>
                                 <div className="relative w-full">
                                     <input
                                         type={showBackupPassword ? "text" : "password"}
                                         name="password"
-                                        placeholder="Contraseña de Administrador"
+                                        placeholder="Contraseña de administrador"
                                         value={backupPassword}
                                         onChange={e => setBackupPassword(e.target.value)}
-                                        className="w-full h-7 border border-zinc-200 rounded pl-2.5 pr-8 text-[11px] placeholder:text-zinc-400 outline-none bg-zinc-50 focus:bg-white text-zinc-900 focus:border-[#285f94] font-normal"
+                                        className="w-full h-7 border border-[#d1d5db] rounded px-2 pr-14 text-[12px] placeholder:text-[#999] outline-none bg-white text-[#1f1f1f] focus:border-[#0067c0] font-normal"
                                         required
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowBackupPassword(!showBackupPassword)}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center p-0.5 text-zinc-400 hover:text-zinc-700 cursor-pointer"
+                                        className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-[#0067c0] hover:underline font-normal cursor-pointer px-1 py-0.5"
                                         tabIndex={-1}
                                     >
-                                        {showBackupPassword ? (
-                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.025 10.025 0 014.132-5.4M9.62 9.62a3 3 0 004.24 4.24M21 21l-2-2m-2-2L3 3m18 9a9.96 9.96 0 01-2.458 5.4M12 5c4.478 0 8.268 2.943 9.542 7a9.968 9.968 0 01-1.88 4.125" />
-                                            </svg>
-                                        ) : (
-                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                            </svg>
-                                        )}
+                                        {showBackupPassword ? 'Ocultar' : 'Ver'}
                                     </button>
                                 </div>
                                 <button
                                     type="submit"
-                                    className="w-full h-7 border border-zinc-300 bg-white text-zinc-800 text-[10px] font-normal uppercase tracking-tight rounded hover:bg-zinc-100 transition-colors shadow-sm cursor-pointer"
+                                    className="w-full h-7 border border-[#d1d5db] bg-white hover:bg-[#f5f5f5] text-[#1f1f1f] text-[12px] font-normal rounded transition-colors cursor-pointer"
                                 >
-                                    Generar Respaldo
+                                    Generar respaldo
                                 </button>
                             </form>
 
                             {/* Limpieza Selectiva de Maestro GRN */}
-                            <div className="space-y-2 pt-2.5 border-t border-zinc-100">
+                            <div className="space-y-2 pt-2.5 border-t border-[#f0f0f0]">
                                 <div className="flex justify-between items-center">
                                     <div>
-                                        <label className="text-[10px] font-medium text-zinc-800 uppercase tracking-tight block">
-                                            Limpieza de Maestro (GRN)
+                                        <label className="text-[11px] font-normal text-[#1f1f1f] block">
+                                            Limpieza de maestro (GRN)
                                         </label>
-                                        <p className="text-[10px] text-zinc-500 font-normal">Depuración puntual de números GRN</p>
+                                        <span className="text-[11px] text-[#7f7f7f] font-normal">
+                                            Depuración puntual de números GRN
+                                        </span>
                                     </div>
                                     <button
                                         type="button"
                                         onClick={maestroGrns.length > 0 || messages.info?.includes("VACÍO") ? () => { setMaestroGrns([]); setMessages(prev => ({ ...prev, info: '' })) } : fetchMaestroGrns}
                                         disabled={isFetchingMaestro}
-                                        className="h-6 px-2 text-[10px] font-normal uppercase tracking-tight rounded bg-zinc-100 hover:bg-zinc-200 text-zinc-700 transition-colors cursor-pointer"
+                                        className="h-6 px-2 text-[11px] font-normal rounded bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] text-[#1f1f1f] transition-colors cursor-pointer"
                                     >
-                                        {isFetchingMaestro ? 'Cargando...' : (maestroGrns.length > 0 || messages.info?.includes("VACÍO") ? 'Ocultar' : 'Ver Lista')}
+                                        {isFetchingMaestro ? 'Cargando...' : (maestroGrns.length > 0 || messages.info?.includes("VACÍO") ? 'Ocultar' : 'Ver lista')}
                                     </button>
                                 </div>
 
                                 {maestroGrns.length > 0 ? (
-                                    <div className="space-y-2 bg-zinc-50 p-2.5 rounded border border-zinc-200">
+                                    <div className="space-y-2 bg-[#fafafa] p-2 rounded border border-[#e5e5e5]">
                                         <div className="flex justify-between items-center">
-                                            <span className="text-[10px] font-medium text-zinc-700 uppercase">{maestroGrns.length} GRNs encontrados</span>
+                                            <span className="text-[11px] font-normal text-[#1f1f1f]">{maestroGrns.length} GRNs encontrados</span>
                                             <div className="flex gap-2">
-                                                <button type="button" onClick={() => setSelectedMaestroGrns([...maestroGrns])} className="text-[10px] font-normal text-[#285f94] hover:underline uppercase cursor-pointer">Todas</button>
-                                                <button type="button" onClick={() => setSelectedMaestroGrns([])} className="text-[10px] font-normal text-[#285f94] hover:underline uppercase cursor-pointer">Ninguna</button>
+                                                <button type="button" onClick={() => setSelectedMaestroGrns([...maestroGrns])} className="text-[10px] font-normal text-[#0067c0] hover:underline cursor-pointer">Todas</button>
+                                                <button type="button" onClick={() => setSelectedMaestroGrns([])} className="text-[10px] font-normal text-[#0067c0] hover:underline cursor-pointer">Ninguna</button>
                                             </div>
                                         </div>
-                                        <div className="max-h-24 overflow-y-auto bg-white p-1.5 border border-zinc-200 rounded space-y-0.5">
+                                        <div className="max-h-24 overflow-y-auto bg-white p-1.5 border border-[#e5e5e5] rounded space-y-0.5">
                                             {maestroGrns.map((grn, idx) => {
                                                 const grnStr = typeof grn === 'string' ? grn : grn?.reference || grn?.grn || String(grn);
                                                 return (
-                                                    <label key={grnStr || idx} className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-zinc-50 cursor-pointer">
+                                                    <label key={grnStr || idx} className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-[#f3f3f3] cursor-pointer">
                                                         <input
                                                             type="checkbox"
                                                             checked={selectedMaestroGrns.includes(grnStr)}
                                                             onChange={e => e.target.checked ? setSelectedMaestroGrns(p => [...p, grnStr]) : setSelectedMaestroGrns(p => p.filter(g => g !== grnStr))}
-                                                            className="accent-[#285f94]"
+                                                            className="accent-[#0067c0]"
                                                         />
-                                                        <span className="text-[10px] font-normal text-zinc-800">{grnStr}</span>
+                                                        <span className="text-[11px] font-normal text-[#1f1f1f]">{grnStr}</span>
                                                     </label>
                                                 );
                                             })}
@@ -703,66 +704,61 @@ const Update = () => {
                                             <div className="relative w-full">
                                                 <input
                                                     type={showDeleteMaestroPassword ? "text" : "password"}
-                                                    placeholder="Contraseña Admin"
+                                                    placeholder="Contraseña de administrador"
                                                     value={deleteMaestroPassword}
                                                     onChange={e => setDeleteMaestroPassword(e.target.value)}
-                                                    className="w-full h-7 border border-zinc-200 rounded pl-2.5 pr-8 text-[10px] outline-none bg-white text-zinc-900 placeholder:text-zinc-400 focus:border-[#285f94] font-normal"
+                                                    className="w-full h-7 border border-[#d1d5db] rounded px-2 pr-14 text-[12px] outline-none bg-white text-[#1f1f1f] placeholder:text-[#999] focus:border-[#0067c0] font-normal"
                                                     required
                                                 />
                                                 <button
                                                     type="button"
                                                     onClick={() => setShowDeleteMaestroPassword(!showDeleteMaestroPassword)}
-                                                    className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center p-0.5 text-zinc-400 hover:text-zinc-700 cursor-pointer"
+                                                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-[#0067c0] hover:underline font-normal cursor-pointer px-1 py-0.5"
                                                     tabIndex={-1}
                                                 >
-                                                    {showDeleteMaestroPassword ? (
-                                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.025 10.025 0 014.132-5.4M9.62 9.62a3 3 0 004.24 4.24M21 21l-2-2m-2-2L3 3m18 9a9.96 9.96 0 01-2.458 5.4M12 5c4.478 0 8.268 2.943 9.542 7a9.968 9.968 0 01-1.88 4.125" />
-                                                        </svg>
-                                                    ) : (
-                                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                        </svg>
-                                                    )}
+                                                    {showDeleteMaestroPassword ? 'Ocultar' : 'Ver'}
                                                 </button>
                                             </div>
                                             <button
                                                 type="submit"
                                                 disabled={isLoading || selectedMaestroGrns.length === 0}
-                                                className="w-full h-7 text-[10px] font-normal text-white uppercase tracking-tight rounded bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                                                className="w-full h-7 text-[12px] font-normal text-white rounded bg-[#a80000] hover:bg-[#8f0000] disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
                                             >
-                                                Eliminar Seleccionados ({selectedMaestroGrns.length})
+                                                Eliminar seleccionados ({selectedMaestroGrns.length})
                                             </button>
                                         </form>
                                     </div>
                                 ) : (
-                                    messages.info && <p className="text-[10px] text-zinc-600 bg-zinc-50 p-2 rounded border border-zinc-200 font-normal">{messages.info}</p>
+                                    messages.info && <p className="text-[11px] text-[#5f5f5f] bg-[#fafafa] p-2 rounded border border-[#e5e5e5] font-normal">{messages.info}</p>
                                 )}
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* ================= FILA 2 - COLUMNA IZQUIERDA: Fechas de Actualización ================= */}
-                <div className="lg:col-span-7 bg-white border border-zinc-200 rounded-lg shadow-sm p-4 flex flex-col justify-between">
+                {/* Fila 2 - Columna Izquierda: Fechas de Actualización */}
+                <div className="lg:col-span-7 bg-white border border-[#e5e5e5] rounded p-3.5 shadow-sm flex flex-col justify-between">
                     <div>
-                        <div className="flex items-center justify-between pb-2.5 mb-3.5 border-b border-zinc-100">
+                        <div className="flex items-center justify-between pb-2 mb-3 border-b border-[#f0f0f0]">
                             <div>
-                                <h3 className="text-[11px] font-medium text-zinc-900 uppercase tracking-tight">Fechas de Actualización de Maestros</h3>
-                                <p className="text-[10px] text-zinc-500 font-normal">Última marca de tiempo registrada por fuente de datos</p>
+                                <span className="text-[12px] font-normal text-[#1f1f1f] block">
+                                    Fechas de actualización de maestros
+                                </span>
+                                <span className="text-[11px] text-[#7f7f7f] font-normal">
+                                    Última marca de tiempo registrada por fuente de datos
+                                </span>
                             </div>
                             <button
                                 type="button"
                                 onClick={fetchSyncStatus}
-                                className="text-[10px] text-[#285f94] hover:underline uppercase font-normal flex items-center cursor-pointer"
+                                className="text-[11px] text-[#0067c0] hover:underline font-normal cursor-pointer"
                                 title="Refrescar estado"
                             >
                                 Refrescar
                             </button>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                             {[
                                 { label: "Maestro Ítems", filename: "AURRSGLBD0250.csv", key: "master_items" },
                                 { label: "Entradas GRN", filename: "AURRSGLBD0280.csv", key: "grn_pending" },
@@ -774,18 +770,17 @@ const Update = () => {
                                 return (
                                     <div
                                         key={item.key}
-                                        className={`p-2.5 rounded border border-zinc-200 bg-zinc-50/60 flex flex-col justify-between ${item.fullWidth ? 'md:col-span-2' : ''}`}
+                                        className={`p-2 rounded border border-[#e5e5e5] bg-[#fafafa] flex flex-col justify-between ${item.fullWidth ? 'md:col-span-2' : ''}`}
                                     >
                                         <div className="flex justify-between items-start mb-1">
-                                            <span className="text-[11px] font-medium text-zinc-900 uppercase tracking-tight">{item.label}</span>
-                                            <span className="text-[9px] font-mono font-normal bg-white text-zinc-600 px-1.5 py-0.5 rounded border border-zinc-200">
+                                            <span className="text-[12px] font-normal text-[#1f1f1f]">{item.label}</span>
+                                            <span className="text-[10px] font-mono font-normal bg-white text-[#5f5f5f] px-1.5 py-0.5 rounded border border-[#d1d5db]">
                                                 {item.filename}
                                             </span>
                                         </div>
-                                        <div className="flex justify-between items-center pt-1 border-t border-zinc-100 text-[10px]">
-                                            <span className="text-zinc-500 uppercase font-normal tracking-tight">Última Modificación</span>
-                                            <span className={`font-normal flex items-center gap-1 ${hasData ? 'text-zinc-800' : 'text-zinc-400'}`}>
-                                                {hasData && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>}
+                                        <div className="flex justify-between items-center pt-1 border-t border-[#f0f0f0] text-[11px]">
+                                            <span className="text-[#7f7f7f] font-normal">Última modificación</span>
+                                            <span className={`font-normal ${hasData ? 'text-[#1f1f1f]' : 'text-[#999]'}`}>
                                                 {formatTimestamp(syncStatus[item.key])}
                                             </span>
                                         </div>
@@ -796,28 +791,30 @@ const Update = () => {
                     </div>
                 </div>
 
-                {/* ================= FILA 2 - COLUMNA DERECHA: Zona de Riesgo ================= */}
-                <div className="lg:col-span-5 bg-red-50/30 border border-red-200 rounded-lg shadow-sm p-4 flex flex-col justify-between">
+                {/* Fila 2 - Columna Derecha: Zona de Riesgo */}
+                <div className="lg:col-span-5 bg-white border border-[#e5e5e5] rounded p-3.5 shadow-sm flex flex-col justify-between">
                     <div>
-                        <div className="pb-2 mb-2.5 border-b border-red-200/60">
-                            <h3 className="text-[11px] font-medium text-red-900 uppercase tracking-tight">
-                                Zona de Riesgo: Reset Total
-                            </h3>
-                            <p className="text-[10px] text-red-700 font-normal">Acción destructiva e irreversible</p>
+                        <div className="pb-2 mb-3 border-b border-[#f0f0f0]">
+                            <span className="text-[12px] font-normal text-[#a80000] block">
+                                Zona de riesgo: restablecimiento total
+                            </span>
+                            <span className="text-[11px] text-[#7f7f7f] font-normal">
+                                Acción destructiva e irreversible
+                            </span>
                         </div>
 
                         <form onSubmit={async (e) => {
                             e.preventDefault();
-                            if (!window.confirm("¿BORRAR TODA LA BASE DE DATOS LOCAL? ESTA ACCIÓN NO SE PUEDE DESHACER.")) return;
+                            if (!window.confirm("¿Desea borrar toda la base de datos local? Esta acción no se puede deshacer.")) return;
                             setIsLoading(true);
                             try {
                                 const res = await fetch('/api/clear_database', { method: 'POST', body: new FormData(e.target) });
                                 const d = await res.json();
-                                if (res.ok) setMessages({ success: d.message || "Base de datos limpiada" }); else setMessages({ error: d.error || "Error" });
-                            } catch (err) { setMessages({ error: "Error crítico al limpiar base de datos" }); }
+                                if (res.ok) setMessages({ success: d.message || "Base de datos restablecida" }); else setMessages({ error: d.error || "Error" });
+                            } catch (err) { setMessages({ error: "Error al limpiar la base de datos" }); }
                             finally { setIsLoading(false); setClearPassword(''); }
-                        }} className="space-y-2.5 flex-1 flex flex-col justify-between">
-                            <p className="text-[10px] text-red-800 font-normal leading-relaxed">
+                        }} className="space-y-3 flex-1 flex flex-col justify-between">
+                            <p className="text-[11px] text-[#5f5f5f] font-normal leading-normal">
                                 Esta acción eliminará permanentemente todas las tablas de ítems, GRNs, auditorías y movimientos locales en SQLite.
                             </p>
                             <div className="space-y-2 mt-auto pt-1">
@@ -825,36 +822,27 @@ const Update = () => {
                                     <input
                                         type={showClearPassword ? "text" : "password"}
                                         name="password"
-                                        placeholder="Contraseña de Administrador"
+                                        placeholder="Contraseña de administrador"
                                         value={clearPassword}
                                         onChange={e => setClearPassword(e.target.value)}
-                                        className="w-full h-7 border border-red-200 rounded pl-2.5 pr-8 text-[10px] placeholder:text-red-300 outline-none bg-white text-zinc-900 focus:border-red-500 font-normal"
+                                        className="w-full h-7 border border-[#d1d5db] rounded px-2 pr-14 text-[12px] placeholder:text-[#999] outline-none bg-white text-[#1f1f1f] focus:border-[#a80000] font-normal"
                                         required
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowClearPassword(!showClearPassword)}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center p-0.5 text-red-400 hover:text-red-700 cursor-pointer"
+                                        className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-[#0067c0] hover:underline font-normal cursor-pointer px-1 py-0.5"
                                         tabIndex={-1}
                                     >
-                                        {showClearPassword ? (
-                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.025 10.025 0 014.132-5.4M9.62 9.62a3 3 0 004.24 4.24M21 21l-2-2m-2-2L3 3m18 9a9.96 9.96 0 01-2.458 5.4M12 5c4.478 0 8.268 2.943 9.542 7a9.968 9.968 0 01-1.88 4.125" />
-                                            </svg>
-                                        ) : (
-                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                            </svg>
-                                        )}
+                                        {showClearPassword ? 'Ocultar' : 'Ver'}
                                     </button>
                                 </div>
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-full h-7 text-[10px] font-normal uppercase tracking-tight text-red-700 bg-white border border-red-300 rounded hover:bg-red-600 hover:text-white transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+                                    className="w-full h-7 text-[12px] font-normal text-[#a80000] bg-white border border-[#f3c5c5] rounded hover:bg-[#fdf2f2] transition-colors cursor-pointer disabled:opacity-50"
                                 >
-                                    Limpiar Toda la Base de Datos
+                                    Limpiar toda la base de datos
                                 </button>
                             </div>
                         </form>

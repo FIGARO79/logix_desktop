@@ -135,33 +135,33 @@ const ManageCounts = () => {
     };
 
     return (
-        <div className="max-w-[1920px] mx-auto px-4 py-2 font-sans text-xs text-[#32363a]">
+        <div className="max-w-[1920px] mx-auto px-4 py-3 font-['Segoe_UI',Tahoma,sans-serif] text-[12px] text-[#1f1f1f] bg-[#f8f9fa] min-h-screen">
 
             {/* Page Header */}
-            <div className="mb-3 flex justify-between items-center">
+            <div className="mb-3 flex justify-between items-center bg-white px-4 py-2.5 rounded border border-[#d1d5db] shadow-sm">
                 <div>
-                    <h1 className="text-lg font-normal text-gray-800 uppercase tracking-tight">Gestión de Capturas</h1>
-                    <p className="text-[11px] text-gray-500">Administra registros de conteo físico y ajustes de tolerancia WMS</p>
+                    <h1 className="text-[14px] font-normal text-[#1f1f1f] m-0">Gestión de Capturas</h1>
+                    <p className="text-[11px] font-normal text-[#5c5c5c] mt-0.5 mb-0">Administra registros de conteo físico y ajustes de tolerancia WMS</p>
                 </div>
                 <button
                     onClick={() => navigate('/view_counts')}
-                    className="inline-flex items-center px-4 py-1.5 border border-[#1e4a74] text-[#1e4a74] bg-white text-[11px] font-normal uppercase tracking-wider rounded shadow-sm hover:bg-blue-50 transition-all cursor-pointer"
+                    className="h-7 px-3 bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] text-[#0067c0] text-[12px] font-normal rounded transition-colors cursor-pointer"
                 >
-                    Vista Agrupada ➔
+                    Vista Agrupada
                 </button>
             </div>
 
             {/* Admin Tools: Re-open Location & Tolerance Settings */}
-            <div className="mb-4 grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <div className="mb-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {/* Ajustes de Tolerancia (WMS) */}
-                <div className="bg-[#f4f7fa] border border-[#d2d9e1] border-l-4 border-l-[#1e4a74] rounded py-2 px-4 shadow-sm">
-                    <div className="flex justify-between items-center mb-1.5">
-                        <h2 className="text-[11px] font-normal uppercase tracking-wider text-[#1e4a74]">Ajustes de Tolerancia (WMS)</h2>
-                        {settingsMsg && <span className="text-[10px] text-emerald-700 font-normal animate-pulse">{settingsMsg}</span>}
+                <div className="bg-white border border-[#d1d5db] rounded p-3 shadow-sm">
+                    <div className="flex justify-between items-center mb-2 pb-1 border-b border-[#e5e7eb]">
+                        <h2 className="text-[12px] font-normal text-[#1f1f1f] m-0">Ajustes de Tolerancia (WMS)</h2>
+                        {settingsMsg && <span className="text-[11px] text-[#065f46] font-normal">{settingsMsg}</span>}
                     </div>
                     <form onSubmit={handleSaveSettings} className="flex flex-col sm:flex-row items-end gap-2.5">
                         <div className="w-full sm:w-1/2">
-                            <label className="block text-[9px] uppercase tracking-wider font-normal text-gray-500 mb-0.5">Tolerancia Qty (%)</label>
+                            <label className="block text-[11px] font-normal text-[#5c5c5c] mb-1">Tolerancia Cantidad (%)</label>
                             <input
                                 type="number"
                                 step="0.01"
@@ -169,48 +169,48 @@ const ManageCounts = () => {
                                 max="1"
                                 value={settings.w2w_qty_tolerance}
                                 onChange={(e) => setSettings({ ...settings, w2w_qty_tolerance: parseFloat(e.target.value) || 0 })}
-                                className="block w-full border border-gray-300 rounded px-2 py-0.5 h-7 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#1e4a74]"
+                                className="block w-full border border-[#d1d5db] rounded px-2 h-7 text-[12px] font-normal text-[#1f1f1f] bg-white focus:outline-none focus:border-[#0067c0]"
                                 required
                             />
                         </div>
                         <div className="w-full sm:w-1/2">
-                            <label className="block text-[9px] uppercase tracking-wider font-normal text-gray-500 mb-0.5">Tolerancia Costo ($ USD)</label>
+                            <label className="block text-[11px] font-normal text-[#5c5c5c] mb-1">Tolerancia Costo ($ USD)</label>
                             <input
                                 type="number"
                                 step="0.01"
                                 min="0"
                                 value={settings.w2w_val_tolerance}
                                 onChange={(e) => setSettings({ ...settings, w2w_val_tolerance: parseFloat(e.target.value) || 0 })}
-                                className="block w-full border border-gray-300 rounded px-2 py-0.5 h-7 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#1e4a74]"
+                                className="block w-full border border-[#d1d5db] rounded px-2 h-7 text-[12px] font-normal text-[#1f1f1f] bg-white focus:outline-none focus:border-[#0067c0]"
                                 required
                             />
                         </div>
                         <button
                             type="submit"
                             disabled={settingsLoading}
-                            className="w-full sm:w-auto bg-[#1e4a74] hover:bg-[#163757] text-white font-normal uppercase tracking-wider px-3.5 rounded h-7 text-[10px] transition-all shadow-sm shrink-0 whitespace-nowrap cursor-pointer"
+                            className="h-7 px-3 bg-[#0067c0] hover:bg-[#005a9e] text-white font-normal rounded text-[12px] transition-colors shadow-sm shrink-0 whitespace-nowrap cursor-pointer"
                         >
-                            {settingsLoading ? 'GUARDANDO...' : 'GUARDAR'}
+                            {settingsLoading ? 'Guardando...' : 'Guardar'}
                         </button>
                     </form>
                 </div>
 
                 {/* Corrección de Ubicaciones Cerradas */}
-                <div className="bg-[#fffdf5] border border-[#ffecb3] border-l-4 border-l-[#e9730c] rounded py-2 px-4 shadow-sm">
-                    <div className="flex justify-between items-center mb-1.5">
-                        <h2 className="text-[11px] font-normal uppercase tracking-wider text-[#e9730c]">Corrección de Ubicaciones Cerradas</h2>
-                        {adminMsg && <span className="text-[10px] text-emerald-700 font-normal animate-pulse">{adminMsg}</span>}
+                <div className="bg-white border border-[#d1d5db] rounded p-3 shadow-sm">
+                    <div className="flex justify-between items-center mb-2 pb-1 border-b border-[#e5e7eb]">
+                        <h2 className="text-[12px] font-normal text-[#1f1f1f] m-0">Corrección de Ubicaciones Cerradas</h2>
+                        {adminMsg && <span className="text-[11px] text-[#065f46] font-normal">{adminMsg}</span>}
                     </div>
                     <form onSubmit={handleReopenLocation} className="flex flex-col sm:flex-row items-end gap-2.5">
                         <div className="w-full sm:w-1/2">
-                            <label className="block text-[9px] uppercase tracking-wider font-normal text-gray-500 mb-0.5">ID Sesión</label>
-                            <input type="number" value={reopenSessionId} onChange={e => setReopenSessionId(e.target.value)} className="block w-full border border-gray-300 rounded px-2 py-0.5 h-7 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#e9730c]" placeholder="ID" required />
+                            <label className="block text-[11px] font-normal text-[#5c5c5c] mb-1">ID Sesión</label>
+                            <input type="number" value={reopenSessionId} onChange={e => setReopenSessionId(e.target.value)} className="block w-full border border-[#d1d5db] rounded px-2 h-7 text-[12px] font-normal text-[#1f1f1f] bg-white focus:outline-none focus:border-[#0067c0]" placeholder="ID" required />
                         </div>
                         <div className="w-full sm:w-1/2">
-                            <label className="block text-[9px] uppercase tracking-wider font-normal text-gray-500 mb-0.5">Código Ubicación</label>
-                            <input type="text" value={reopenLocationCode} onChange={e => setReopenLocationCode(e.target.value.toUpperCase())} className="block w-full border border-gray-300 rounded px-2 py-0.5 h-7 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#e9730c]" placeholder="UBICACIÓN" required />
+                            <label className="block text-[11px] font-normal text-[#5c5c5c] mb-1">Código Ubicación</label>
+                            <input type="text" value={reopenLocationCode} onChange={e => setReopenLocationCode(e.target.value.toUpperCase())} className="block w-full border border-[#d1d5db] rounded px-2 h-7 text-[12px] font-normal text-[#1f1f1f] bg-white focus:outline-none focus:border-[#0067c0]" placeholder="UBICACIÓN" required />
                         </div>
-                        <button type="submit" className="w-full sm:w-auto bg-[#e9730c] hover:bg-[#d1670b] text-white font-normal uppercase tracking-wider px-3.5 rounded h-7 text-[10px] transition-all shadow-sm shrink-0 whitespace-nowrap cursor-pointer">
+                        <button type="submit" className="h-7 px-3 bg-[#354a5f] hover:bg-[#2a3c4e] text-white font-normal rounded text-[12px] transition-colors shadow-sm shrink-0 whitespace-nowrap cursor-pointer">
                             Reabrir
                         </button>
                     </form>
@@ -218,46 +218,46 @@ const ManageCounts = () => {
             </div>
 
             {/* Table */}
-            <div className="bg-white shadow-sm rounded border border-[#d9d9d9] overflow-hidden">
-                <div className="bg-[#f2f2f2] px-3 py-1.5 border-b border-[#e5e5e5] flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 flex-1 max-w-md bg-white border border-gray-300 rounded px-2.5 py-0.5 focus-within:ring-1 focus-within:ring-[#1e4a74]">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5 text-gray-400">
+            <div className="bg-white shadow-sm rounded border border-[#d1d5db] overflow-hidden">
+                <div className="bg-[#f8f9fa] px-3 py-2 border-b border-[#d1d5db] flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 flex-1 max-w-md bg-white border border-[#d1d5db] rounded px-2 py-0.5 focus-within:border-[#0067c0]">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5 text-[#5c5c5c]">
                             <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                         </svg>
                         <input
                             type="text"
-                            className="w-full text-xs font-sans outline-none bg-transparent placeholder-gray-400 uppercase"
-                            placeholder="Buscar por SKU, Descripción, Ubicación, Auditor, Sesión..."
+                            className="w-full text-[12px] font-normal outline-none bg-transparent placeholder-[#8c8c8c] text-[#1f1f1f]"
+                            placeholder="Buscar por SKU, descripción, ubicación, auditor, sesión..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                         {searchQuery && (
-                            <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600 text-xs font-normal px-1">
+                            <button onClick={() => setSearchQuery('')} className="text-[#5c5c5c] hover:text-[#1f1f1f] text-[11px] font-normal px-1 cursor-pointer">
                                 ✕
                             </button>
                         )}
                     </div>
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-white border border-gray-200 text-gray-600 font-normal uppercase tracking-tight">
-                        {filteredCounts.length} / {counts.length} REGISTROS TOTALES
+                    <span className="text-[11px] px-2 py-0.5 rounded bg-white border border-[#d1d5db] text-[#5c5c5c] font-normal">
+                        {filteredCounts.length} / {counts.length} Registros Totales
                     </span>
                 </div>
                 <div className="overflow-x-auto max-h-[calc(100vh-280px)]">
                     <table className="min-w-full text-left border-collapse">
-                        <thead className="bg-[#1e4a74] text-white sticky top-0 z-10">
+                        <thead className="bg-[#354a5f] text-white sticky top-0 z-10 border-b border-[#2a3c4e]">
                             <tr>
                                 {['ID', 'Sesión', 'Etapa', 'Auditor', 'Fecha / Hora', 'Item Code', 'Descripción', 'Ubicación', 'Cant. Física', 'Cant. Sistema', 'Diferencia', 'Estado', 'Acciones'].map((h, i) => (
-                                    <th key={i} className={`px-2 py-1 text-[10px] font-normal uppercase tracking-wider whitespace-nowrap ${['Cant. Física', 'Cant. Sistema', 'Diferencia'].includes(h) ? 'text-right' : h === 'Acciones' || h === 'Estado' ? 'text-center' : 'text-left'}`}>
+                                    <th key={i} className={`px-2 py-1.5 text-[11px] font-normal whitespace-nowrap ${['Cant. Física', 'Cant. Sistema', 'Diferencia'].includes(h) ? 'text-right' : h === 'Acciones' || h === 'Estado' ? 'text-center' : 'text-left'}`}>
                                         {h}
                                     </th>
                                 ))}
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-[#e5e5e5]">
+                        <tbody className="divide-y divide-[#e5e7eb]">
                             {loading ? (
-                                <tr><td colSpan="13" className="p-4 text-center text-gray-400 font-normal text-xs">Consultando base de datos...</td></tr>
+                                <tr><td colSpan="13" className="p-4 text-center text-[#5c5c5c] font-normal text-[12px]">Consultando base de datos...</td></tr>
                             ) : filteredCounts.length === 0 ? (
                                 <tr>
-                                    <td colSpan="13" className="p-8 text-center text-gray-400 uppercase text-xs tracking-widest font-normal">
+                                    <td colSpan="13" className="p-8 text-center text-[#5c5c5c] text-[12px] font-normal">
                                         No existen registros que coincidan con la búsqueda
                                     </td>
                                 </tr>
@@ -279,61 +279,61 @@ const ManageCounts = () => {
                                     }
 
                                     return (
-                                        <tr key={c.id} className="hover:bg-[#f5f8fc] transition-colors leading-none border-b border-gray-100 h-6">
-                                            <td className="px-2 py-0.5 text-[10px] font-normal text-gray-400">{c.id}</td>
-                                            <td className="px-2 py-0.5 text-[10px] font-normal text-gray-500">#{c.session_id}</td>
-                                            <td className="px-2 py-0.5 text-[10px] font-normal text-blue-600">E{c.inventory_stage || '1'}</td>
-                                            <td className="px-2 py-0.5 text-[11px] font-normal text-slate-800">{c.username || 'N/A'}</td>
-                                            <td className="px-2 py-0.5 text-[10px] font-normal text-gray-500 whitespace-nowrap">{c.timestamp ? new Date(c.timestamp).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
-                                            <td className="px-2 py-0.5 text-[11px] font-normal text-slate-900 tracking-tight uppercase">{c.item_code}</td>
-                                            <td className="px-2 py-0.5 text-[11px] text-gray-600 font-normal truncate max-w-[240px]" title={c.item_description}>{c.item_description}</td>
-                                            <td className="px-2 py-0.5 text-[11px] font-normal text-slate-700 uppercase">{c.counted_location}</td>
-                                            <td className="px-2 py-0.5 text-[11px] font-normal text-[#1e4a74] text-right">{c.counted_qty}</td>
-                                            <td className="px-2 py-0.5 text-[11px] font-normal text-slate-700 text-right">{sysQty}</td>
-                                            <td className={`px-2 py-0.5 text-[11px] font-medium text-right ${
-                                                diff < 0 ? 'text-red-600' : diff > 0 ? 'text-green-700' : 'text-gray-400'
+                                        <tr key={c.id} className="hover:bg-[#edf3f9] transition-colors border-b border-[#f0f0f0] h-7 text-[11.5px] font-normal text-[#1f1f1f]">
+                                            <td className="px-2 py-1 text-[11px] font-normal text-[#8c8c8c]">{c.id}</td>
+                                            <td className="px-2 py-1 text-[11px] font-normal text-[#5c5c5c]">#{c.session_id}</td>
+                                            <td className="px-2 py-1 text-[11px] font-normal text-[#0067c0]">E{c.inventory_stage || '1'}</td>
+                                            <td className="px-2 py-1 text-[11.5px] font-normal text-[#1f1f1f]">{c.username || 'N/A'}</td>
+                                            <td className="px-2 py-1 text-[11px] font-normal text-[#5c5c5c] whitespace-nowrap">{c.timestamp ? new Date(c.timestamp).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
+                                            <td className="px-2 py-1 text-[11.5px] font-normal text-[#1f1f1f]">{c.item_code}</td>
+                                            <td className="px-2 py-1 text-[11.5px] text-[#5c5c5c] font-normal truncate max-w-[240px]" title={c.item_description}>{c.item_description}</td>
+                                            <td className="px-2 py-1 text-[11.5px] font-mono text-[#5c5c5c]">{c.counted_location}</td>
+                                            <td className="px-2 py-1 text-[11.5px] font-normal text-[#0067c0] text-right">{c.counted_qty}</td>
+                                            <td className="px-2 py-1 text-[11.5px] font-normal text-[#1f1f1f] text-right">{sysQty}</td>
+                                            <td className={`px-2 py-1 text-[11.5px] font-normal text-right ${
+                                                diff < 0 ? 'text-[#991b1b]' : diff > 0 ? 'text-[#065f46]' : 'text-[#8c8c8c]'
                                             }`}>
                                                 {diff > 0 ? `+${diff}` : diff}
                                             </td>
-                                            <td className="px-2 py-0.5 text-center">
+                                            <td className="px-2 py-1 text-center">
                                                 {status === 'OK' && (
-                                                    <span className="px-1.5 py-0.5 text-[8px] font-normal rounded bg-zinc-100 text-zinc-600 border border-zinc-200">
-                                                        SIN DIF
+                                                    <span className="px-1.5 py-0.5 text-[10px] font-normal rounded bg-[#f5f5f5] text-[#5c5c5c] border border-[#e5e7eb]">
+                                                        Sin Dif
                                                     </span>
                                                 )}
                                                 {status === 'APPROVED_AUTO' && (
-                                                    <span className="px-1.5 py-0.5 text-[8px] font-normal rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                        AUTO OK
+                                                    <span className="px-1.5 py-0.5 text-[10px] font-normal rounded bg-[#ecfdf5] text-[#065f46] border border-[#a7f3d0]">
+                                                        Auto OK
                                                     </span>
                                                 )}
                                                 {status === 'APPROVED_MANUAL' && (
-                                                    <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-sky-50 text-sky-700 border border-sky-200">
-                                                        APROB SUPERV
+                                                    <span className="px-1.5 py-0.5 text-[10px] font-normal rounded bg-[#eef3fc] text-[#0067c0] border border-[#cbdcf5]">
+                                                        Aprobado
                                                     </span>
                                                 )}
                                                 {status === 'PENDING' && (
-                                                    <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-red-50 text-red-700 border border-red-200">
-                                                        EXCEDE TOLER
+                                                    <span className="px-1.5 py-0.5 text-[10px] font-normal rounded bg-[#fef2f2] text-[#991b1b] border border-[#fecaca]">
+                                                        Excede Tolerancia
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="px-2 py-0.5 text-center">
+                                            <td className="px-2 py-1 text-center">
                                                 <div className="flex gap-1.5 justify-center items-center">
                                                      {status === 'PENDING' && (
                                                          <button
                                                              onClick={() => handleApproveItem(c.item_code)}
                                                              title="Aprobar Diferencia Manualmente"
-                                                             className="p-0.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded transition-colors cursor-pointer"
+                                                             className="p-1 text-[#065f46] hover:bg-[#ecfdf5] border border-[#d1d5db] rounded transition-colors cursor-pointer"
                                                          >
-                                                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                                                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                                                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                                                              </svg>
                                                          </button>
                                                      )}
-                                                    <button onClick={() => navigate(`/counts/edit/${c.id}`)} title="Editar Captura" className="p-0.5 text-gray-500 hover:text-blue-600 transition-colors">
+                                                    <button onClick={() => navigate(`/counts/edit/${c.id}`)} title="Editar Captura" className="p-1 text-[#5c5c5c] hover:text-[#0067c0] hover:bg-[#f5f5f5] border border-[#d1d5db] rounded transition-colors cursor-pointer">
                                                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                                     </button>
-                                                    <button onClick={() => handleDelete(c.id)} title="Eliminar Registro" className="p-0.5 text-gray-500 hover:text-red-600 transition-colors">
+                                                    <button onClick={() => handleDelete(c.id)} title="Eliminar Registro" className="p-1 text-[#5c5c5c] hover:text-[#991b1b] hover:bg-[#fef2f2] border border-[#d1d5db] rounded transition-colors cursor-pointer">
                                                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                     </button>
                                                 </div>

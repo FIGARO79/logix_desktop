@@ -162,19 +162,21 @@ const PackingListPrint = ({ setTitle, id: propId }) => {
             `}} />
 
             {/* Control Bar - Hidden when printing */}
-            <div className="no-print mb-4 sticky top-0 bg-white border-b shadow-sm z-10 print:hidden">
-                <div className="max-w-3xl mx-auto flex justify-between items-center p-4">
-                    <h1 className="text-lg text-[#285f94]">Vista Previa Packing List</h1>
-                    <div className="flex gap-4">
+            <div className="no-print mb-4 sticky top-0 bg-[#f8f9fa] border-b border-[#e5e7eb] z-10 print:hidden font-['Segoe_UI',Tahoma,sans-serif]">
+                <div className="max-w-3xl mx-auto flex justify-between items-center px-4 py-2.5">
+                    <h1 className="text-[13px] font-normal text-[#1f1f1f]">Vista Previa Packing List</h1>
+                    <div className="flex items-center gap-2">
                         <button
+                            type="button"
                             onClick={() => navigate(-1)}
-                            className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 transition-colors"
+                            className="h-7 px-3 bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] text-[#1f1f1f] text-[12px] font-normal rounded transition-colors cursor-pointer shadow-xs"
                         >
                             Cerrar
                         </button>
                         <button
+                            type="button"
                             onClick={handlePrint}
-                            className="bg-[#285f94] text-white px-4 py-2 rounded hover:bg-[#1e4a74] shadow-md transition-all active:scale-95"
+                            className="h-7 px-3 bg-[#0067c0] hover:bg-[#005a9e] text-white text-[12px] font-normal rounded transition-colors cursor-pointer shadow-xs"
                         >
                             Imprimir
                         </button>

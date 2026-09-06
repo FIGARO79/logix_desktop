@@ -148,10 +148,13 @@
     cursor: pointer;
     transition: background-color 0.1s, opacity 0.15s, border-color 0.15s;
     position: relative;
+    -webkit-user-select: none;
     user-select: none;
     background-color: rgba(255, 255, 255, 0.04); /* Inactivo muy oscuro */
     color: rgba(255, 255, 255, 0.7);
     border-right: 1px solid rgba(255, 255, 255, 0.1);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-weight: 400;
 }
 
 .tab-item:active {
@@ -182,6 +185,7 @@
     color: #ffffff;
     border-right: 1px solid transparent; /* Sin borde en activo */
     z-index: 2; /* Por encima de las demás */
+    font-weight: 400;
 }
 
 .tab-item:not(.active):hover {
@@ -189,9 +193,10 @@
 }
 
 .tab-label {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
     font-size: 0.85rem;
-    font-weight: 400; /* Chrome es font normal */
-    letter-spacing: -0.015em;
+    font-weight: 400 !important;
+    letter-spacing: normal !important;
     text-align: left;
     overflow: hidden;
     text-overflow: ellipsis;

@@ -67,7 +67,8 @@
         "maximized": true,
         "center": true,
         "decorations": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "fileDropEnabled": false
       }
     ]
   }

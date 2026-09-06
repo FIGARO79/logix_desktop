@@ -86,10 +86,6 @@ const MenuItem = ({ to, label, desc, categoryId, onClick }) => {
         categoryId: categoryId || 'recepcion'
     };
 
-    const handleDragStart = (e) => {
-        e.dataTransfer.setData('application/json', JSON.stringify(itemData));
-        e.dataTransfer.effectAllowed = 'copyMove';
-    };
 
     const handleQuickPin = (e) => {
         e.preventDefault();
@@ -101,12 +97,9 @@ const MenuItem = ({ to, label, desc, categoryId, onClick }) => {
         <div className="group/item flex items-center justify-between pr-2 hover:bg-white/5 transition-all">
             <Link
                 to={to}
-                draggable
-                onDragStart={handleDragStart}
-                className={`flex-grow flex items-center px-3 py-0.5 text-white leading-tight transition-all border-l-[3px] cursor-grab active:cursor-grabbing
+                className={`flex-grow flex items-center px-3 py-0.5 text-white leading-tight transition-all border-l-[3px] cursor-pointer
                 ${isActive ? 'bg-white/15 border-blue-400 font-semibold text-white' : 'border-transparent text-slate-200 hover:text-white hover:border-blue-400/50'}`}
                 onClick={onClick}
-                title="Arrastra esta opción al Dashboard para fijarla"
             >
                 <span className="text-[11.5px] uppercase select-none tracking-tight leading-snug">{label}</span>
             </Link>
@@ -540,7 +533,7 @@ const Layout = () => {
                                         }}
                                         className={`tab-item ${activeTabId === tab.id ? 'active' : ''} ${isDragging ? 'dragging shadow-2xl bg-white/25 scale-[1.02] z-20 cursor-grabbing' : ''}`}
                                     >
-                                        <span className="tab-label">{t(tab.label)}</span>
+                                        <span className="tab-label font-normal tracking-normal">{t(tab.label)}</span>
                                         <div className="tab-actions flex items-center gap-1 ml-2">
                                             <button
                                                 onClick={(e) => refreshTab(e, tab.id)}

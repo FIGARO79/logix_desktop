@@ -52,15 +52,15 @@ const DesktopMenuBar = ({
         if (action) action();
     };
 
-    const menuBoxClass = "absolute left-0 top-full mt-0.5 w-56 bg-white border border-gray-300 shadow-md rounded-none py-0.5 z-[1050] text-gray-800 text-[12px] font-['Segoe_UI',Tahoma,sans-serif]";
-    const itemClass = "w-full text-left px-3 h-6 flex items-center justify-between text-[12px] leading-none hover:bg-[#0078d4] hover:text-white cursor-pointer select-none text-gray-800 font-normal";
-    const headerClass = "px-3 pt-1.5 pb-1 text-[11px] font-normal text-gray-500 uppercase tracking-wider text-left leading-none select-none";
-    const separatorClass = "border-t border-gray-200 my-0.5";
+    const menuBoxClass = "absolute left-0 top-full mt-0.5 w-56 bg-white border border-[#d1d5db] shadow-lg rounded-none py-0.5 z-[1050] text-[#1f1f1f] text-[12px] font-['Segoe_UI',Tahoma,sans-serif]";
+    const itemClass = "w-full text-left px-3 h-6 flex items-center justify-between text-[12px] leading-none hover:bg-[#0078d4] hover:text-white cursor-pointer select-none text-[#1f1f1f] font-normal";
+    const headerClass = "px-3 pt-1.5 pb-1 text-[11px] font-normal text-[#7f7f7f] uppercase tracking-wider text-left leading-none select-none";
+    const separatorClass = "border-t border-[#e5e5e5] my-0.5";
 
     return (
         <div
             ref={menubarRef}
-            className="h-7 bg-[#f0f2f5] border-b border-gray-300 px-2 flex items-center text-[12px] font-['Segoe_UI',Tahoma,sans-serif] text-gray-800 select-none z-[1002] relative print:hidden no-print"
+            className="h-7 bg-[var(--sap-shell-bg)] border-b border-black/20 px-2 flex items-center text-[12px] font-['Segoe_UI',Tahoma,sans-serif] text-white/90 select-none z-[1002] relative print:hidden no-print"
         >
             {/* 1. ARCHIVO */}
             <div className="relative">
@@ -68,10 +68,10 @@ const DesktopMenuBar = ({
                     type="button"
                     onClick={() => handleMenuClick('archivo')}
                     onMouseEnter={() => handleMouseEnter('archivo')}
-                    className={`px-2.5 py-0.5 rounded-none text-[12px] leading-none cursor-default font-normal ${
+                    className={`px-2.5 py-0.5 rounded-none text-[12px] leading-none cursor-default font-normal transition-colors ${
                         activeMenu === 'archivo'
-                            ? 'bg-[#0078d4] text-white'
-                            : 'hover:bg-gray-200 text-gray-800'
+                            ? 'bg-white/20 text-white'
+                            : 'hover:bg-white/10 text-white/90 hover:text-white'
                     }`}
                 >
                     Archivo
@@ -83,14 +83,14 @@ const DesktopMenuBar = ({
                             className={itemClass}
                         >
                             <span>Nueva pestaña</span>
-                            <span className="text-[11px] text-gray-400 font-mono">Ctrl+T</span>
+                            <span className="text-[11px] text-[#888] font-mono">Ctrl+T</span>
                         </button>
                         <button
                             onClick={() => handleItemClick(onCloseCurrentTab)}
                             className={itemClass}
                         >
                             <span>Cerrar pestaña</span>
-                            <span className="text-[11px] text-gray-400 font-mono">Ctrl+W</span>
+                            <span className="text-[11px] text-[#888] font-mono">Ctrl+W</span>
                         </button>
                         <div className={separatorClass}></div>
                         <button
@@ -109,10 +109,10 @@ const DesktopMenuBar = ({
                     type="button"
                     onClick={() => handleMenuClick('configuracion')}
                     onMouseEnter={() => handleMouseEnter('configuracion')}
-                    className={`px-2.5 py-0.5 rounded-none text-[12px] leading-none cursor-default font-normal ${
+                    className={`px-2.5 py-0.5 rounded-none text-[12px] leading-none cursor-default font-normal transition-colors ${
                         activeMenu === 'configuracion'
-                            ? 'bg-[#0078d4] text-white'
-                            : 'hover:bg-gray-200 text-gray-800'
+                            ? 'bg-white/20 text-white'
+                            : 'hover:bg-white/10 text-white/90 hover:text-white'
                     }`}
                 >
                     Configuración

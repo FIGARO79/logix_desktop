@@ -413,28 +413,44 @@ const PickingAuditHistory = () => {
     };
 
     return (
-        <div className="max-w-[1400px] mx-auto px-6 py-6 font-sans bg-[#fcfcfc] min-h-screen text-zinc-800">
+        <div className="max-w-[1920px] mx-auto px-4 py-3 font-['Segoe_UI',Tahoma,sans-serif] bg-[#f8f9fa] min-h-screen text-[#1f1f1f] text-[12px]">
             <ToastContainer position="top-right" autoClose={3000} />
 
+            {/* Header */}
+            <div className="mb-3 flex justify-between items-center bg-white px-4 py-2.5 rounded border border-[#d1d5db] shadow-sm">
+                <div>
+                    <h1 className="text-[14px] font-normal text-[#1f1f1f] m-0">Pickings Empacados</h1>
+                    <p className="text-[11px] font-normal text-[#5c5c5c] mt-0.5 mb-0">Historial y auditoría de órdenes de picking despachadas</p>
+                </div>
+                <div className="flex gap-2">
+                    <button
+                        onClick={fetchAudits}
+                        className="h-7 px-3 border border-[#d1d5db] text-[#1f1f1f] bg-white text-[12px] font-normal rounded hover:bg-[#f5f5f5] transition-colors shadow-xs cursor-pointer"
+                    >
+                        Refrescar
+                    </button>
+                </div>
+            </div>
+
             {loading && (
-                <div className="flex justify-center items-center py-20">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900"></div>
+                <div className="flex justify-center items-center py-16">
+                    <div className="text-[#5c5c5c] text-[12px] font-normal">Cargando registros de auditoría...</div>
                 </div>
             )}
 
             {error && (
-                <div className="mb-6 bg-red-50 text-red-600 px-4 py-3 border border-red-100 text-[10px] font-medium  uppercase tracking-widest">
+                <div className="mb-3 bg-[#fef2f2] text-[#991b1b] px-3 py-2 border border-[#fecaca] rounded text-[11px] font-normal">
                     {error}
                 </div>
             )}
 
             {!loading && !error && (
-                <div className="bg-white border border-zinc-200 shadow-sm overflow-hidden">
+                <div className="bg-white border border-[#d1d5db] rounded shadow-sm overflow-hidden">
                     <div className="hidden sm:block overflow-x-auto">
-                        <table className="min-w-full leading-normal">
-                            <thead className="bg-slate-700 text-white">
-                                <tr>
-                                    <th className="px-4 py-2.5 text-center w-10">
+                        <table className="min-w-full leading-normal border-collapse">
+                            <thead>
+                                <tr className="bg-[#354a5f] text-white text-[11px] font-normal tracking-normal border-b border-[#2a3c4e] sticky top-0 z-10">
+                                    <th className="px-3 py-1.5 text-center w-10">
                                         <input
                                             type="checkbox"
                                             checked={audits.length > 0 && audits.every(a => selectedIds.has(a.id))}
@@ -445,120 +461,116 @@ const PickingAuditHistory = () => {
                                                     setSelectedIds(new Set());
                                                 }
                                             }}
-                                            className="w-3.5 h-3.5 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer animate-all"
+                                            className="w-3.5 h-3.5 rounded border-[#d1d5db] text-[#0067c0] focus:ring-[#0067c0] cursor-pointer"
                                             title="Seleccionar todo"
                                         />
                                     </th>
-                                    <th className="px-4 py-2.5 text-center w-8"></th>
-                                    <th className="px-4 py-2.5 text-[11px] font-semibold text-white uppercase tracking-wider text-left">ID</th>
-                                    <th className="px-4 py-2.5 text-[11px] font-semibold text-white uppercase tracking-wider text-left">Orden</th>
-                                    <th className="px-4 py-2.5 text-[11px] font-semibold text-white uppercase tracking-wider text-left">Despacho</th>
-                                    <th className="px-4 py-2.5 text-[11px] font-semibold text-white uppercase tracking-wider text-left">Cliente</th>
-                                    <th className="px-4 py-2.5 text-[11px] font-semibold text-white uppercase tracking-wider text-left">Usuario</th>
-                                    <th className="px-4 py-2.5 text-[11px] font-semibold text-white uppercase tracking-wider text-left">Fecha</th>
-                                    <th className="px-4 py-2.5 text-[11px] font-semibold text-white uppercase tracking-wider text-center">Estado</th>
-                                    <th className="px-4 py-2.5 text-[11px] font-semibold text-white uppercase tracking-wider text-center">Acciones</th>
+                                    <th className="px-2 py-1.5 text-center w-6"></th>
+                                    <th className="px-3 py-1.5 text-[11px] font-normal text-white text-left">ID</th>
+                                    <th className="px-3 py-1.5 text-[11px] font-normal text-white text-left">Orden</th>
+                                    <th className="px-3 py-1.5 text-[11px] font-normal text-white text-left">Despacho</th>
+                                    <th className="px-3 py-1.5 text-[11px] font-normal text-white text-left">Cliente</th>
+                                    <th className="px-3 py-1.5 text-[11px] font-normal text-white text-left">Usuario</th>
+                                    <th className="px-3 py-1.5 text-[11px] font-normal text-white text-left">Fecha</th>
+                                    <th className="px-3 py-1.5 text-[11px] font-normal text-white text-center">Estado</th>
+                                    <th className="px-3 py-1.5 text-[11px] font-normal text-white text-center">Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-[#e5e7eb]">
                                 {audits.length === 0 ? (
                                     <tr>
-                                        <td colSpan="10" className="px-6 py-12 text-center text-zinc-400 text-xs uppercase tracking-wider">
+                                        <td colSpan="10" className="px-4 py-8 text-center text-[#8c8c8c] text-[12px] italic font-normal">
                                             No se han registrado auditorías de picking todavía.
                                         </td>
                                     </tr>
                                 ) : (
-                                    audits.map((audit) => (
+                                    audits.map((audit, idx) => (
                                         <React.Fragment key={audit.id}>
                                             <tr
-                                                className={`border-b border-zinc-100 hover:bg-zinc-50/50 transition-colors cursor-pointer
-                                                    ${expandedAuditId === audit.id ? 'bg-zinc-50' : ''}
-                                                    ${selectedIds.has(audit.id) ? 'bg-blue-50/50' : ''}`}
+                                                className={`border-b border-[#e5e7eb] hover:bg-[#edf3f9] transition-colors cursor-pointer leading-none h-7
+                                                    ${expandedAuditId === audit.id ? 'bg-[#f0f7ff]' : (idx % 2 === 1 ? 'bg-[#fafafa]' : 'bg-white')}
+                                                    ${selectedIds.has(audit.id) ? 'bg-[#e5f0fb]' : ''}`}
                                                 onClick={() => toggleExpand(audit.id)}
                                             >
-                                            <td className="px-4 py-1.5 text-center" onClick={e => e.stopPropagation()}>
+                                            <td className="px-3 py-1 text-center" onClick={e => e.stopPropagation()}>
                                                 <input
                                                     type="checkbox"
                                                     checked={selectedIds.has(audit.id)}
                                                     onChange={() => toggleSelect(audit.id)}
-                                                    className="w-3.5 h-3.5 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer"
+                                                    className="w-3.5 h-3.5 rounded border-[#d1d5db] text-[#0067c0] focus:ring-[#0067c0] cursor-pointer"
                                                 />
                                             </td>
-                                            <td className="px-4 py-1.5 text-center">
-                                                <svg
-                                                    className={`w-3 h-3 text-zinc-700 transform transition-transform duration-200 ${expandedAuditId === audit.id ? 'rotate-90' : ''}`}
-                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                                >
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                                                </svg>
+                                            <td className="px-2 py-1 text-center">
+                                                <span className={`text-[10px] text-[#5c5c5c] inline-block transition-transform duration-200 ${expandedAuditId === audit.id ? 'rotate-90' : ''}`}>
+                                                    ▶
+                                                </span>
                                             </td>
-                                            <td className="px-4 py-1.5 text-[11px] font-normal text-black">{audit.id}</td>
-                                            <td className="px-4 py-1.5 text-[11px] font-normal text-black">{audit.order_number}</td>
-                                            <td className="px-4 py-1.5 text-[11px] text-black font-normal uppercase">{audit.despatch_number}</td>
-                                            <td className="px-4 py-1.5 text-[10px] text-black truncate max-w-[200px] uppercase font-normal ">
+                                            <td className="px-3 py-1 text-[11.5px] font-normal text-[#5c5c5c] font-mono">{audit.id}</td>
+                                            <td className="px-3 py-1 text-[11.5px] font-normal text-[#0067c0]">{audit.order_number}</td>
+                                            <td className="px-3 py-1 text-[11.5px] text-[#1f1f1f] font-normal uppercase">{audit.despatch_number}</td>
+                                            <td className="px-3 py-1 text-[11.5px] text-[#5c5c5c] truncate max-w-[200px] font-normal">
                                                  {audit.customer_code && audit.customer_code.trim() !== "" && (
-                                                     <span className="text-black mr-2">[{audit.customer_code}]</span>
+                                                     <span className="text-[#1f1f1f] mr-1 font-mono">[{audit.customer_code}]</span>
                                                  )}
                                                 {audit.customer_name || 'N/A'}
                                             </td>
-                                            <td className="px-4 py-1.5 text-[10px] text-black uppercase font-normal">{audit.username}</td>
-                                            <td className="px-4 py-1.5 text-[10px] text-black font-normal">{formatDate(audit.timestamp)}</td>
-                                            <td className="px-4 py-1.5 text-center">
-                                                <span className={`px-2 py-0.5 inline-flex text-[9px] font-normal  uppercase tracking-tight rounded border ${
+                                            <td className="px-3 py-1 text-[11.5px] text-[#5c5c5c] uppercase font-normal">{audit.username}</td>
+                                            <td className="px-3 py-1 text-[11px] text-[#5c5c5c] font-normal whitespace-nowrap">{formatDate(audit.timestamp)}</td>
+                                            <td className="px-3 py-1 text-center">
+                                                <span className={`px-2 py-0.5 inline-flex text-[10px] font-normal rounded border ${
                                                     audit.status === 'Completado' || audit.status === 'Completo'
-                                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200'
+                                                    ? 'bg-[#ecfdf5] text-[#065f46] border-[#a7f3d0]' : 'bg-[#fffbeb] text-[#92400e] border-[#fde68a]'
                                                 }`}>
                                                     {audit.status}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-1.5 text-center" onClick={e => e.stopPropagation()}>
-                                                <div className="flex justify-center items-center gap-4">
+                                            <td className="px-3 py-1 text-center" onClick={e => e.stopPropagation()}>
+                                                <div className="flex justify-center items-center gap-2">
                                                     {isToday(audit.timestamp) && (
-                                                        <span
+                                                        <button
                                                             onClick={() => handleEditClick(audit)}
-                                                            className="text-[9px] font-medium uppercase tracking-widest text-zinc-700 hover:text-zinc-900 transition-colors leading-none cursor-pointer"
-                                                            role="button"
+                                                            className="h-6 px-2 text-[11px] font-normal text-[#0067c0] hover:bg-[#f0f7ff] rounded transition-colors cursor-pointer"
                                                             title="Editar"
                                                         >
                                                             Editar
-                                                        </span>
+                                                        </button>
                                                     )}
                                                     <Link
                                                         to={`/packing_list/print/${audit.id}`}
-                                                        className="text-[9px] font-normal uppercase tracking-tight text-black hover:text-[#285f94] transition-colors leading-none"
+                                                        className="h-6 px-2 text-[11px] font-normal text-[#0067c0] hover:bg-[#f0f7ff] rounded transition-colors inline-flex items-center"
                                                         title="Imprimir"
                                                     >
-                                                        Print
+                                                        Imprimir
                                                     </Link>
                                                 </div>
                                             </td>
                                         </tr>
 
                                         {expandedAuditId === audit.id && (
-                                            <tr className="bg-zinc-50/50">
-                                                <td colSpan="10" className="px-10 py-4 border-b border-zinc-100">
-                                                    <div className="bg-white border border-zinc-200 p-4 shadow-sm">
-                                                        <h4 className="text-[9px] font-medium  text-zinc-600 uppercase tracking-[0.2em] mb-4 border-b border-zinc-50 pb-2">Detalle de Contenido</h4>
-                                                        <table className="w-full">
+                                            <tr className="bg-[#f8f9fa]">
+                                                <td colSpan="10" className="px-6 py-3 border-b border-[#e5e7eb]">
+                                                    <div className="bg-white border border-[#d1d5db] rounded p-3 shadow-xs">
+                                                        <h4 className="text-[11px] font-normal text-[#5c5c5c] mb-2 border-b border-[#e5e7eb] pb-1">Detalle de Contenido</h4>
+                                                        <table className="w-full text-[11.5px] border-collapse">
                                                             <thead>
-                                                                <tr className="text-[8px] font-medium  text-zinc-600 uppercase tracking-widest">
-                                                                    <th className="pb-2 text-left w-12">Lín.</th>
-                                                                    <th className="pb-2 text-left">SKU</th>
-                                                                    <th className="pb-2 text-left">Descripción</th>
-                                                                    <th className="pb-2 text-right">Req.</th>
-                                                                    <th className="pb-2 text-right">Esc.</th>
-                                                                    <th className="pb-2 text-right">Dif.</th>
+                                                                <tr className="text-[10px] font-normal text-[#5c5c5c] border-b border-[#e5e7eb]">
+                                                                    <th className="pb-1 text-left w-12 font-normal">Lín.</th>
+                                                                    <th className="pb-1 text-left font-normal">SKU</th>
+                                                                    <th className="pb-1 text-left font-normal">Descripción</th>
+                                                                    <th className="pb-1 text-right font-normal">Req.</th>
+                                                                    <th className="pb-1 text-right font-normal">Esc.</th>
+                                                                    <th className="pb-1 text-right font-normal">Dif.</th>
                                                                 </tr>
                                                             </thead>
-                                                            <tbody className="text-[10px]">
+                                                            <tbody className="divide-y divide-[#f3f4f6]">
                                                                 {(audit.items || []).map((item, idx) => (
-                                                                    <tr key={idx} className="border-t border-zinc-50 hover:bg-zinc-50/30">
-                                                                        <td className="py-2 font-mono text-zinc-600">{item.order_line}</td>
-                                                                        <td className="py-2 font-medium  text-zinc-800">{item.item_code}</td>
-                                                                        <td className="py-2 text-zinc-700 uppercase text-[9px]">{item.description}</td>
-                                                                        <td className="py-2 text-right font-mono">{item.qty_req}</td>
-                                                                        <td className="py-2 text-right font-mono font-medium ">{item.qty_scan}</td>
-                                                                        <td className={`py-2 text-right font-mono font-medium  ${item.difference !== 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                                                                    <tr key={idx} className="hover:bg-[#edf3f9]">
+                                                                        <td className="py-1 font-mono text-[#5c5c5c]">{item.order_line}</td>
+                                                                        <td className="py-1 font-normal text-[#0067c0]">{item.item_code}</td>
+                                                                        <td className="py-1 text-[#5c5c5c] text-[11px]">{item.description}</td>
+                                                                        <td className="py-1 text-right font-mono font-normal text-[#1f1f1f]">{item.qty_req}</td>
+                                                                        <td className="py-1 text-right font-mono font-normal text-[#0067c0]">{item.qty_scan}</td>
+                                                                        <td className={`py-1 text-right font-mono font-normal ${item.difference !== 0 ? 'text-[#991b1b]' : 'text-[#065f46]'}`}>
                                                                             {item.difference > 0 ? `+${item.difference}` : item.difference}
                                                                         </td>
                                                                     </tr>
@@ -577,47 +589,47 @@ const PickingAuditHistory = () => {
                     </div>
 
                     {/* Mobile View */}
-                    <div className="block sm:hidden bg-zinc-50 p-2 space-y-3">
+                    <div className="block sm:hidden bg-[#f8f9fa] p-2 space-y-3 font-['Segoe_UI',Tahoma,sans-serif]">
                         {audits.length === 0 ? (
-                            <div className="bg-white border border-zinc-200 p-8 text-center text-zinc-400 text-xs uppercase tracking-wider">
+                            <div className="bg-white border border-[#e5e7eb] p-8 text-center text-black text-[12px] font-normal tracking-normal">
                                 No se han registrado auditorías de picking todavía.
                             </div>
                         ) : (
                             audits.map((audit) => (
-                                <div key={audit.id} className="bg-white border border-zinc-200 p-4 shadow-sm" onClick={() => toggleExpand(audit.id)}>
-                                <div className="flex justify-between items-start mb-2">
+                                <div key={audit.id} className="bg-white border border-[#e5e7eb] p-3 shadow-xs" onClick={() => toggleExpand(audit.id)}>
+                                <div className="flex justify-between items-start mb-1.5">
                                     <div className="flex flex-col">
-                                        <span className="text-[12px] font-medium  text-[#285f94] tracking-tight">{audit.order_number}</span>
-                                        <span className="text-[8px] text-zinc-600 uppercase tracking-widest">{audit.despatch_number}</span>
+                                        <span className="text-[12px] font-normal text-[#0067c0]">{audit.order_number}</span>
+                                        <span className="text-[9px] text-black uppercase tracking-normal font-normal">{audit.despatch_number}</span>
                                     </div>
-                                    <span className={`px-2 py-0.5 text-[8px] font-medium  uppercase tracking-tight rounded border ${audit.status === 'Completo' || audit.status === 'Completado' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700'}`}>
+                                    <span className={`px-2 py-0.5 text-[8px] font-normal uppercase tracking-normal rounded border ${audit.status === 'Completo' || audit.status === 'Completado' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700'}`}>
                                         {audit.status}
                                     </span>
                                 </div>
-                                <div className="text-[10px] font-medium  text-zinc-700 uppercase mb-3 truncate">
+                                <div className="text-[10px] font-normal text-black uppercase mb-2 truncate">
                                     {audit.customer_code && audit.customer_code.trim() !== "" && (
-                                         <span className="text-zinc-600 mr-1">[{audit.customer_code}]</span>
+                                         <span className="text-black mr-1">[{audit.customer_code}]</span>
                                      )}
                                     {audit.customer_name}
                                 </div>
-                                <div className="flex justify-between items-center pt-2 border-t border-zinc-50">
-                                    <span className="text-[8px] font-mono text-zinc-600">{formatDate(audit.timestamp)}</span>
+                                <div className="flex justify-between items-center pt-2 border-t border-[#f3f4f6]">
+                                    <span className="text-[9px] font-mono text-black font-normal">{formatDate(audit.timestamp)}</span>
                                     <div className="flex gap-4">
-                                        <Link to={`/packing_list/print/${audit.id}`} className="text-[9px] font-medium  uppercase text-zinc-600 hover:text-zinc-900" onClick={e => e.stopPropagation()}>Print</Link>
+                                        <Link to={`/packing_list/print/${audit.id}`} className="text-[10px] font-normal uppercase text-black hover:underline" onClick={e => e.stopPropagation()}>Print</Link>
                                     </div>
                                 </div>
                                 {expandedAuditId === audit.id && (
-                                    <div className="mt-4 pt-4 border-t border-zinc-100 space-y-2">
+                                    <div className="mt-3 pt-3 border-t border-[#f3f4f6] space-y-2">
                                         {(audit.items || []).map((item, idx) => (
-                                            <div key={idx} className="flex justify-between items-center text-[9px] bg-zinc-50 p-2 rounded">
+                                            <div key={idx} className="flex justify-between items-center text-[10px] bg-[#f8f9fa] p-2 rounded">
                                                 <div className="flex flex-col">
-                                                    <span className="font-medium  text-zinc-800">{item.item_code}</span>
-                                                    <span className="text-zinc-600 text-[8px]">L: {item.order_line}</span>
+                                                    <span className="font-normal text-black">{item.item_code}</span>
+                                                    <span className="text-black text-[9px] font-normal">L: {item.order_line}</span>
                                                 </div>
-                                                <div className="font-mono">
-                                                    <span className="text-zinc-600">{item.qty_req}</span>
+                                                <div className="font-mono text-black font-normal">
+                                                    <span>{item.qty_req}</span>
                                                     <span className="mx-1">/</span>
-                                                    <span className="font-medium ">{item.qty_scan}</span>
+                                                    <span>{item.qty_scan}</span>
                                                 </div>
                                             </div>
                                         ))}
@@ -632,42 +644,45 @@ const PickingAuditHistory = () => {
 
             {/* Selection Bar */}
             {selectedIds.size > 0 && (
-                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 bg-zinc-900 text-white px-8 py-3 rounded-full shadow-2xl flex items-center gap-6 animate-in slide-in-from-bottom-4 duration-300">
-                    <span className="text-[10px] font-medium  uppercase tracking-[0.2em]">{selectedIds.size} Auditorías</span>
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#354a5f] text-white px-5 py-2 rounded shadow-lg flex items-center gap-4 border border-[#2a3c4e] animate-in slide-in-from-bottom-2 duration-200">
+                    <span className="text-[12px] font-normal">{selectedIds.size} seleccionadas</span>
                     <button 
                         onClick={() => setShowShipmentModal(true)} 
-                        className="bg-white text-zinc-900 px-6 py-1.5 rounded-full text-[10px] font-medium  uppercase tracking-widest hover:bg-zinc-200 transition-colors"
+                        className="h-7 px-3 bg-[#0067c0] hover:bg-[#005a9e] text-white text-[12px] font-normal rounded transition-colors cursor-pointer"
                     >
                         Consolidar Envío
                     </button>
                     <button 
                         onClick={handleDeleteSelected} 
-                        className="bg-red-600 text-white px-6 py-1.5 rounded-full text-[10px] font-medium  uppercase tracking-widest hover:bg-red-700 transition-colors"
+                        className="h-7 px-3 bg-red-600 hover:bg-red-700 text-white text-[12px] font-normal rounded transition-colors cursor-pointer"
                     >
                         Eliminar
                     </button>
-                    <button onClick={() => setSelectedIds(new Set())} className="text-zinc-700 hover:text-white transition-colors">✕</button>
+                    <button onClick={() => setSelectedIds(new Set())} className="text-gray-300 hover:text-white transition-colors cursor-pointer text-sm px-1">✕</button>
                 </div>
             )}
 
             {/* Shipment Modal */}
             {showShipmentModal && (
-                <div className="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white border border-zinc-200 shadow-2xl w-full max-w-md p-8">
-                        <h3 className="text-[12px] font-medium  text-zinc-900 uppercase tracking-tight mb-6">Crear Envío Consolidado</h3>
-                        <div className="space-y-6">
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                    <div className="bg-white border border-[#d1d5db] shadow-xl w-full max-w-md rounded overflow-hidden">
+                        <div className="bg-[#354a5f] text-white px-4 py-2.5 flex items-center justify-between border-b border-[#2a3c4e]">
+                            <h3 className="text-[12px] font-normal">Crear Envío Consolidado</h3>
+                            <button onClick={() => setShowShipmentModal(false)} className="text-gray-300 hover:text-white text-sm cursor-pointer">✕</button>
+                        </div>
+                        <div className="p-4 space-y-4">
                             <div className="space-y-1">
-                                <label className="text-[9px] font-medium  text-zinc-600 uppercase tracking-widest">Transportadora</label>
-                                <input type="text" value={shipmentCarrier} onChange={e => setShipmentCarrier(e.target.value)} className="w-full h-10 border border-zinc-200 px-4 text-xs outline-none focus:ring-1 focus:ring-zinc-900 bg-zinc-50" />
+                                <label className="text-[11px] font-normal text-gray-700">Transportadora</label>
+                                <input type="text" value={shipmentCarrier} onChange={e => setShipmentCarrier(e.target.value)} className="w-full h-7 border border-[#d1d5db] px-2 text-[12px] font-normal outline-none focus:border-[#0067c0] bg-white rounded" />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-[9px] font-medium  text-zinc-600 uppercase tracking-widest">Observaciones</label>
-                                <textarea value={shipmentNote} onChange={e => setShipmentNote(e.target.value)} className="w-full border border-zinc-200 p-4 text-xs outline-none focus:ring-1 focus:ring-zinc-900 bg-zinc-50" rows={3} />
+                                <label className="text-[11px] font-normal text-gray-700">Observaciones</label>
+                                <textarea value={shipmentNote} onChange={e => setShipmentNote(e.target.value)} className="w-full border border-[#d1d5db] p-2 text-[12px] font-normal outline-none focus:border-[#0067c0] bg-white rounded" rows={3} />
                             </div>
                         </div>
-                        <div className="mt-8 flex justify-end gap-4">
-                            <button onClick={() => setShowShipmentModal(false)} className="px-6 py-2 text-[10px] font-medium  uppercase tracking-widest text-zinc-600 hover:text-zinc-900">Cancelar</button>
-                            <button onClick={handleCreateShipment} className="px-8 py-2 bg-zinc-900 text-white text-[10px] font-medium  uppercase tracking-widest hover:bg-zinc-800">
+                        <div className="px-4 py-3 bg-[#f8f9fa] border-t border-[#e5e7eb] flex justify-end gap-2">
+                            <button onClick={() => setShowShipmentModal(false)} className="h-7 px-3 bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] text-[#1f1f1f] text-[12px] font-normal rounded transition-colors cursor-pointer">Cancelar</button>
+                            <button onClick={handleCreateShipment} className="h-7 px-4 bg-[#0067c0] hover:bg-[#005a9e] text-white text-[12px] font-normal rounded transition-colors cursor-pointer disabled:opacity-50" disabled={creatingShipment}>
                                 {creatingShipment ? 'Procesando...' : 'Confirmar'}
                             </button>
                         </div>
@@ -677,37 +692,35 @@ const PickingAuditHistory = () => {
 
             {/* Edit Modal */}
             {isEditModalOpen && editingAudit && (
-                <div className="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white border border-zinc-200 shadow-2xl w-full max-w-5xl p-8 flex flex-col max-h-[90vh]">
-                        <div className="flex justify-between items-start mb-8 border-b border-zinc-100 pb-6">
-                            <div className="flex flex-col gap-1">
-                                <h3 className="text-sm font-medium  text-zinc-900 uppercase tracking-tight">Editar Auditoría ID #{editingAudit.id}</h3>
-                                <div className="text-[9px] text-zinc-600 uppercase tracking-widest flex items-center gap-4">
-                                    <span>Orden: <span className="text-zinc-900 font-medium ">{editingAudit.order_number}</span></span>
-                                    <span>Cliente: <span className="text-zinc-900 font-medium ">{editingAudit.customer_name}</span></span>
-                                </div>
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                    <div className="bg-white border border-[#d1d5db] shadow-xl w-full max-w-5xl rounded overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="bg-[#354a5f] text-white px-4 py-2.5 flex justify-between items-center border-b border-[#2a3c4e]">
+                            <div className="flex items-center gap-4">
+                                <h3 className="text-[12px] font-normal">Editar Auditoría ID #{editingAudit.id}</h3>
+                                <span className="text-[11px] text-gray-300">Orden: {editingAudit.order_number}</span>
+                                <span className="text-[11px] text-gray-300">Cliente: {editingAudit.customer_name}</span>
                             </div>
-                            <div className="flex items-center gap-6">
-                                <div className="flex items-center gap-4 bg-zinc-50 px-4 py-2 rounded border border-zinc-100">
-                                    <span className="text-[10px] font-medium  text-zinc-600 uppercase tracking-widest">Bultos: {editingAudit.packages || 0}</span>
-                                    <div className="flex gap-2">
-                                        <button onClick={handleRemoveLastPackage} className="w-6 h-6 flex items-center justify-center bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-100 rounded text-sm font-medium  transition-all shadow-sm">−</button>
-                                        <button onClick={handleAddNewPackage} className="w-6 h-6 flex items-center justify-center bg-zinc-900 text-white hover:bg-zinc-800 rounded text-sm font-medium  transition-all shadow-sm">+</button>
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2 bg-[#2a3c4e] px-2 py-1 rounded">
+                                    <span className="text-[11px] font-normal text-white">Bultos: {editingAudit.packages || 0}</span>
+                                    <div className="flex gap-1">
+                                        <button onClick={handleRemoveLastPackage} className="w-5 h-5 flex items-center justify-center bg-white border border-[#d1d5db] text-[#1f1f1f] hover:bg-[#f5f5f5] rounded text-xs font-normal transition-all cursor-pointer">−</button>
+                                        <button onClick={handleAddNewPackage} className="w-5 h-5 flex items-center justify-center bg-[#0067c0] text-white hover:bg-[#005a9e] rounded text-xs font-normal transition-all cursor-pointer">+</button>
                                     </div>
                                 </div>
-                                <button onClick={() => setIsEditModalOpen(false)} className="text-zinc-500 hover:text-zinc-900 text-xl transition-colors px-2">✕</button>
+                                <button onClick={() => setIsEditModalOpen(false)} className="text-gray-300 hover:text-white text-base transition-colors cursor-pointer px-1">✕</button>
                             </div>
                         </div>
 
-                        <div className="overflow-y-auto mb-8 pr-2">
-                            <table className="min-w-full">
+                        <div className="overflow-y-auto p-4 flex-1">
+                            <table className="w-full border-collapse">
                                 <thead>
-                                    <tr className="bg-[#4A5D73] text-white text-[10px] font-medium  uppercase tracking-widest">
-                                        <th className="p-4 text-left w-12">Lín.</th>
-                                        <th className="p-4 text-left w-32">Código</th>
-                                        <th className="p-4 text-left">Descripción</th>
-                                        <th className="p-4 text-center w-20">Req.</th>
-                                        <th className="p-4 text-left">Distribución en Bultos</th>
+                                    <tr className="bg-[#354a5f] text-white text-[11px] font-normal tracking-normal sticky top-0 border-b border-[#2a3c4e]">
+                                        <th className="py-2 px-3 text-left w-12 font-normal">Lín.</th>
+                                        <th className="py-2 px-3 text-left w-32 font-normal">Código</th>
+                                        <th className="py-2 px-3 text-left font-normal">Descripción</th>
+                                        <th className="py-2 px-3 text-center w-20 font-normal">Req.</th>
+                                        <th className="py-2 px-3 text-left font-normal">Distribución en Bultos</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -718,32 +731,32 @@ const PickingAuditHistory = () => {
                                         const isUsingPackages = editingAudit.packages > 0;
 
                                         return (
-                                            <tr key={idx} className="border-b border-zinc-50 hover:bg-zinc-50/20 transition-colors">
-                                                <td className="p-4 font-mono text-[10px] text-zinc-600">{item.order_line}</td>
-                                                <td className="p-4 text-[12px] font-medium  text-zinc-900">{item.item_code}</td>
-                                                <td className="p-4 text-[10px] text-zinc-800 uppercase truncate max-w-xs">{item.description}</td>
-                                                <td className="p-4 text-center text-[12px] font-mono text-zinc-800">{item.qty_req}</td>
-                                                <td className="p-4">
+                                            <tr key={idx} className={`border-b border-[#f0f0f0] ${idx % 2 === 0 ? 'bg-white' : 'bg-[#fafafa]'} hover:bg-[#edf3f9] transition-colors`}>
+                                                <td className="py-2 px-3 font-mono text-[11px] text-gray-600">{item.order_line}</td>
+                                                <td className="py-2 px-3 text-[12px] font-normal text-gray-900">{item.item_code}</td>
+                                                <td className="py-2 px-3 text-[11.5px] text-gray-700 truncate max-w-xs">{item.description}</td>
+                                                <td className="py-2 px-3 text-center text-[12px] font-mono text-gray-800">{item.qty_req}</td>
+                                                <td className="py-2 px-3">
                                                     {isUsingPackages ? (
-                                                        <div className="flex flex-wrap items-center gap-3">
+                                                        <div className="flex flex-wrap items-center gap-2">
                                                             {packageKeys
                                                                 .filter(pkgNum => (parseInt(assignments[pkgNum]) || 0) > 0)
                                                                 .map(pkgNum => {
                                                                     const qty = parseInt(assignments[pkgNum]) || 0;
                                                                     return (
-                                                                        <div key={pkgNum} className="flex items-center gap-2 bg-zinc-50 border border-zinc-100 p-1.5 rounded">
-                                                                            <span className="text-[9px] font-medium  text-zinc-700 uppercase px-1">B{pkgNum}</span>
-                                                                            <div className="flex items-center border border-zinc-200 bg-white rounded overflow-hidden h-6">
-                                                                                <button onClick={() => qty - 1 <= 0 ? removePackageAssignment(idx, pkgNum) : handlePkgQtyChange(idx, pkgNum, qty - 1)} className="w-6 h-full flex items-center justify-center text-zinc-600 hover:bg-zinc-50 transition-colors text-sm">−</button>
-                                                                                <span className="w-8 text-center text-[12px] font-medium  font-mono text-zinc-900">{qty}</span>
-                                                                                <button onClick={() => handlePkgQtyChange(idx, pkgNum, qty + 1)} className="w-6 h-full flex items-center justify-center text-zinc-600 hover:bg-zinc-50 transition-colors text-sm">+</button>
+                                                                        <div key={pkgNum} className="flex items-center gap-1.5 bg-white border border-[#d1d5db] px-2 py-0.5 rounded">
+                                                                            <span className="text-[11px] font-normal text-gray-700">B{pkgNum}</span>
+                                                                            <div className="flex items-center border border-[#d1d5db] bg-white rounded overflow-hidden h-5">
+                                                                                <button onClick={() => qty - 1 <= 0 ? removePackageAssignment(idx, pkgNum) : handlePkgQtyChange(idx, pkgNum, qty - 1)} className="w-5 h-full flex items-center justify-center text-gray-600 hover:bg-[#f5f5f5] transition-colors text-xs cursor-pointer">−</button>
+                                                                                <span className="w-6 text-center text-[11px] font-normal font-mono text-gray-900">{qty}</span>
+                                                                                <button onClick={() => handlePkgQtyChange(idx, pkgNum, qty + 1)} className="w-5 h-full flex items-center justify-center text-gray-600 hover:bg-[#f5f5f5] transition-colors text-xs cursor-pointer">+</button>
                                                                             </div>
                                                                         </div>
                                                                     );
                                                                 })}
                                                             <select
                                                                 onChange={(e) => { handleAssignToPackage(idx, e.target.value); e.target.value = ''; }}
-                                                                className="w-auto min-w-[130px] h-7 px-2 text-[9px] font-medium uppercase tracking-widest bg-white border border-dashed border-zinc-400 rounded cursor-pointer outline-none hover:border-zinc-900 hover:text-zinc-900 transition-all text-zinc-700"
+                                                                className="h-6 px-2 text-[11px] font-normal bg-white border border-[#d1d5db] rounded cursor-pointer outline-none hover:border-[#0067c0] text-gray-700"
                                                                 defaultValue=""
                                                             >
                                                                 <option value="" disabled>+ Añadir Bulto</option>
@@ -751,11 +764,11 @@ const PickingAuditHistory = () => {
                                                                     .filter(p => !packageKeys.includes(p.toString()))
                                                                     .map(p => <option key={p} value={p}>Bulto {p}</option>)
                                                                 }
-                                                                <option value="NEW">＋ Nuevo Bulto</option>
+                                                                <option value="NEW">+ Nuevo Bulto</option>
                                                             </select>
                                                         </div>
                                                     ) : (
-                                                        <span className="text-[10px] text-zinc-600 uppercase italic tracking-widest">Sin asignación de bultos</span>
+                                                        <span className="text-[11px] text-gray-500 italic">Sin asignación de bultos</span>
                                                     )}
                                                 </td>
                                             </tr>
@@ -765,29 +778,29 @@ const PickingAuditHistory = () => {
                             </table>
 
                             {/* Formulario para agregar artículo no escaneado */}
-                            <div className="mt-6 border-t border-zinc-100 pt-6">
+                            <div className="mt-4 border-t border-[#e5e7eb] pt-4">
                                 {!isAddingItem ? (
                                     <button
                                         type="button"
                                         onClick={() => setIsAddingItem(true)}
-                                        className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded transition-all hover:bg-blue-100"
+                                        className="h-7 px-3 bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] text-[#0067c0] hover:text-[#005a9e] text-[12px] font-normal rounded transition-colors cursor-pointer"
                                     >
-                                        ＋ Agregar Artículo no Escaneado
+                                        + Agregar Artículo no Escaneado
                                     </button>
                                 ) : (
-                                    <div className="bg-zinc-50 p-5 border border-zinc-200 rounded flex flex-wrap gap-4 items-end transition-all">
+                                    <div className="bg-[#f8f9fa] p-3 border border-[#d1d5db] rounded flex flex-wrap gap-3 items-end transition-all">
                                         <div className="flex flex-col gap-1 w-24">
-                                            <label className="text-[9px] font-medium text-zinc-600 uppercase tracking-widest">Línea</label>
+                                            <label className="text-[11px] font-normal text-gray-600">Línea</label>
                                             <input
                                                 type="text"
                                                 value={newItemLine}
                                                 onChange={e => setNewItemLine(e.target.value)}
-                                                className="border border-zinc-200 p-2 text-xs outline-none focus:ring-1 focus:ring-zinc-900 bg-white"
+                                                className="h-7 border border-[#d1d5db] px-2 text-[12px] font-normal outline-none focus:border-[#0067c0] bg-white rounded"
                                                 placeholder="Ej: 60"
                                             />
                                         </div>
-                                        <div className="flex flex-col gap-1 w-44">
-                                            <label className="text-[9px] font-medium text-zinc-600 uppercase tracking-widest">Código</label>
+                                        <div className="flex flex-col gap-1 w-36">
+                                            <label className="text-[11px] font-normal text-gray-600">Código</label>
                                             <input
                                                 type="text"
                                                 value={newItemCode}
@@ -795,27 +808,27 @@ const PickingAuditHistory = () => {
                                                     setNewItemCode(e.target.value);
                                                     handleItemCodeLookup(e.target.value);
                                                 }}
-                                                className="border border-zinc-200 p-2 text-xs outline-none focus:ring-1 focus:ring-zinc-900 bg-white font-mono"
+                                                className="h-7 border border-[#d1d5db] px-2 text-[12px] font-normal outline-none focus:border-[#0067c0] bg-white font-mono rounded"
                                                 placeholder="Ej: 73411217"
                                             />
                                         </div>
                                         <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
-                                            <label className="text-[9px] font-medium text-zinc-600 uppercase tracking-widest">Descripción</label>
+                                            <label className="text-[11px] font-normal text-gray-600">Descripción</label>
                                             <input
                                                 type="text"
                                                 value={newItemDesc}
                                                 onChange={e => setNewItemDesc(e.target.value)}
-                                                className="border border-zinc-200 p-2 text-xs outline-none focus:ring-1 focus:ring-zinc-900 bg-white"
+                                                className="h-7 border border-[#d1d5db] px-2 text-[12px] font-normal outline-none focus:border-[#0067c0] bg-white rounded"
                                                 placeholder="Descripción del artículo"
                                             />
                                         </div>
                                         <div className="flex flex-col gap-1 w-24">
-                                            <label className="text-[9px] font-medium text-zinc-600 uppercase tracking-widest">Cant. Req.</label>
+                                            <label className="text-[11px] font-normal text-gray-600">Cant. Req.</label>
                                             <input
                                                 type="number"
                                                 value={newItemQtyReq}
                                                 onChange={e => setNewItemQtyReq(e.target.value)}
-                                                className="border border-zinc-200 p-2 text-xs outline-none focus:ring-1 focus:ring-zinc-900 bg-white font-mono"
+                                                className="h-7 border border-[#d1d5db] px-2 text-[12px] font-normal outline-none focus:border-[#0067c0] bg-white font-mono rounded"
                                                 placeholder="Ej: 5"
                                             />
                                         </div>
@@ -823,7 +836,7 @@ const PickingAuditHistory = () => {
                                             <button
                                                 type="button"
                                                 onClick={handleConfirmAddItem}
-                                                className="px-5 py-2 bg-zinc-900 text-white text-[10px] font-medium uppercase tracking-widest hover:bg-zinc-800 h-9 transition-colors"
+                                                className="h-7 px-3 bg-[#0067c0] hover:bg-[#005a9e] text-white text-[12px] font-normal rounded transition-colors cursor-pointer"
                                             >
                                                 Confirmar
                                             </button>
@@ -833,7 +846,7 @@ const PickingAuditHistory = () => {
                                                     setIsAddingItem(false);
                                                     resetNewItemForm();
                                                 }}
-                                                className="px-4 py-2 text-[10px] font-medium uppercase tracking-widest text-zinc-600 hover:text-zinc-900 h-9 transition-colors"
+                                                className="h-7 px-3 bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] text-[#1f1f1f] text-[12px] font-normal rounded transition-colors cursor-pointer"
                                             >
                                                 Cancelar
                                             </button>
@@ -842,9 +855,9 @@ const PickingAuditHistory = () => {
                                 )}
                             </div>
                         </div>
-                        <div className="flex justify-end gap-4 pt-8 border-t border-zinc-100">
-                            <button onClick={() => setIsEditModalOpen(false)} className="px-8 py-2 text-[11px] font-medium  uppercase tracking-widest text-zinc-600 hover:text-zinc-900">Cancelar</button>
-                            <button onClick={handleSaveEdit} className="px-10 py-2 bg-zinc-900 text-white text-[11px] font-medium  uppercase tracking-widest hover:bg-zinc-800 disabled:bg-zinc-100" disabled={isSubmitting}>
+                        <div className="px-4 py-3 bg-[#f8f9fa] border-t border-[#e5e7eb] flex justify-end gap-2">
+                            <button onClick={() => setIsEditModalOpen(false)} className="h-7 px-3 bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] text-[#1f1f1f] text-[12px] font-normal rounded transition-colors cursor-pointer">Cancelar</button>
+                            <button onClick={handleSaveEdit} className="h-7 px-4 bg-[#0067c0] hover:bg-[#005a9e] text-white text-[12px] font-normal rounded transition-colors cursor-pointer disabled:opacity-50" disabled={isSubmitting}>
                                 {isSubmitting ? 'Guardando...' : 'Publicar Cambios'}
                             </button>
                         </div>

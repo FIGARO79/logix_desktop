@@ -73,7 +73,7 @@ const LabelPrinting = () => {
             };
             const res = await printSandvikLabelSilent(payload, cfg.default_label_printer);
             if (res.success) {
-                toast.success(`🖨️ Etiqueta enviada a: ${cfg.default_label_printer || 'Predeterminada'}`);
+                toast.success(`Etiqueta enviada a: ${cfg.default_label_printer || 'Predeterminada'}`);
                 return;
             } else {
                 toast.warn(`Fallo en impresión silenciosa (${res.error}), abriendo diálogo...`);
@@ -176,23 +176,23 @@ const LabelPrinting = () => {
     const totalWeight = itemData ? (parseFloat(itemData.weight || 0) * parseInt(quantity || 1)).toFixed(2) : '0.00';
 
     return (
-        <div className="container-wrapper px-4 py-4">
+        <div className="max-w-[1920px] mx-auto px-4 py-3 font-['Segoe_UI',Tahoma,sans-serif] bg-[#f8f9fa] min-h-screen text-[#1f1f1f] text-[12px]">
             <ToastContainer position="top-right" autoClose={3000} />
             {scannerOpen && <ScannerModal onClose={() => setScannerOpen(false)} onScan={handleScan} />}
             <PrinterSettingsModal isOpen={printerModalOpen} onClose={() => setPrinterModalOpen(false)} />
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-4">
 
                 {/* Form Column */}
-                <div className="lg:col-span-2 space-y-3 bg-white p-4 rounded shadow-sm border border-gray-200">
-                    <div className="bg-zinc-50 border-b border-zinc-200 px-4 py-2 -mx-4 -mt-4 rounded-t flex justify-between items-center mb-3">
-                        <h2 className="text-[12px] font-semibold text-black uppercase tracking-wider">
+                <div className="lg:col-span-2 space-y-3 bg-white p-4 rounded border border-[#e5e7eb] shadow-xs">
+                    <div className="border-b border-[#e5e7eb] pb-2 mb-3">
+                        <h2 className="text-[12px] font-normal text-[#1f1f1f] uppercase tracking-normal">
                             Imprimir Etiqueta
                         </h2>
                     </div>
 
                     <div>
-                        <label className="form-label font-normal text-black">Item Code</label>
+                        <label className="block text-[12px] font-normal text-[#374151] mb-1">Item Code</label>
                         <div className="flex items-center gap-2">
                             <input
                                 ref={itemCodeInputRef}
@@ -200,74 +200,69 @@ const LabelPrinting = () => {
                                 value={itemCode}
                                 onChange={(e) => setItemCode(e.target.value.toUpperCase())}
                                 onKeyDown={(e) => e.key === 'Enter' && findItem()}
-                                className="font-normal text-black border border-zinc-400 focus:border-black outline-none uppercase flex-grow h-[30px] px-2 rounded"
+                                className="h-7 px-2 text-[12px] font-normal border border-[#d1d5db] rounded outline-none focus:border-[#0067c0] bg-white text-[#1f1f1f] uppercase flex-grow"
                                 placeholder="Ingrese código o escanee GS1/QR"
                                 autoFocus
                             />
                             <button
                                 type="button"
                                 onClick={() => setScannerOpen(true)}
-                                className="h-[30px] px-3 bg-zinc-700 text-white rounded hover:bg-zinc-800 transition-colors flex items-center justify-center flex-shrink-0"
+                                className="h-7 px-2.5 bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] text-[#1f1f1f] rounded transition-colors flex items-center justify-center flex-shrink-0 cursor-pointer shadow-xs"
                                 title="Escanear con cámara"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
                                     <path d="M10.5 8.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/>
                                     <path d="M2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4H2zm.5 2a.5.5 0 1 1 0-1 .5.5 0 0 1 0 1zm9 2.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0z"/>
                                 </svg>
                             </button>
                             <button
                                 onClick={() => findItem()}
-                                className="h-[30px] px-4 text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-2 uppercase tracking-widest active:scale-95 transition-all flex-shrink-0"
-                                style={{ background: '#285f94' }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#1e4a74'}
-                                onMouseLeave={e => e.currentTarget.style.background = '#285f94'}
+                                className="h-7 px-3 bg-[#0067c0] hover:bg-[#005a9e] text-white text-[12px] font-normal rounded transition-colors flex items-center justify-center gap-1.5 flex-shrink-0 cursor-pointer shadow-xs"
                                 disabled={loading}
                             >
-                                {loading ? '...' : (
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
-                                    </svg>
-                                )}
+                                {loading ? '...' : 'Buscar'}
                             </button>
                         </div>
                     </div>
 
-                    <div className="mb-2">
-                        <label className="form-label font-normal text-black">Item Description</label>
-                        <div className="data-field font-normal text-black border-b border-gray-200 pb-1">{itemData?.description || ''}</div>
+                    <div>
+                        <label className="block text-[12px] font-normal text-[#374151] mb-1">Item Description</label>
+                        <div className="h-7 px-2 text-[12px] font-normal border border-[#e5e7eb] bg-[#f9fafb] rounded text-[#1f1f1f] flex items-center">{itemData?.description || '-'}</div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <div>
-                            <label className="form-label font-normal text-black">Quantity Per Pack</label>
+                            <label className="block text-[12px] font-normal text-[#374151] mb-1">Quantity Per Pack</label>
                             <input
                                 type="number"
                                 value={quantity}
                                 onChange={(e) => setQuantity(e.target.value)}
                                 min="1"
-                                className="font-normal text-base text-black border border-zinc-400 focus:border-black outline-none w-full h-[30px] px-2 rounded"
+                                className="w-full h-7 px-2 text-[12px] font-normal border border-[#d1d5db] rounded outline-none focus:border-[#0067c0] bg-white text-[#1f1f1f]"
                             />
                         </div>
                         <div>
-                            <label className="form-label font-normal text-black">Bin Location</label>
-                            <div className="data-field font-normal text-blue-800 bg-blue-50 px-2 py-1 rounded border border-blue-100" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.binLocation || ''}</div>
+                            <label className="block text-[12px] font-normal text-[#374151] mb-1">Bin Location</label>
+                            <div className="h-7 px-2 text-[12px] font-normal border border-[#bfdbfe] bg-[#eff6ff] text-[#1e40af] rounded flex items-center">{itemData?.binLocation || '-'}</div>
                         </div>
                         <div>
-                            <label className="form-label font-normal text-black">Additional Bins</label>
-                            <div className="data-field text-xs font-normal text-black bg-zinc-50 px-2 py-0.5 rounded" style={{ padding: '0.25rem', height: '30px', minHeight: '30px' }}>{itemData?.aditionalBins || ''}</div>
+                            <label className="block text-[12px] font-normal text-[#374151] mb-1">Additional Bins</label>
+                            <div className="h-7 px-2 text-[12px] font-normal border border-[#e5e7eb] bg-[#f9fafb] text-[#1f1f1f] rounded flex items-center">{itemData?.aditionalBins || '-'}</div>
                         </div>
                     </div>
                 </div>
 
                 {/* Label Preview Column */}
-                <div className="lg:col-span-1 bg-white p-3 rounded shadow-sm border border-gray-200 flex flex-col justify-between max-w-sm mx-auto w-full">
-                    <h2 className="text-[12px] font-semibold text-black uppercase tracking-wider mb-2 border-b border-zinc-100 pb-1.5 flex items-center gap-1.5">
-                        Vista Previa
-                    </h2>
+                <div className="lg:col-span-1 bg-white p-4 rounded border border-[#e5e7eb] shadow-xs flex flex-col justify-between max-w-sm mx-auto w-full">
+                    <div className="border-b border-[#e5e7eb] pb-2 mb-3">
+                        <h2 className="text-[12px] font-normal text-[#1f1f1f] uppercase tracking-normal">
+                            Vista Previa
+                        </h2>
+                    </div>
 
                     {/* Print Area Preview */}
-                    <div className="flex-grow flex flex-col justify-center items-center py-1">
-                        <div className="border border-zinc-200 p-0 rounded bg-zinc-50 shadow-inner transform origin-center">
+                    <div className="flex-grow flex flex-col justify-center items-center py-2">
+                        <div className="border border-[#e5e7eb] p-0 rounded bg-white shadow-xs transform origin-center">
                             <div ref={labelComponentRef} className="bg-white">
                                 <SandvikLabel 
                                     data={itemData} 
@@ -279,24 +274,21 @@ const LabelPrinting = () => {
                         </div>
                     </div>
 
-                    <div className="w-full flex items-center justify-center gap-2 mt-2">
+                    <div className="w-full flex items-center justify-center gap-2 mt-3 pt-3 border-t border-[#f3f4f6]">
                         <button
                             type="button"
                             onClick={() => setPrinterModalOpen(true)}
-                            className="h-[30px] px-2.5 text-[10px] text-zinc-700 bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 rounded-lg shadow-sm flex items-center justify-center gap-1 font-medium transition-colors cursor-pointer"
+                            className="h-7 px-3 text-[12px] font-normal text-[#1f1f1f] bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] rounded shadow-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                             title="Configurar Impresora Predeterminada e Impresión Silenciosa"
                         >
-                            ⚙️ Impresora
+                            Impresora
                         </button>
                         <button
                             onClick={handlePrintClick}
                             disabled={!itemData}
-                            className={`h-[30px] px-5 text-[10px] text-white rounded-lg shadow-sm flex items-center justify-center gap-1.5 uppercase font-medium active:scale-95 transition-all cursor-pointer ${!itemData ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            style={{ background: '#285f94' }}
-                            onMouseEnter={e => itemData && (e.currentTarget.style.background = '#1e4a74')}
-                            onMouseLeave={e => itemData && (e.currentTarget.style.background = '#285f94')}
+                            className={`h-7 px-3.5 text-[12px] font-normal text-white bg-[#0067c0] hover:bg-[#005a9e] rounded shadow-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${!itemData ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
-                            🖨️ Imprimir Etiqueta
+                            Imprimir Etiqueta
                         </button>
                     </div>
                 </div>

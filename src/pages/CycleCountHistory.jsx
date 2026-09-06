@@ -179,101 +179,109 @@ const CycleCountHistory = () => {
     const visibleRecordings = filteredRecordings.slice(0, displayCount);
 
     return (
-        <div className="w-full h-[calc(100vh-110px)] flex flex-col font-sans text-[#333] gap-1 mt-2">
-            {/* Header bar similiar to screenshot */}
-            <div className="bg-white border-b border-gray-100 px-6 py-2 flex justify-end items-center z-20">
-                <div className="flex gap-3">
+        <div className="w-full h-[calc(100vh-110px)] flex flex-col font-['Segoe_UI',Tahoma,sans-serif] text-[#1f1f1f] bg-[#f8f9fa]">
+            {/* Header bar con controles Fluent UI */}
+            <div className="bg-white border-b border-[#d1d5db] px-4 py-2 flex justify-between items-center z-20 shadow-sm">
+                <div>
+                    <h1 className="text-[14px] font-normal text-[#1f1f1f] m-0">Historial de Conteos Cíclicos</h1>
+                    <span className="text-[11px] font-normal text-[#5c5c5c]">Registro histórico y auditoría de grabaciones de inventario</span>
+                </div>
+                <div className="flex items-center gap-2">
                     <input
                         type="text"
-                        placeholder="Buscar..."
-                        className="border border-gray-300 px-3 py-1.5 rounded text-sm w-64 focus:outline-none focus:border-[#285f94]"
+                        placeholder="Buscar por código, descripción o usuario..."
+                        className="h-7 px-2 border border-[#d1d5db] rounded text-[12px] font-normal text-[#1f1f1f] w-72 focus:outline-none focus:border-[#0067c0] bg-white"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                     <button
                         onClick={handleExport}
-                        className="bg-white border border-[#285f94] text-[#285f94] hover:bg-blue-50 px-4 py-1.5 rounded text-sm font-medium flex items-center gap-2 transition-colors"
+                        className="h-7 px-3 bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] text-[#1f1f1f] text-[12px] font-normal rounded transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" /></svg>
-                        Exportar
+                        <svg className="w-3.5 h-3.5 text-[#5c5c5c]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l2.914 2.914a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span>Exportar</span>
                     </button>
-                    {/* Add Back button just in case */}
-                    <button onClick={() => navigate('/counts')} className="text-gray-500 hover:text-gray-700">
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    <button
+                        onClick={() => navigate('/counts')}
+                        className="h-7 px-3 bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] text-[#5c5c5c] hover:text-[#1f1f1f] text-[12px] font-normal rounded transition-colors cursor-pointer"
+                    >
+                        Volver
                     </button>
                 </div>
             </div>
 
-            <div className="flex-1 overflow-auto px-6 pb-4 pt-0 relative">
-                {loading && <div className="text-center p-8 text-sm text-gray-500">Cargando datos...</div>}
-                {error && <div className="bg-red-100 text-red-700 p-3 rounded text-sm mb-4">{error}</div>}
+            <div className="flex-1 overflow-auto px-4 pb-4 pt-2 relative">
+                {loading && <div className="text-center p-8 text-[12px] font-normal text-[#5c5c5c]">Cargando datos...</div>}
+                {error && <div className="bg-[#fef2f2] border border-[#fecaca] text-[#991b1b] p-3 rounded text-[12px] font-normal mb-4">{error}</div>}
 
                 {!loading && !error && (
-                    <table className="min-w-max text-left border-collapse bg-white shadow-sm text-[11px] leading-tight">
-                        <thead className="bg-[#34495e] text-white sticky top-0 z-20 shadow">
-                            <tr>
-                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">SR</th>
-                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">ITEM CODE</th>
-                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap max-w-xs">DESCRIPTION</th>
-                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">ITEM TYPE</th>
-                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">CLASS</th>
-                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">GROUP</th>
-                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">SIC (CO)</th>
-                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">SIC (SR)</th>
-                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-right">WEIGHT</th>
-                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-center">ABC</th>
-                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">BIN</th>
-                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-right">SYS STOCK</th>
-                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-right">COUNTED</th>
-                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-right">DIFF</th>
-                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-right">VALUE (DIFF)</th>
-                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-right">ITEM COST</th>
-                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-right">COUNT VALUE</th>
-                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-right">DATE</th>
-                                <th className="px-3 py-3 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">USER</th>
+                    <table className="min-w-max text-left border-collapse bg-white shadow-sm text-[11.5px]">
+                        <thead className="bg-[#354a5f] text-white sticky top-0 z-20">
+                            <tr className="border-b border-[#2a3c4e]">
+                                <th className="px-3 py-2 text-[11px] font-normal whitespace-nowrap">SR</th>
+                                <th className="px-3 py-2 text-[11px] font-normal whitespace-nowrap">Código</th>
+                                <th className="px-3 py-2 text-[11px] font-normal whitespace-nowrap max-w-xs">Descripción</th>
+                                <th className="px-3 py-2 text-[11px] font-normal whitespace-nowrap">Tipo</th>
+                                <th className="px-3 py-2 text-[11px] font-normal whitespace-nowrap">Clase</th>
+                                <th className="px-3 py-2 text-[11px] font-normal whitespace-nowrap">Grupo</th>
+                                <th className="px-3 py-2 text-[11px] font-normal whitespace-nowrap">SIC (CO)</th>
+                                <th className="px-3 py-2 text-[11px] font-normal whitespace-nowrap">SIC (SR)</th>
+                                <th className="px-3 py-2 text-[11px] font-normal whitespace-nowrap text-right">Peso</th>
+                                <th className="px-3 py-2 text-[11px] font-normal whitespace-nowrap text-center">ABC</th>
+                                <th className="px-3 py-2 text-[11px] font-normal whitespace-nowrap">Ubicación</th>
+                                <th className="px-3 py-2 text-[11px] font-normal whitespace-nowrap text-right">Stock Sis</th>
+                                <th className="px-3 py-2 text-[11px] font-normal whitespace-nowrap text-right">Físico</th>
+                                <th className="px-3 py-2 text-[11px] font-normal whitespace-nowrap text-right">Dif</th>
+                                <th className="px-3 py-2 text-[11px] font-normal whitespace-nowrap text-right">Valor Dif</th>
+                                <th className="px-3 py-2 text-[11px] font-normal whitespace-nowrap text-right">Costo Item</th>
+                                <th className="px-3 py-2 text-[11px] font-normal whitespace-nowrap text-right">Valor Conteo</th>
+                                <th className="px-3 py-2 text-[11px] font-normal whitespace-nowrap text-right">Fecha</th>
+                                <th className="px-3 py-2 text-[11px] font-normal whitespace-nowrap">Usuario</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-[#e5e7eb]">
                             {visibleRecordings.map((rec, idx) => (
-                                <tr key={`rec-${rec.id || idx}`} className={`hover:bg-blue-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
-                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">{rec.stockroom}</td>
-                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">
-                                        <span className="text-[#285f94] font-medium hover:underline cursor-pointer">{rec.item_code}</span>
+                                <tr key={`rec-${rec.id || idx}`} className={`hover:bg-[#edf3f9] transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-[#fafafa]'}`}>
+                                    <td className="px-3 py-1.5 text-[11.5px] font-normal whitespace-nowrap text-[#5c5c5c]">{rec.stockroom}</td>
+                                    <td className="px-3 py-1.5 text-[11.5px] font-normal whitespace-nowrap">
+                                        <span className="text-[#0067c0] hover:underline cursor-pointer">{rec.item_code}</span>
                                     </td>
-                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap truncate max-w-xs" title={rec.description}>{rec.description}</td>
-                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">{rec.item_type}</td>
-                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">{rec.item_class}</td>
-                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">{rec.item_group}</td>
-                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">{rec.sic_company}</td>
-                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap">{rec.sic_stockroom}</td>
-                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-right">{rec.weight}</td>
-                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-center">{rec.abc_code}</td>
-                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-left">{rec.bin_location}</td>
-                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-center">{rec.system_qty}</td>
-                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-center">{rec.physical_qty}</td>
-                                    <td className={`px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-center ${rec.difference !== 0 ? 'text-red-600' : 'text-gray-300'}`}>
+                                    <td className="px-3 py-1.5 text-[11.5px] font-normal whitespace-nowrap truncate max-w-xs text-[#1f1f1f]" title={rec.description}>{rec.description}</td>
+                                    <td className="px-3 py-1.5 text-[11.5px] font-normal whitespace-nowrap text-[#5c5c5c]">{rec.item_type}</td>
+                                    <td className="px-3 py-1.5 text-[11.5px] font-normal whitespace-nowrap text-[#5c5c5c]">{rec.item_class}</td>
+                                    <td className="px-3 py-1.5 text-[11.5px] font-normal whitespace-nowrap text-[#5c5c5c]">{rec.item_group}</td>
+                                    <td className="px-3 py-1.5 text-[11.5px] font-normal whitespace-nowrap text-[#5c5c5c]">{rec.sic_company}</td>
+                                    <td className="px-3 py-1.5 text-[11.5px] font-normal whitespace-nowrap text-[#5c5c5c]">{rec.sic_stockroom}</td>
+                                    <td className="px-3 py-1.5 text-[11.5px] font-normal whitespace-nowrap text-right text-[#5c5c5c]">{rec.weight}</td>
+                                    <td className="px-3 py-1.5 text-[11.5px] font-normal whitespace-nowrap text-center text-[#1f1f1f]">{rec.abc_code}</td>
+                                    <td className="px-3 py-1.5 text-[11.5px] font-normal whitespace-nowrap text-left font-mono text-[#5c5c5c]">{rec.bin_location}</td>
+                                    <td className="px-3 py-1.5 text-[11.5px] font-normal whitespace-nowrap text-right text-[#1f1f1f]">{rec.system_qty}</td>
+                                    <td className="px-3 py-1.5 text-[11.5px] font-normal whitespace-nowrap text-right text-[#1f1f1f]">{rec.physical_qty}</td>
+                                    <td className={`px-3 py-1.5 text-[11.5px] font-normal whitespace-nowrap text-right ${rec.difference !== 0 ? 'text-[#991b1b]' : 'text-[#8c8c8c]'}`}>
                                         {rec.difference}
                                     </td>
-                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-right">{formatMoney(rec.value_diff)}</td>
-                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-right">{formatMoney(rec.cost)}</td>
-                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-right">{formatMoney(rec.count_value)}</td>
-                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-center">
+                                    <td className="px-3 py-1.5 text-[11.5px] font-normal whitespace-nowrap text-right text-[#1f1f1f]">{formatMoney(rec.value_diff)}</td>
+                                    <td className="px-3 py-1.5 text-[11.5px] font-normal whitespace-nowrap text-right text-[#5c5c5c]">{formatMoney(rec.cost)}</td>
+                                    <td className="px-3 py-1.5 text-[11.5px] font-normal whitespace-nowrap text-right text-[#1f1f1f]">{formatMoney(rec.count_value)}</td>
+                                    <td className="px-3 py-1.5 text-[11.5px] font-normal whitespace-nowrap text-right text-[#5c5c5c]">
                                         {formatDate(rec.executed_date)}
                                     </td>
-                                    <td className="px-3 py-2 text-[12px] font-normal  uppercase tracking-wider whitespace-nowrap text-center">{rec.username}</td>
+                                    <td className="px-3 py-1.5 text-[11.5px] font-normal whitespace-nowrap text-[#5c5c5c]">{rec.username}</td>
                                 </tr>
                             ))}
                             {/* Sentinel element para detectar scroll */}
                             {displayCount < filteredRecordings.length && (
                                 <tr ref={observerTarget}>
-                                    <td colSpan="19" className="px-4 py-4 text-center text-gray-400 text-xs">
+                                    <td colSpan="19" className="px-4 py-3 text-center text-[#5c5c5c] text-[11px] font-normal">
                                         Cargando más registros... ({displayCount} de {filteredRecordings.length})
                                     </td>
                                 </tr>
                             )}
                             {filteredRecordings.length === 0 && (
                                 <tr>
-                                    <td colSpan="19" className="px-4 py-12 text-center text-gray-400">
+                                    <td colSpan="19" className="px-4 py-8 text-center text-[#5c5c5c] text-[12px] font-normal">
                                         No se encontraron registros que coincidan con la búsqueda.
                                     </td>
                                 </tr>

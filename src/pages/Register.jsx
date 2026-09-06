@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { isTauri, tauriRegisterUser } from '../utils/tauriBridge';
 
 const Register = () => {
@@ -56,61 +56,67 @@ const Register = () => {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100">
-            <div className="px-8 py-6 mt-4 text-left bg-white shadow-lg rounded-lg w-full max-w-md">
-                <div className="flex justify-center mb-6">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-[#285f94]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                    </svg>
+        <div className="min-h-screen flex items-center justify-center bg-[#f3f4f6] p-4 font-['Segoe_UI',Tahoma,sans-serif] text-[#1f1f1f]">
+            <div className="bg-white p-7 rounded border border-[#e5e7eb] shadow-sm w-full max-w-sm">
+                <div className="text-center mb-5">
+                    <span className="text-[11px] font-normal text-[#6b7280] uppercase tracking-normal block mb-1">Logix Desktop</span>
+                    <h1 className="text-[18px] font-normal text-[#1f1f1f]">Registro de Cuenta</h1>
                 </div>
-                <h3 className="text-2xl font-medium text-gray-900 text-center text-gray-800">Registro de Cuenta</h3>
-                <p className="mt-2 text-sm text-center text-gray-600">Únete al sistema Logix</p>
 
-                {message && <div className="mt-4 p-3 bg-green-100 text-green-700 rounded text-sm">{message}</div>}
-                {error && <div className="mt-4 p-3 bg-red-100 text-red-700 rounded text-sm">{error}</div>}
+                {message && (
+                    <div className="bg-[#f0fdf4] border border-[#bbf7d0] text-[#166534] text-[12px] font-normal px-3 py-2 rounded mb-4">
+                        {message}
+                    </div>
+                )}
+                {error && (
+                    <div className="bg-[#fef2f2] border border-[#fecaca] text-[#b91c1c] text-[12px] font-normal px-3 py-2 rounded mb-4">
+                        {error}
+                    </div>
+                )}
 
-                <form onSubmit={handleSubmit} className="mt-6">
+                <form onSubmit={handleSubmit} className="space-y-3.5">
                     <div>
-                        <label className="block text-sm font-medium text-gray-900 text-gray-700">Usuario</label>
+                        <label className="block text-[12px] font-normal text-[#374151] mb-1">Usuario</label>
                         <input
                             type="text"
                             name="username"
                             required
-                            className="w-full px-4 py-2 mt-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-[#285f94]"
+                            className="w-full h-8 px-2.5 text-[12px] font-normal border border-[#d1d5db] rounded outline-none focus:border-[#0067c0] bg-white text-[#1f1f1f]"
                             value={formData.username}
                             onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                         />
                     </div>
-                    <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-900 text-gray-700">Contraseña</label>
+                    <div>
+                        <label className="block text-[12px] font-normal text-[#374151] mb-1">Contraseña</label>
                         <input
                             type="password"
                             name="password"
                             required
-                            className="w-full px-4 py-2 mt-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-[#285f94]"
+                            className="w-full h-8 px-2.5 text-[12px] font-normal border border-[#d1d5db] rounded outline-none focus:border-[#0067c0] bg-white text-[#1f1f1f]"
                             value={formData.password}
                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                         />
                     </div>
-                    <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-900 text-gray-700">Confirmar Contraseña</label>
+                    <div>
+                        <label className="block text-[12px] font-normal text-[#374151] mb-1">Confirmar Contraseña</label>
                         <input
                             type="password"
                             name="confirmPassword"
                             required
-                            className="w-full px-4 py-2 mt-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-[#285f94]"
+                            className="w-full h-8 px-2.5 text-[12px] font-normal border border-[#d1d5db] rounded outline-none focus:border-[#0067c0] bg-white text-[#1f1f1f]"
                             value={formData.confirmPassword}
                             onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                         />
                     </div>
-                    <div className="flex items-center justify-between mt-6">
-                        <button type="submit" className="w-full px-6 py-2 leading-5 text-white transition-colors duration-200 transform bg-[#285f94] rounded-md hover:bg-[#1e4a74] focus:outline-none focus:bg-[#1e4a74]">
-                            Registrarse
-                        </button>
-                    </div>
+                    <button
+                        type="submit"
+                        className="w-full h-8 bg-[#0067c0] hover:bg-[#005a9e] text-white text-[12px] font-normal rounded transition-colors cursor-pointer shadow-xs"
+                    >
+                        Registrarse
+                    </button>
                 </form>
-                <div className="mt-6 text-center">
-                    <a href="/login" className="text-sm text-[#285f94] hover:underline">¿Ya tienes cuenta? Inicia sesión</a>
+                <div className="pt-4 text-center text-[12px]">
+                    <Link to="/login" className="text-[#0067c0] hover:underline font-normal">¿Ya tienes cuenta? Inicia sesión</Link>
                 </div>
             </div>
         </div>
