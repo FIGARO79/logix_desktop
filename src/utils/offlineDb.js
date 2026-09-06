@@ -209,7 +209,20 @@ export const getGRNExpectedQty = async (db, itemCode, importRef) => {
  */
 export const getGRNExpectedQtyBulk = async (db, items) => {
     if (!items || items.length === 0) return {};
-    if (isTauri()) return {}; // En Tauri se resuelve directamente desde Rust
+    if (isTauri()) {
+        try {
+            const { invoke } = await import('@tauri-apps/api/tauri');
+            const mappedItems = items.map(it => ({
+                item_code: it.itemCode || it.item_code || '',
+                import_ref: it.importRef || it.import_ref || ''
+            }));
+            const res = await invoke('get_inbound_expected_bulk', { items: mappedItems });
+            return res || {};
+        } catch (tErr) {
+            console.error("Error en getGRNExpectedQtyBulk desde Tauri:", tErr);
+            return {};
+        }
+    }
     const resultMap = {};
 
     try {

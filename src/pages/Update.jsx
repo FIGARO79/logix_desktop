@@ -47,20 +47,24 @@ const Update = () => {
         });
     }, []);
 
-    const fetchSyncStatus = async () => {
+    const fetchSyncStatus = useCallback(async () => {
         try {
             if (isTauri()) {
                 const statusMap = await callTauriCommand('get_sync_status');
-                if (statusMap && typeof statusMap === 'object') {
+                if (statusMap && typeof statusMap === 'object' && Object.keys(statusMap).length > 0) {
                     setSyncStatus(statusMap);
+                    localStorage.setItem('logix_last_sync_status', JSON.stringify(statusMap));
                     return;
                 }
             }
             const res = await fetch('/api/sync/status').catch(() => null);
             if (res && res.ok) {
                 const data = await res.json();
-                setSyncStatus(data);
-                return;
+                if (data && typeof data === 'object') {
+                    setSyncStatus(data);
+                    localStorage.setItem('logix_last_sync_status', JSON.stringify(data));
+                    return;
+                }
             }
             const db = await getDB();
             const allMeta = await db.getAll('sync_metadata');
@@ -70,11 +74,38 @@ const Update = () => {
                     statusMap[m.key] = typeof m.value === 'number' && m.value > 10000000000 ? Math.floor(m.value / 1000) : m.value;
                 }
             });
-            setSyncStatus(statusMap);
+            if (Object.keys(statusMap).length > 0) {
+                setSyncStatus(statusMap);
+                localStorage.setItem('logix_last_sync_status', JSON.stringify(statusMap));
+            } else {
+                const cached = localStorage.getItem('logix_last_sync_status');
+                if (cached) {
+                    try {
+                        setSyncStatus(JSON.parse(cached));
+                    } catch (e) {}
+                }
+            }
         } catch (err) {
             console.error("Error fetching sync status:", err);
+            const cached = localStorage.getItem('logix_last_sync_status');
+            if (cached) {
+                try {
+                    setSyncStatus(JSON.parse(cached));
+                } catch (e) {}
+            }
         }
-    };
+    }, []);
+
+    // Cargar siempre el estado de última actualización al entrar o refrescar la página
+    useEffect(() => {
+        const cached = localStorage.getItem('logix_last_sync_status');
+        if (cached) {
+            try {
+                setSyncStatus(JSON.parse(cached));
+            } catch (e) {}
+        }
+        fetchSyncStatus();
+    }, [fetchSyncStatus]);
 
     const formatTimestamp = (timestamp) => {
         if (!timestamp || timestamp === 0) return 'SIN DATOS';

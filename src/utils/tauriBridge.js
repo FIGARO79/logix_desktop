@@ -685,7 +685,21 @@ export const processLocalCSVUpload = async (file, selectedGrns = [], updateOptio
                     let item_code = getCol(row, 'item_code', 'item', 'item_no', 'sku', 'material', 'codigo', 'codigo_articulo', 'articulo', 'itemcode').toUpperCase().trim();
                     let qty = getCol(row, 'despatched_qty', 'despatched_quantity', 'qty', 'quantity', 'cantidad', 'cant', 'despachado', 'qty_despachada') || '0';
                     let grn = getCol(row, 'grn_number', 'grn', 'grn_no', 'pedido_grn', 'recepcion', 'grnnumber').toUpperCase().replace(/\//g, ',').trim();
-                    let customer_ref = getCol(row, 'customer_reference', 'customer_ref', 'customer_po', 'purchase_order', 'po_number', 'po', 'order_number', 'order', 'pedido', 'referencia_cliente', 'ref_cliente', 'orden_compra', 'oc').toUpperCase().trim();
+                    let order_line_raw = getCol(row, 'order_line', 'orderline', 'line', 'linea', 'posicion', 'item_line').trim();
+                    let order_line = '';
+                    if (order_line_raw) {
+                        const parsedLine = parseFloat(order_line_raw);
+                        if (!isNaN(parsedLine)) {
+                            order_line = String(Math.floor(parsedLine));
+                        } else {
+                            order_line = order_line_raw;
+                        }
+                    }
+                    let order_number = getCol(row, 'order_number', 'order_no', 'ordernumber', 'po_number', 'po', 'order', 'pedido', 'orden_compra', 'oc').toUpperCase().trim();
+                    let customer_ref = getCol(row, 'customer_reference', 'customer_ref', 'customer_po', 'purchase_order', 'referencia_cliente', 'ref_cliente').toUpperCase().trim();
+                    if (!customer_ref && order_number) {
+                        customer_ref = order_number;
+                    }
 
                     // Limpieza idéntica a process_po_extractor_logic en logix_react:
                     // Requiere que Waybill y Import Ref Code no sean vacíos ni encabezados
@@ -693,7 +707,7 @@ export const processLocalCSVUpload = async (file, selectedGrns = [], updateOptio
                         continue;
                     }
 
-                    const itemObj = { item_code, qty, grn, customer_ref };
+                    const itemObj = { item_code, qty, grn, order_line, order_number, customer_ref };
 
                     // 1. Agrupado por Waybill (wb_to_data)
                     if (!wbLookup[waybill]) {
@@ -928,6 +942,45 @@ export const tauriLookupInboundReference = async (waybill = null, importRef = nu
         }
     }
     return null;
+};
+
+/**
+ * Obtiene los datos consolidados de IR para el tablero (Prioridad Reporte 280, Fallback PO Extractor)
+ */
+export const tauriGetInboundIrStatsData = async (importRef) => {
+    if (isTauri()) {
+        try {
+            return await invoke('get_inbound_ir_stats_data', {
+                importRef: importRef || '',
+                import_ref: importRef || ''
+            });
+        } catch (e) {
+            console.error("Error en get_inbound_ir_stats_data desde Tauri:", e);
+            return null;
+        }
+    }
+    return null;
+};
+
+/**
+ * Obtiene cantidades esperadas masivas para ítems/IRs (Prioridad Reporte 280, Fallback PO Extractor)
+ */
+export const tauriGetInboundExpectedBulk = async (items = []) => {
+    if (isTauri()) {
+        try {
+            const mappedItems = items.map(it => ({
+                item_code: it.itemCode || it.item_code || '',
+                import_ref: it.importRef || it.import_ref || ''
+            }));
+            return await invoke('get_inbound_expected_bulk', {
+                items: mappedItems
+            });
+        } catch (e) {
+            console.error("Error en get_inbound_expected_bulk desde Tauri:", e);
+            return {};
+        }
+    }
+    return {};
 };
 
 /**

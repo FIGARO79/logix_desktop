@@ -143,6 +143,77 @@ pub struct SavedGRNReconciliationDetail {
     pub items: Vec<SavedGRNReconciliationItemRow>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InboundIrStatsExpectedItem {
+    pub item_code: String,
+    pub total_expected: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InboundIrStatsPoItem {
+    pub item_code: String,
+    pub qty: f64,
+    pub grn: String,
+    pub customer_ref: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InboundIrStatsResponse {
+    pub source: String, // "280" | "po_extractor" | "none"
+    pub expected_items: Vec<InboundIrStatsExpectedItem>,
+    pub po_items: Vec<InboundIrStatsPoItem>,
+    pub associated_grns: Vec<String>,
+    pub grn_detail_expected: HashMap<String, HashMap<String, f64>>,
+    pub waybill: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InboundExpectedQueryItem {
+    pub item_code: String,
+    pub import_ref: String,
+}
+
+pub fn strip_ir_prefix(s: &str) -> &str {
+    let t = s.trim();
+    if t.starts_with("IR-") || t.starts_with("IR_") || t.starts_with("IR ") {
+        &t[3..]
+    } else if t.starts_with("IR") || t.starts_with("ir") {
+        &t[2..]
+    } else if t.starts_with("REF-") || t.starts_with("PO-") || t.starts_with("ref-") || t.starts_with("po-") {
+        &t[4..]
+    } else {
+        t
+    }
+}
+
+pub fn match_ref_rust(val1: &str, val2: &str) -> bool {
+    let s1 = val1.trim().to_uppercase();
+    let s2 = val2.trim().to_uppercase();
+    if s1.is_empty() || s2.is_empty() {
+        return false;
+    }
+    if s1 == s2 {
+        return true;
+    }
+    let p1 = strip_ir_prefix(&s1);
+    let p2 = strip_ir_prefix(&s2);
+    let c1: String = p1.chars().filter(|c| c.is_alphanumeric()).collect();
+    let c2: String = p2.chars().filter(|c| c.is_alphanumeric()).collect();
+    if !c1.is_empty() && c1 == c2 {
+        return true;
+    }
+    let norm_parts = |s: &str| -> String {
+        s.split(|c: char| !c.is_alphanumeric())
+            .map(|p| p.trim_start_matches('0'))
+            .filter(|p| !p.is_empty())
+            .collect::<Vec<_>>()
+            .join("-")
+    };
+    let n1 = norm_parts(p1);
+    let n2 = norm_parts(p2);
+    !n1.is_empty() && n1 == n2
+}
+
 /// Obtiene todos los logs no archivados (o filtrados por fecha de versión)
 pub fn get_logs_from_db(conn: &Connection, version_date: Option<String>) -> Result<Vec<LogInbound>> {
     let sql = if let Some(vd) = version_date {
@@ -441,31 +512,107 @@ pub fn find_item_inbound(
         .unwrap_or_else(|| (code_clean.clone(), "Ítem no catalogado".to_string(), "N/A".to_string(), "".to_string(), 0.0, "0".to_string(), "".to_string()));
 
     // 2. Extraer Expected Breakdown y Default GRN Qty desde JSONs
+    // 2. Extraer Expected Breakdown y Default GRN Qty
+    // REGLA DE NEGOCIO: La cantidad esperada DEBE tomarse prioritariamente del Reporte 280 (grn_master_data.json)
+    // y solo recurrir a po_lookup.json como fallback secundario si no existen registros en el 280.
     let mut expected_breakdown = Vec::new();
     let mut default_qty_grn = 0.0;
     let mut xdock_total = 0.0;
     let mut xdock_customers = Vec::new();
 
-    // Lectura de po_lookup.json
+    let ir_stripped = ir_clean
+        .trim_start_matches("IR-")
+        .trim_start_matches("IR_")
+        .trim_start_matches("IR ")
+        .trim_start_matches("IR")
+        .trim();
+    let clean_ir_alphanumeric: String = ir_clean.chars().filter(|c| c.is_alphanumeric()).collect();
+    let clean_ir_stripped_alphanumeric: String = ir_stripped.chars().filter(|c| c.is_alphanumeric()).collect();
+
+    let mut associated_grns: HashSet<String> = HashSet::new();
+    let mut po_fallback_qty = 0.0;
+    let mut po_fallback_breakdown: Vec<ExpectedBreakdown> = Vec::new();
+
+    // Lectura de po_lookup.json para:
+    // a) Extraer los números de GRN asociados a esta Import Reference
+    // b) Preparar la cantidad esperada de PO como fallback secundario
+    // c) Cargar reservas XDock
     if let Ok(po_data) = std::fs::read_to_string(po_json_path) {
         if let Ok(po_json) = serde_json::from_str::<Value>(&po_data) {
-            // Revisar por IR
+            // Revisar por IR en ir_to_data
             if !ir_clean.is_empty() {
                 if let Some(ir_map) = po_json.get("ir_to_data").and_then(|v| v.as_object()) {
                     for (ir_key, ir_obj) in ir_map {
-                        if ir_key.trim().to_uppercase() == ir_clean {
+                        let k_upper = ir_key.trim().to_uppercase();
+                        let k_stripped = k_upper
+                            .trim_start_matches("IR-")
+                            .trim_start_matches("IR_")
+                            .trim_start_matches("IR ")
+                            .trim_start_matches("IR")
+                            .trim();
+                        let k_clean: String = k_upper.chars().filter(|c| c.is_alphanumeric()).collect();
+                        let k_stripped_clean: String = k_stripped.chars().filter(|c| c.is_alphanumeric()).collect();
+
+                        let is_match = k_upper == ir_clean
+                            || (!ir_stripped.is_empty() && k_stripped == ir_stripped)
+                            || (!clean_ir_alphanumeric.is_empty() && k_clean == clean_ir_alphanumeric)
+                            || (!clean_ir_stripped_alphanumeric.is_empty() && k_stripped_clean == clean_ir_stripped_alphanumeric);
+
+                        if is_match {
                             if let Some(items) = ir_obj.get("items").and_then(|v| v.as_array()) {
                                 for it in items {
+                                    if let Some(grn_val) = it.get("grn").and_then(|v| v.as_str()) {
+                                        for g in grn_val.split(',') {
+                                            let g_clean = g.trim().to_uppercase();
+                                            if !g_clean.is_empty() && g_clean != "N/A" && g_clean != "SIN GRN" {
+                                                associated_grns.insert(g_clean);
+                                            }
+                                        }
+                                    }
+
                                     let c = it.get("item_code").and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
                                     if c == code_clean || c == found_code {
                                         let q = it.get("qty").and_then(|v| v.as_f64()).or_else(|| it.get("qty").and_then(|v| v.as_str()).and_then(|s| s.parse().ok())).unwrap_or(0.0);
                                         let grn = it.get("grn").and_then(|v| v.as_str()).unwrap_or("N/A").to_string();
-                                        default_qty_grn += q;
-                                        expected_breakdown.push(ExpectedBreakdown {
+                                        po_fallback_qty += q;
+                                        po_fallback_breakdown.push(ExpectedBreakdown {
                                             ir: ir_key.clone(),
                                             grn,
                                             qty: q,
                                         });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Revisar también en wb_to_data por si la IR coincide
+                if let Some(wb_map) = po_json.get("wb_to_data").and_then(|v| v.as_object()) {
+                    for (_wb_key, wb_obj) in wb_map {
+                        let obj_ir = wb_obj.get("import_ref").and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+                        let obj_ir_stripped = obj_ir
+                            .trim_start_matches("IR-")
+                            .trim_start_matches("IR_")
+                            .trim_start_matches("IR ")
+                            .trim_start_matches("IR")
+                            .trim();
+                        let obj_ir_clean: String = obj_ir.chars().filter(|c| c.is_alphanumeric()).collect();
+
+                        let is_match = obj_ir == ir_clean
+                            || (!ir_stripped.is_empty() && obj_ir_stripped == ir_stripped)
+                            || (!clean_ir_alphanumeric.is_empty() && obj_ir_clean == clean_ir_alphanumeric);
+
+                        if is_match {
+                            if let Some(items) = wb_obj.get("items").and_then(|v| v.as_array()) {
+                                for it in items {
+                                    if let Some(grn_val) = it.get("grn").and_then(|v| v.as_str()) {
+                                        for g in grn_val.split(',') {
+                                            let g_clean = g.trim().to_uppercase();
+                                            if !g_clean.is_empty() && g_clean != "N/A" && g_clean != "SIN GRN" {
+                                                associated_grns.insert(g_clean);
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -516,28 +663,54 @@ pub fn find_item_inbound(
         }
     }
 
-    // Si aún falta, complementar desde grn_master_data.json
-    if default_qty_grn <= 0.0 && !ir_clean.is_empty() {
+    // PRIORIDAD 1: Buscar cantidad en el Reporte 280 (grn_master_data.json)
+    // El 280 representa las cantidades recepcionadas/confirmadas en GRN por planta
+    if !ir_clean.is_empty() {
         if let Ok(grn_data) = std::fs::read_to_string(grn_json_path) {
             if let Ok(grn_json) = serde_json::from_str::<Value>(&grn_data) {
                 if let Some(arr) = grn_json.as_array() {
                     for row in arr {
-                        let r_ir = row.get("Import_Reference").or_else(|| row.get("import_reference")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
                         let r_item = row.get("Item_Code").or_else(|| row.get("item_code")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
-                        if r_ir == ir_clean && (r_item == code_clean || r_item == found_code) {
-                            let q = row.get("Quantity").or_else(|| row.get("quantity")).and_then(|v| v.as_f64()).unwrap_or(0.0);
-                            let grn = row.get("GRN_Number").or_else(|| row.get("grn_number")).and_then(|v| v.as_str()).unwrap_or("N/A").to_string();
-                            default_qty_grn += q;
-                            expected_breakdown.push(ExpectedBreakdown {
-                                ir: r_ir,
-                                grn,
-                                qty: q,
-                            });
+                        if r_item == code_clean || r_item == found_code {
+                            let grn = row.get("GRN_Number").or_else(|| row.get("grn_number")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+                            let r_ir = row.get("Import_Reference").or_else(|| row.get("import_reference")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+
+                            let mut matches_grn = false;
+                            if !grn.is_empty() && associated_grns.contains(&grn) {
+                                matches_grn = true;
+                            } else if !r_ir.is_empty() {
+                                let r_ir_stripped = r_ir
+                                    .trim_start_matches("IR-")
+                                    .trim_start_matches("IR_")
+                                    .trim_start_matches("IR ")
+                                    .trim_start_matches("IR")
+                                    .trim();
+                                if r_ir == ir_clean || (!ir_stripped.is_empty() && r_ir_stripped == ir_stripped) {
+                                    matches_grn = true;
+                                }
+                            }
+
+                            if matches_grn {
+                                let q = row.get("Quantity").or_else(|| row.get("quantity")).and_then(|v| v.as_f64()).unwrap_or(0.0);
+                                default_qty_grn += q;
+                                expected_breakdown.push(ExpectedBreakdown {
+                                    ir: if !r_ir.is_empty() { r_ir } else { ir_clean.clone() },
+                                    grn: if !grn.is_empty() { grn } else { "N/A".to_string() },
+                                    qty: q,
+                                });
+                            }
                         }
                     }
                 }
             }
         }
+    }
+
+    // PRIORIDAD 2 (FALLBACK): Solo si el ítem NO se encuentra en la GRN (280),
+    // usar las cantidades esperadas provenientes de po_lookup.json
+    if default_qty_grn <= 0.0 && po_fallback_qty > 0.0 {
+        default_qty_grn = po_fallback_qty;
+        expected_breakdown = po_fallback_breakdown;
     }
 
     // 3. Cantidad recibida acumulada en SQLite para calcular xdock_pending
@@ -1061,6 +1234,10 @@ pub struct InboundReconciliationRow {
     pub usuario: String,
     #[serde(rename = "Snapshot_Date")]
     pub snapshot_date: Option<String>,
+    #[serde(rename = "Motivo_Diferencia")]
+    pub motivo_diferencia: Option<String>,
+    #[serde(rename = "Observacion_Operador")]
+    pub observacion_operador: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1219,6 +1396,8 @@ pub fn get_inbound_reconciliation_view(
     let mut ir_item_to_custref: HashMap<(String, String), String> = HashMap::new();
     let mut wb_item_to_custref: HashMap<(String, String), String> = HashMap::new();
     let mut grn_to_custref: HashMap<String, String> = HashMap::new();
+    let mut ir_item_to_order_line: HashMap<(String, String), String> = HashMap::new();
+    let mut wb_item_to_order_line: HashMap<(String, String), String> = HashMap::new();
 
     if let Some(ref po) = po_json {
         if let Some(wb_map) = po.get("wb_to_data").and_then(|v| v.as_object()) {
@@ -1229,7 +1408,7 @@ pub fn get_inbound_reconciliation_view(
                     if let Some(items) = data_obj.get("items").and_then(|v| v.as_array()) {
                         for item in items {
                             let item_code = item.get("item_code").and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
-                            let cust_ref = item.get("customer_ref").or_else(|| item.get("order_number")).or_else(|| item.get("order_line")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+                            let cust_ref = item.get("customer_ref").or_else(|| item.get("order_number")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
                             if !cust_ref.is_empty() {
                                 if !item_code.is_empty() {
                                     item_custref_to_ir_wb.insert((item_code.clone(), cust_ref.clone()), (ir.clone(), wb.clone()));
@@ -1237,8 +1416,28 @@ pub fn get_inbound_reconciliation_view(
                                 }
                                 custref_to_ir_wb.insert(cust_ref.clone(), (ir.clone(), wb.clone()));
                             }
+                            let order_line_val = item.get("order_line")
+                                .or_else(|| item.get("line"))
+                                .or_else(|| item.get("Order_Line"))
+                                .and_then(|v| {
+                                    if let Some(s) = v.as_str() {
+                                        let st = s.trim();
+                                        if !st.is_empty() && st != "-" { Some(st.to_string()) } else { None }
+                                    } else if let Some(n) = v.as_i64() {
+                                        Some(n.to_string())
+                                    } else if let Some(f) = v.as_f64() {
+                                        Some((f as i64).to_string())
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .unwrap_or_default();
+                            if !order_line_val.is_empty() && !item_code.is_empty() {
+                                wb_item_to_order_line.insert((wb.clone(), item_code.clone()), order_line_val.clone());
+                                ir_item_to_order_line.insert((ir.clone(), item_code.clone()), order_line_val.clone());
+                            }
                             if let Some(grn_val) = item.get("grn").and_then(|v| v.as_str()) {
-                                for g in grn_val.split(',') {
+                                for g in grn_val.split(&[',', '/'][..]) {
                                     let g_clean = g.trim().to_uppercase();
                                     if !g_clean.is_empty() {
                                         grn_to_ir_wb.insert(g_clean.clone(), (ir.clone(), wb.clone()));
@@ -1265,7 +1464,7 @@ pub fn get_inbound_reconciliation_view(
                     if let Some(items) = data_obj.get("items").and_then(|v| v.as_array()) {
                         for item in items {
                             let item_code = item.get("item_code").and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
-                            let cust_ref = item.get("customer_ref").or_else(|| item.get("order_number")).or_else(|| item.get("order_line")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+                            let cust_ref = item.get("customer_ref").or_else(|| item.get("order_number")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
                             if !cust_ref.is_empty() {
                                 if !item_code.is_empty() {
                                     item_custref_to_ir_wb.insert((item_code.clone(), cust_ref.clone()), (ir.clone(), wb.clone()));
@@ -1273,8 +1472,30 @@ pub fn get_inbound_reconciliation_view(
                                 }
                                 custref_to_ir_wb.insert(cust_ref.clone(), (ir.clone(), wb.clone()));
                             }
+                            let order_line_val = item.get("order_line")
+                                .or_else(|| item.get("line"))
+                                .or_else(|| item.get("Order_Line"))
+                                .and_then(|v| {
+                                    if let Some(s) = v.as_str() {
+                                        let st = s.trim();
+                                        if !st.is_empty() && st != "-" { Some(st.to_string()) } else { None }
+                                    } else if let Some(n) = v.as_i64() {
+                                        Some(n.to_string())
+                                    } else if let Some(f) = v.as_f64() {
+                                        Some((f as i64).to_string())
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .unwrap_or_default();
+                            if !order_line_val.is_empty() && !item_code.is_empty() {
+                                ir_item_to_order_line.insert((ir.clone(), item_code.clone()), order_line_val.clone());
+                                if !wb.is_empty() {
+                                    wb_item_to_order_line.insert((wb.clone(), item_code.clone()), order_line_val.clone());
+                                }
+                            }
                             if let Some(grn_val) = item.get("grn").and_then(|v| v.as_str()) {
-                                for g in grn_val.split(',') {
+                                for g in grn_val.split(&[',', '/'][..]) {
                                     let g_clean = g.trim().to_uppercase();
                                     if !g_clean.is_empty() {
                                         grn_to_ir_wb.insert(g_clean.clone(), (ir.clone(), wb.clone()));
@@ -1301,19 +1522,8 @@ pub fn get_inbound_reconciliation_view(
                 if !cr_clean.is_empty() && !ir.is_empty() {
                     custref_to_ir_wb.insert(cr_clean.clone(), (ir.clone(), wb.clone()));
                 }
-                if let Some(grns) = data_obj.get("grns").and_then(|v| v.as_array()) {
-                    for g_val in grns {
-                        if let Some(g_str) = g_val.as_str() {
-                            let g_clean = g_str.trim().to_uppercase();
-                            if !g_clean.is_empty() && !ir.is_empty() {
-                                grn_to_ir_wb.insert(g_clean.clone(), (ir.clone(), wb.clone()));
-                                if !cr_clean.is_empty() {
-                                    grn_to_custref.insert(g_clean, cr_clean.clone());
-                                }
-                            }
-                        }
-                    }
-                }
+                // NOTA: Nunca insertar en grn_to_ir_wb desde customer_ref_to_data porque un customer_ref
+                // agrupa órdenes y GRNs de múltiples envíos/IRs diferentes a lo largo del tiempo.
             }
         }
     }
@@ -1324,6 +1534,7 @@ pub fn get_inbound_reconciliation_view(
         item_code: String,
         description: String,
         quantity: f64,
+        #[allow(dead_code)]
         order_number: String,
         order_line: String,
         ir_map: String,
@@ -1334,56 +1545,200 @@ pub fn get_inbound_reconciliation_view(
 
     if let Some(arr) = grn_json.as_ref().and_then(|v| v.as_array()) {
         for row in arr {
-            let grn = row.get("GRN_Number").or_else(|| row.get("grn_number")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+            let grn_raw = row.get("GRN_Number").or_else(|| row.get("grn_number")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
             let item_code = row.get("Item_Code").or_else(|| row.get("item_code")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
             let desc = row.get("Item_Description").or_else(|| row.get("description")).and_then(|v| v.as_str()).unwrap_or("No en sistema 280").trim().to_string();
             let qty = row.get("Quantity").or_else(|| row.get("quantity")).and_then(|v| v.as_f64()).unwrap_or(0.0);
             let order_num = row.get("Order_Number").or_else(|| row.get("order_number")).or_else(|| row.get("customer_ref")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
-            let order_line = row.get("Order_Line").or_else(|| row.get("order_line")).and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+            let order_line = row.get("Order_Line")
+                .or_else(|| row.get("order_line"))
+                .or_else(|| row.get("Line"))
+                .or_else(|| row.get("line"))
+                .and_then(|v| {
+                    if let Some(s) = v.as_str() {
+                        let st = s.trim();
+                        if !st.is_empty() { Some(st.to_string()) } else { None }
+                    } else if let Some(n) = v.as_i64() {
+                        Some(n.to_string())
+                    } else if let Some(f) = v.as_f64() {
+                        Some((f as i64).to_string())
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or_default();
             let explicit_ir = row.get("Import_Reference").or_else(|| row.get("import_reference")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
             let explicit_wb = row.get("Waybill").or_else(|| row.get("waybill")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
 
-            if item_code.is_empty() && grn.is_empty() {
+            if item_code.is_empty() && grn_raw.is_empty() {
                 continue;
             }
 
-            // Asociación con prioridad:
-            // 1. IR Explícito en 280
-            // 2. Mapa por GRN
-            // 3. Tríada (Item_Code, Order_Number / Customer Reference)
-            // 4. Mapa por Order_Number (Customer Ref)
-            // 5. Fallback
-            let (ir_map, wb_map) = if !explicit_ir.is_empty() {
-                let wb = if !explicit_wb.is_empty() {
-                    explicit_wb
-                } else if let Some((_, w)) = grn_to_ir_wb.get(&grn) {
-                    w.clone()
-                } else {
-                    "SIN WAYBILL".to_string()
-                };
-                (explicit_ir, wb)
-            } else if let Some((ir, wb)) = grn_to_ir_wb.get(&grn) {
-                (ir.clone(), wb.clone())
-            } else if !order_num.is_empty() && item_custref_to_ir_wb.contains_key(&(item_code.clone(), order_num.clone())) {
-                let (ir, wb) = item_custref_to_ir_wb.get(&(item_code.clone(), order_num.clone())).unwrap();
-                (ir.clone(), wb.clone())
-            } else if !order_num.is_empty() && custref_to_ir_wb.contains_key(&order_num) {
-                let (ir, wb) = custref_to_ir_wb.get(&order_num).unwrap();
-                (ir.clone(), wb.clone())
+            let grn_parts: Vec<String> = if grn_raw.contains(',') || grn_raw.contains('/') {
+                grn_raw.split(&[',', '/'][..])
+                    .map(|s| s.trim().to_uppercase())
+                    .filter(|s| !s.is_empty() && s != "N/A" && s != "SIN GRN")
+                    .collect()
+            } else if !grn_raw.is_empty() && grn_raw != "N/A" && grn_raw != "SIN GRN" {
+                vec![grn_raw.clone()]
             } else {
-                ("SIN I.R. MAESTRA".to_string(), "SIN WAYBILL".to_string())
+                vec![if grn_raw.is_empty() { "SIN GRN".to_string() } else { grn_raw.clone() }]
             };
 
-            df_280.push(Expected280Line {
-                grn,
-                item_code,
-                description: desc,
-                quantity: qty,
-                order_number: order_num,
-                order_line,
-                ir_map,
-                wb_map,
-            });
+            for grn in grn_parts {
+                // Asociación con prioridad estricta de GRN (replicando logix_react):
+                // 1. IR Explícito en 280
+                // 2. Mapa por GRN (la GRN es la ancla directa del envío/IR)
+                // 3. Solo si la GRN es desconocida ("SIN GRN" / vacía), intentar por tríada o Customer Ref
+                // 4. De lo contrario, SIN I.R. MAESTRA
+                let (ir_map, wb_map) = if !explicit_ir.is_empty() {
+                    let wb = if !explicit_wb.is_empty() {
+                        explicit_wb.clone()
+                    } else if let Some((_, w)) = grn_to_ir_wb.get(&grn) {
+                        w.clone()
+                    } else {
+                        "SIN WAYBILL".to_string()
+                    };
+                    (explicit_ir.clone(), wb)
+                } else if let Some((ir, wb)) = grn_to_ir_wb.get(&grn) {
+                    (ir.clone(), wb.clone())
+                } else if grn == "SIN GRN" || grn.is_empty() {
+                    if !order_num.is_empty() && item_custref_to_ir_wb.contains_key(&(item_code.clone(), order_num.clone())) {
+                        let (ir, wb) = item_custref_to_ir_wb.get(&(item_code.clone(), order_num.clone())).unwrap();
+                        (ir.clone(), wb.clone())
+                    } else if !order_num.is_empty() && custref_to_ir_wb.contains_key(&order_num) {
+                        let (ir, wb) = custref_to_ir_wb.get(&order_num).unwrap();
+                        (ir.clone(), wb.clone())
+                    } else {
+                        ("SIN I.R. MAESTRA".to_string(), "SIN WAYBILL".to_string())
+                    }
+                } else {
+                    ("SIN I.R. MAESTRA".to_string(), "SIN WAYBILL".to_string())
+                };
+
+                df_280.push(Expected280Line {
+                    grn,
+                    item_code: item_code.clone(),
+                    description: desc.clone(),
+                    quantity: qty,
+                    order_number: order_num.clone(),
+                    order_line: order_line.clone(),
+                    ir_map,
+                    wb_map,
+                });
+            }
+        }
+    }
+
+    // 5b. Fallback a PO Extractor: Si una IR existe en po_lookup.json pero NO tiene líneas en el Reporte 280,
+    // agregar sus líneas esperadas desde po_lookup.json para permitir la conciliación contra la orden de compra.
+    let mut irs_with_280: HashSet<String> = HashSet::new();
+    for line in &df_280 {
+        if line.ir_map != "SIN I.R. MAESTRA" && !line.ir_map.is_empty() {
+            irs_with_280.insert(line.ir_map.clone());
+        }
+    }
+
+    if let Some(ref po) = po_json {
+        let mut added_po_keys: HashSet<(String, String, String, String, String)> = HashSet::new();
+        let mut add_po_items = |ir_val: &str, wb_val: &str, items: &Vec<Value>| {
+            let ir_clean = ir_val.trim().to_uppercase();
+            if ir_clean.is_empty() {
+                return;
+            }
+            // Si ya existen registros del 280 para esta IR, prevalece el 280 (Prioridad 1)
+            let has_280 = irs_with_280.iter().any(|existing| match_ref_rust(existing, &ir_clean));
+            if has_280 {
+                return;
+            }
+
+            for item in items {
+                let code = item.get("item_code").and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+                if code.is_empty() {
+                    continue;
+                }
+
+                let order_line_val = item.get("order_line")
+                    .or_else(|| item.get("line"))
+                    .or_else(|| item.get("Order_Line"))
+                    .and_then(|v| {
+                        if let Some(s) = v.as_str() {
+                            let st = s.trim();
+                            if !st.is_empty() { Some(st.to_string()) } else { None }
+                        } else if let Some(n) = v.as_i64() {
+                            Some(n.to_string())
+                        } else if let Some(f) = v.as_f64() {
+                            Some((f as i64).to_string())
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or_default();
+                let grn_raw = item.get("grn").and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+                let cust_ref = item.get("customer_ref").or_else(|| item.get("order_number")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+
+                let key = (ir_clean.clone(), code.clone(), order_line_val.clone(), grn_raw.clone(), cust_ref.clone());
+                if added_po_keys.contains(&key) {
+                    continue;
+                }
+                added_po_keys.insert(key);
+
+                let qty = item.get("qty").and_then(|v| v.as_f64())
+                    .or_else(|| item.get("qty").and_then(|v| v.as_str()).and_then(|s| s.parse().ok()))
+                    .unwrap_or(0.0);
+
+                let grn_parts: Vec<String> = if grn_raw.contains(',') || grn_raw.contains('/') {
+                    grn_raw.split(&[',', '/'][..])
+                        .map(|s| s.trim().to_uppercase())
+                        .filter(|s| !s.is_empty() && s != "N/A" && s != "SIN GRN")
+                        .collect()
+                } else if !grn_raw.is_empty() && grn_raw != "N/A" && grn_raw != "SIN GRN" {
+                    vec![grn_raw]
+                } else {
+                    vec!["PO EXTRACTOR".to_string()]
+                };
+
+                let order_line_final = if !order_line_val.is_empty() && order_line_val != "-" {
+                    order_line_val
+                } else if let Some(ol) = ir_item_to_order_line.get(&(ir_clean.clone(), code.clone())) {
+                    ol.clone()
+                } else if let Some(ol) = wb_item_to_order_line.get(&(wb_val.trim().to_uppercase(), code.clone())) {
+                    ol.clone()
+                } else {
+                    "-".to_string()
+                };
+
+                for grn in grn_parts {
+                    df_280.push(Expected280Line {
+                        grn,
+                        item_code: code.clone(),
+                        description: String::new(),
+                        quantity: qty,
+                        order_number: cust_ref.clone(),
+                        order_line: order_line_final.clone(),
+                        ir_map: ir_clean.clone(),
+                        wb_map: wb_val.trim().to_uppercase(),
+                    });
+                }
+            }
+        };
+
+        if let Some(ir_map) = po.get("ir_to_data").and_then(|v| v.as_object()) {
+            for (ir_raw, data_obj) in ir_map {
+                let wb = data_obj.get("waybill").and_then(|v| v.as_str()).unwrap_or("");
+                if let Some(items) = data_obj.get("items").and_then(|v| v.as_array()) {
+                    add_po_items(ir_raw, wb, items);
+                }
+            }
+        }
+
+        if let Some(wb_map) = po.get("wb_to_data").and_then(|v| v.as_object()) {
+            for (wb_raw, data_obj) in wb_map {
+                let ir = data_obj.get("import_ref").and_then(|v| v.as_str()).unwrap_or("");
+                if let Some(items) = data_obj.get("items").and_then(|v| v.as_array()) {
+                    add_po_items(ir, wb_raw, items);
+                }
+            }
         }
     }
 
@@ -1394,7 +1749,30 @@ pub fn get_inbound_reconciliation_view(
         *total_exp_ir_item.entry(key).or_insert(0.0) += line.quantity;
     }
 
-    // 7. Join Final: Generar filas a partir de las líneas del Reporte 280
+    // 7. Cargar comentarios guardados de saved_grn_reconciliation_items
+    let mut saved_comments: HashMap<(String, String, String, String), (String, String)> = HashMap::new();
+    if let Ok(mut stmt_comments) = conn.prepare("
+        SELECT import_reference, grn_number, item_code, order_line, difference_reason, operator_comment
+        FROM saved_grn_reconciliation_items
+        ORDER BY id ASC
+    ") {
+        if let Ok(iter) = stmt_comments.query_map([], |r| {
+            let ir: String = r.get::<_, Option<String>>(0)?.unwrap_or_default().trim().to_uppercase();
+            let grn: String = r.get::<_, Option<String>>(1)?.unwrap_or_default().trim().to_uppercase();
+            let code: String = r.get::<_, Option<String>>(2)?.unwrap_or_default().trim().to_uppercase();
+            let oline: String = r.get::<_, Option<String>>(3)?.unwrap_or_default().trim().to_string();
+            let reason: String = r.get::<_, Option<String>>(4)?.unwrap_or_default();
+            let comment: String = r.get::<_, Option<String>>(5)?.unwrap_or_default();
+            Ok((ir, grn, code, oline, reason, comment))
+        }) {
+            for item in iter.flatten() {
+                let (ir, grn, code, oline, reason, comment) = item;
+                saved_comments.insert((ir, grn, code, oline), (reason, comment));
+            }
+        }
+    }
+
+    // 8. Join Final: Generar filas a partir de las líneas del Reporte 280
     let mut rows: Vec<InboundReconciliationRow> = Vec::new();
     let mut processed_keys: HashSet<(String, String)> = HashSet::new();
 
@@ -1456,30 +1834,15 @@ pub fn get_inbound_reconciliation_view(
             }
         }
 
-        let mut order_line_display = if !line.order_line.is_empty() {
+        let order_line_display = if !line.order_line.is_empty() && line.order_line != "-" {
             line.order_line.clone()
-        } else if !line.order_number.is_empty() {
-            line.order_number.clone()
+        } else if let Some(ol) = ir_item_to_order_line.get(&(line.ir_map.clone(), line.item_code.clone())) {
+            ol.clone()
+        } else if let Some(ol) = wb_item_to_order_line.get(&(line.wb_map.clone(), line.item_code.clone())) {
+            ol.clone()
         } else {
-            String::new()
+            "-".to_string()
         };
-
-        // Enriquecer con PO Extractor si viene vacío
-        if order_line_display.is_empty() || order_line_display == "-" {
-            if let Some(cr) = grn_item_to_custref.get(&(line.grn.clone(), line.item_code.clone())) {
-                order_line_display = cr.clone();
-            } else if let Some(cr) = ir_item_to_custref.get(&(line.ir_map.clone(), line.item_code.clone())) {
-                order_line_display = cr.clone();
-            } else if let Some(cr) = wb_item_to_custref.get(&(wb_final.clone(), line.item_code.clone())) {
-                order_line_display = cr.clone();
-            } else if let Some(cr) = grn_to_custref.get(&line.grn) {
-                order_line_display = cr.clone();
-            }
-        }
-
-        if order_line_display.is_empty() {
-            order_line_display = "-".to_string();
-        }
 
         // La diferencia total se muestra en la última fila del grupo para no duplicarla visualmente
         let diff = if is_last_row_of_group {
@@ -1487,6 +1850,17 @@ pub fn get_inbound_reconciliation_view(
         } else {
             0.0
         };
+
+        let (motivo, observacion) = saved_comments
+            .get(&(line.ir_map.clone(), line.grn.clone(), line.item_code.clone(), order_line_display.clone()))
+            .or_else(|| saved_comments.get(&(line.ir_map.clone(), line.grn.clone(), line.item_code.clone(), String::new())))
+            .or_else(|| saved_comments.get(&(line.ir_map.clone(), line.grn.clone(), line.item_code.clone(), "-".to_string())))
+            .cloned()
+            .map(|(r, c)| (
+                if r.is_empty() { None } else { Some(r) },
+                if c.is_empty() { None } else { Some(c) }
+            ))
+            .unwrap_or((None, None));
 
         rows.push(InboundReconciliationRow {
             id: log_id,
@@ -1504,10 +1878,12 @@ pub fn get_inbound_reconciliation_view(
             timestamp: ts,
             usuario: user,
             snapshot_date: snap_d,
+            motivo_diferencia: motivo,
+            observacion_operador: observacion,
         });
     }
 
-    // 8. Agregar logs físicos que no están en el 280 (logs_sin_grn)
+    // 9. Agregar logs físicos que no están en el 280 (logs_sin_grn)
     for ((ir, code), lg) in &logs_grouped {
         if !processed_keys.contains(&(ir.clone(), code.clone())) {
             let mut desc_final = lg.item_description.clone();
@@ -1531,15 +1907,24 @@ pub fn get_inbound_reconciliation_view(
                 }
             }
 
-            let mut order_line_sin_grn = String::new();
-            if let Some(cr) = ir_item_to_custref.get(&(ir.clone(), code.clone())) {
-                order_line_sin_grn = cr.clone();
-            } else if let Some(cr) = wb_item_to_custref.get(&(lg.waybill_log.clone(), code.clone())) {
-                order_line_sin_grn = cr.clone();
-            }
-            if order_line_sin_grn.is_empty() {
-                order_line_sin_grn = "-".to_string();
-            }
+            let order_line_sin_grn = if let Some(ol) = ir_item_to_order_line.get(&(ir.clone(), code.clone())) {
+                ol.clone()
+            } else if let Some(ol) = wb_item_to_order_line.get(&(lg.waybill_log.clone(), code.clone())) {
+                ol.clone()
+            } else {
+                "-".to_string()
+            };
+
+            let (motivo, observacion) = saved_comments
+                .get(&(ir.clone(), "SIN GRN".to_string(), code.clone(), order_line_sin_grn.clone()))
+                .or_else(|| saved_comments.get(&(ir.clone(), "SIN GRN".to_string(), code.clone(), String::new())))
+                .or_else(|| saved_comments.get(&(ir.clone(), "SIN GRN".to_string(), code.clone(), "-".to_string())))
+                .cloned()
+                .map(|(r, c)| (
+                    if r.is_empty() { None } else { Some(r) },
+                    if c.is_empty() { None } else { Some(c) }
+                ))
+                .unwrap_or((None, None));
 
             rows.push(InboundReconciliationRow {
                 id: lg.id,
@@ -1557,6 +1942,8 @@ pub fn get_inbound_reconciliation_view(
                 timestamp: lg.timestamp_log.clone(),
                 usuario: lg.username_log.clone(),
                 snapshot_date: lg.snapshot_date.clone(),
+                motivo_diferencia: motivo,
+                observacion_operador: observacion,
             });
         }
     }
@@ -1565,23 +1952,43 @@ pub fn get_inbound_reconciliation_view(
     let filter_grn_clean = filter_grn.as_ref().map(|s| s.trim().to_uppercase()).unwrap_or_default();
     let filter_wb_clean = filter_waybill.as_ref().map(|s| s.trim().to_uppercase()).unwrap_or_default();
     let filter_ir_clean = filter_import_ref.as_ref().map(|s| s.trim().to_uppercase()).unwrap_or_default();
+    let filter_ir_stripped = filter_ir_clean
+        .trim_start_matches("IR-")
+        .trim_start_matches("IR_")
+        .trim_start_matches("IR ")
+        .trim_start_matches("IR")
+        .trim();
 
     rows.retain(|r| {
         if !filter_grn_clean.is_empty() && !r.grn.to_uppercase().contains(&filter_grn_clean) {
             return false;
         }
-        if !filter_wb_clean.is_empty() && !r.waybill.to_uppercase().contains(&filter_wb_clean) {
+        if !filter_wb_clean.is_empty() && !match_ref_rust(&r.waybill, &filter_wb_clean) && !r.waybill.to_uppercase().contains(&filter_wb_clean) {
             return false;
         }
-        if !filter_ir_clean.is_empty() && !r.import_reference.to_uppercase().contains(&filter_ir_clean) {
-            return false;
+        if !filter_ir_clean.is_empty() {
+            let r_ir = r.import_reference.to_uppercase();
+            let r_stripped = r_ir
+                .trim_start_matches("IR-")
+                .trim_start_matches("IR_")
+                .trim_start_matches("IR ")
+                .trim_start_matches("IR")
+                .trim();
+            let match_clean = r_ir.contains(&filter_ir_clean);
+            let match_stripped = !filter_ir_stripped.is_empty() && (r_ir.contains(filter_ir_stripped) || r_stripped.contains(filter_ir_stripped));
+            let match_smart = match_ref_rust(&r.import_reference, &filter_ir_clean);
+            if !match_clean && !match_stripped && !match_smart {
+                return false;
+            }
         }
         true
     });
 
     rows.sort_by(|a, b| {
-        (&a.import_reference, &a.grn, &a.order_line, &a.codigo_item)
-            .cmp(&(&b.import_reference, &b.grn, &b.order_line, &b.codigo_item))
+        let a_num = a.order_line.trim().parse::<i64>().unwrap_or(0);
+        let b_num = b.order_line.trim().parse::<i64>().unwrap_or(0);
+        (&a.import_reference, &a.grn, a_num, &a.order_line, &a.codigo_item)
+            .cmp(&(&b.import_reference, &b.grn, b_num, &b.order_line, &b.codigo_item))
     });
 
     Ok(InboundReconciliationResponse {
@@ -1589,6 +1996,192 @@ pub fn get_inbound_reconciliation_view(
         archive_versions,
         snapshot_versions,
     })
+}
+
+pub fn get_inbound_ir_stats_data_rust(
+    import_ref: &str,
+    po_json_path: &str,
+    grn_json_path: &str,
+) -> InboundIrStatsResponse {
+    let ir_clean = import_ref.trim().to_uppercase();
+    if ir_clean.is_empty() {
+        return InboundIrStatsResponse {
+            source: "none".to_string(),
+            expected_items: Vec::new(),
+            po_items: Vec::new(),
+            associated_grns: Vec::new(),
+            grn_detail_expected: HashMap::new(),
+            waybill: String::new(),
+        };
+    }
+
+    let po_json = read_json_file_fallback(po_json_path);
+    let grn_json = read_json_file_fallback(grn_json_path);
+
+    let mut found_wb = String::new();
+    let mut po_items = Vec::new();
+    let mut associated_grns: HashSet<String> = HashSet::new();
+
+    // 1. Extraer PO items y GRNs asociadas desde po_lookup.json
+    if let Some(ref po) = po_json {
+        let parse_po_items = |wb_val: &str, items_arr: &Vec<Value>, found_wb: &mut String, po_items: &mut Vec<InboundIrStatsPoItem>, associated_grns: &mut HashSet<String>| {
+            if found_wb.is_empty() && !wb_val.is_empty() {
+                *found_wb = wb_val.to_string();
+            }
+            for item in items_arr {
+                let code = item.get("item_code").and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+                let qty = item.get("qty").and_then(|v| v.as_f64())
+                    .or_else(|| item.get("qty").and_then(|v| v.as_str()).and_then(|s| s.parse().ok()))
+                    .unwrap_or(0.0);
+                let grn = item.get("grn").and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+                let cust_ref = item.get("customer_ref").or_else(|| item.get("order_number")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+                if !code.is_empty() {
+                    if !grn.is_empty() {
+                        for g in grn.split(',') {
+                            let g_clean = g.trim().to_uppercase();
+                            if !g_clean.is_empty() && g_clean != "N/A" && g_clean != "SIN GRN" {
+                                associated_grns.insert(g_clean);
+                            }
+                        }
+                    }
+                    po_items.push(InboundIrStatsPoItem {
+                        item_code: code,
+                        qty,
+                        grn,
+                        customer_ref: cust_ref,
+                    });
+                }
+            }
+        };
+
+        if let Some(ir_map) = po.get("ir_to_data").and_then(|v| v.as_object()) {
+            for (k, data_obj) in ir_map {
+                if match_ref_rust(k, &ir_clean) {
+                    let wb = data_obj.get("waybill").and_then(|v| v.as_str()).unwrap_or("");
+                    if let Some(items) = data_obj.get("items").and_then(|v| v.as_array()) {
+                        parse_po_items(wb, items, &mut found_wb, &mut po_items, &mut associated_grns);
+                        break;
+                    }
+                }
+            }
+        }
+
+        if po_items.is_empty() {
+            if let Some(wb_map) = po.get("wb_to_data").and_then(|v| v.as_object()) {
+                for (wb_raw, data_obj) in wb_map {
+                    let ir = data_obj.get("import_ref").and_then(|v| v.as_str()).unwrap_or("");
+                    if match_ref_rust(ir, &ir_clean) {
+                        if let Some(items) = data_obj.get("items").and_then(|v| v.as_array()) {
+                            parse_po_items(wb_raw, items, &mut found_wb, &mut po_items, &mut associated_grns);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Extraer líneas del Reporte 280 (Prioridad 1)
+    let mut grouped_280: HashMap<String, f64> = HashMap::new();
+    let mut grn_detail_expected: HashMap<String, HashMap<String, f64>> = HashMap::new();
+
+    if let Some(arr) = grn_json.as_ref().and_then(|v| v.as_array()) {
+        for row in arr {
+            let item_code = row.get("Item_Code").or_else(|| row.get("item_code")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+            let grn = row.get("GRN_Number").or_else(|| row.get("grn_number")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+            let r_ir = row.get("Import_Reference").or_else(|| row.get("import_reference")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+            let qty = row.get("Quantity").or_else(|| row.get("quantity")).and_then(|v| v.as_f64()).unwrap_or(0.0);
+
+            if item_code.is_empty() {
+                continue;
+            }
+
+            let mut matches = false;
+            if !associated_grns.is_empty() && !grn.is_empty() && associated_grns.contains(&grn) {
+                matches = true;
+            } else if !r_ir.is_empty() && match_ref_rust(&r_ir, &ir_clean) {
+                matches = true;
+            }
+
+            if matches {
+                *grouped_280.entry(item_code.clone()).or_insert(0.0) += qty;
+                if !grn.is_empty() {
+                    let map_for_item = grn_detail_expected.entry(item_code).or_insert_with(HashMap::new);
+                    *map_for_item.entry(grn).or_insert(0.0) += qty;
+                }
+            }
+        }
+    }
+
+    // 3. Determinar fuente: 280 vs PO Extractor (Prioridad 280, Fallback PO Extractor)
+    let has_280_qty = grouped_280.values().sum::<f64>() > 0.0;
+    let (source, expected_items) = if has_280_qty {
+        let items_vec = grouped_280.into_iter().map(|(code, qty)| InboundIrStatsExpectedItem {
+            item_code: code,
+            total_expected: qty,
+        }).collect();
+        ("280".to_string(), items_vec)
+    } else if !po_items.is_empty() {
+        let mut grouped_po: HashMap<String, f64> = HashMap::new();
+        for it in &po_items {
+            *grouped_po.entry(it.item_code.clone()).or_insert(0.0) += it.qty;
+        }
+        let items_vec = grouped_po.into_iter().map(|(code, qty)| InboundIrStatsExpectedItem {
+            item_code: code,
+            total_expected: qty,
+        }).collect();
+        ("po_extractor".to_string(), items_vec)
+    } else {
+        ("none".to_string(), Vec::new())
+    };
+
+    let associated_grns_vec: Vec<String> = associated_grns.into_iter().collect();
+
+    InboundIrStatsResponse {
+        source,
+        expected_items,
+        po_items,
+        associated_grns: associated_grns_vec,
+        grn_detail_expected,
+        waybill: found_wb,
+    }
+}
+
+pub fn get_inbound_expected_bulk_rust(
+    items: Vec<InboundExpectedQueryItem>,
+    po_json_path: &str,
+    grn_json_path: &str,
+) -> HashMap<String, f64> {
+    let mut result: HashMap<String, f64> = HashMap::new();
+    if items.is_empty() {
+        return result;
+    }
+
+    let mut ir_cache: HashMap<String, InboundIrStatsResponse> = HashMap::new();
+
+    for it in &items {
+        let ir = it.import_ref.trim().to_uppercase();
+        let code = it.item_code.trim().to_uppercase();
+        if ir.is_empty() || code.is_empty() {
+            continue;
+        }
+
+        let stats = ir_cache.entry(ir.clone()).or_insert_with(|| {
+            get_inbound_ir_stats_data_rust(&ir, po_json_path, grn_json_path)
+        });
+
+        let mut expected = 0.0;
+        for exp in &stats.expected_items {
+            if exp.item_code == code {
+                expected = exp.total_expected;
+                break;
+            }
+        }
+        let key = format!("{}|{}", code, it.import_ref);
+        result.insert(key, expected);
+    }
+
+    result
 }
 
 pub fn unarchive_logs_version_db(conn: &Connection, version_date: &str) -> Result<usize> {
@@ -1802,6 +2395,98 @@ mod tests {
         assert_eq!(row.cant_recibida, 1.0);
         assert_eq!(row.diferencia, 0.0);
         assert!(!row.grn.contains(','));
+    }
+
+    #[test]
+    fn test_order_line_not_polluted_by_customer_ref_or_order_number() {
+        let conn = setup_test_db();
+
+        let temp_dir = std::env::temp_dir().join("logix_test_inbound_order_line");
+        let _ = std::fs::create_dir_all(&temp_dir);
+        let po_path = temp_dir.join("po_lookup.json");
+        let grn_path = temp_dir.join("grn_master_data.json");
+
+        // Reporte 280 has an item with order_number "N029180" but Order_Line is empty ""
+        let grn_content = r#"[
+            {
+                "Item_Code": "ITEM_NO_LINE",
+                "Item_Description": "VALVE",
+                "Quantity": 2.0,
+                "GRN_Number": "23061",
+                "Order_Number": "N029180",
+                "Order_Line": "",
+                "Import_Reference": "26-0640",
+                "Waybill": "WB999"
+            }
+        ]"#;
+        std::fs::write(&po_path, "{}").unwrap();
+        std::fs::write(&grn_path, grn_content).unwrap();
+
+        let res = get_inbound_reconciliation_view(
+            &conn,
+            po_path.to_str().unwrap(),
+            grn_path.to_str().unwrap(),
+            None,
+            None,
+            Some("23061".to_string()),
+            None,
+            Some("26-0640".to_string()),
+            false,
+        ).unwrap();
+
+        assert_eq!(res.data.len(), 1);
+        let row = &res.data[0];
+        assert_eq!(row.codigo_item, "ITEM_NO_LINE");
+        // Must be "-" and NEVER "N029180" or customer_ref!
+        assert_eq!(row.order_line, "-");
+    }
+
+    #[test]
+    fn test_order_line_resolved_from_po_lookup() {
+        let conn = setup_test_db();
+
+        let temp_dir = std::env::temp_dir().join("logix_test_po_lookup_order_line");
+        let _ = std::fs::create_dir_all(&temp_dir);
+        let po_path = temp_dir.join("po_lookup.json");
+        let grn_path = temp_dir.join("grn_master_data.json");
+
+        // po_lookup has an item with order_line "1"
+        let po_content = r#"{
+            "ir_to_data": {
+                "26-0599": {
+                    "waybill": "3599866303",
+                    "items": [
+                        {
+                            "item_code": "D724783.04",
+                            "qty": "1",
+                            "grn": "22854",
+                            "order_line": "1",
+                            "order_number": "R028603",
+                            "customer_ref": "R028603"
+                        }
+                    ]
+                }
+            }
+        }"#;
+        std::fs::write(&po_path, po_content).unwrap();
+        std::fs::write(&grn_path, "[]").unwrap();
+
+        let res = get_inbound_reconciliation_view(
+            &conn,
+            po_path.to_str().unwrap(),
+            grn_path.to_str().unwrap(),
+            None,
+            None,
+            Some("22854".to_string()),
+            None,
+            Some("26-0599".to_string()),
+            false,
+        ).unwrap();
+
+        assert_eq!(res.data.len(), 1);
+        let row = &res.data[0];
+        assert_eq!(row.codigo_item, "D724783.04");
+        assert_eq!(row.order_line, "1");
     }
 
     #[test]

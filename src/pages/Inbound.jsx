@@ -11,7 +11,7 @@ import SandvikLabel from '../components/labels/SandvikLabel';
 import { useReactToPrint } from 'react-to-print';
 import '../styles/Label.css';
 import { parseGS1Barcode } from '../utils/gs1Parser';
-import { isTauri, callTauriCommand, tauriGetInboundMasterMaps, tauriLookupInboundReference, tauriGetItemDetails, confirmNative, getPrinterConfig, printSandvikLabelSilent } from '../utils/tauriBridge';
+import { isTauri, callTauriCommand, tauriGetInboundMasterMaps, tauriLookupInboundReference, tauriGetInboundIrStatsData, tauriGetItemDetails, confirmNative, getPrinterConfig, printSandvikLabelSilent } from '../utils/tauriBridge';
 
 
 const EMPTY_ARRAY = [];
@@ -32,7 +32,20 @@ const DEFAULT_IR_STATS = {
 const Dial = ({ percent, label, valueText, strokeColor = "#1679E0", strokeWidth = 8, trackStrokeWidth = 5 }) => {
     const radius = 35;
     const circumference = 2 * Math.PI * radius;
-    const offset = circumference - (percent / 100) * circumference;
+    const numPercent = Number(percent);
+    const validPercent = isNaN(numPercent) ? 0 : Math.min(100, Math.max(0, Math.round(numPercent)));
+    const targetOffset = circumference - (validPercent / 100) * circumference;
+
+    // Start at full circumference (empty arc) and animate to target
+    const [animatedOffset, setAnimatedOffset] = useState(circumference);
+
+    useEffect(() => {
+        // Use rAF to ensure the initial render paints with empty arc first
+        const frameId = requestAnimationFrame(() => {
+            setAnimatedOffset(targetOffset);
+        });
+        return () => cancelAnimationFrame(frameId);
+    }, [targetOffset]);
     
     return (
         <div className="flex flex-col items-center justify-center p-1.5 bg-zinc-50/50 rounded border border-zinc-100 shadow-sm flex-1 min-w-0">
@@ -42,9 +55,8 @@ const Dial = ({ percent, label, valueText, strokeColor = "#1679E0", strokeWidth 
                         cx="42.5" 
                         cy="42.5" 
                         r={radius} 
-                        className="text-[#e5e7eb]" 
+                        stroke="#e5e7eb" 
                         strokeWidth={trackStrokeWidth} 
-                        stroke="currentColor" 
                         fill="transparent" 
                     />
                     <circle 
@@ -54,15 +66,15 @@ const Dial = ({ percent, label, valueText, strokeColor = "#1679E0", strokeWidth 
                         stroke={strokeColor} 
                         strokeWidth={strokeWidth} 
                         strokeDasharray={circumference} 
-                        strokeDashoffset={offset} 
+                        strokeDashoffset={animatedOffset} 
                         strokeLinecap="round" 
                         fill="transparent" 
-                        className="transition-all duration-500 ease-out"
+                        style={{ transition: 'stroke-dashoffset 600ms ease-out' }}
                     />
                 </svg>
-                <div className="absolute text-center flex flex-col items-center justify-center">
+                <div className="absolute text-center flex flex-col items-center justify-center pointer-events-none">
                     <span className="text-[13px] font-normal text-black leading-none">{valueText}</span>
-                    <span className="text-[10px] text-black font-normal leading-none mt-0.5">{percent}%</span>
+                    <span className="text-[10px] text-black font-normal leading-none mt-0.5">{validPercent}%</span>
                 </div>
             </div>
             <span className="text-[10px] uppercase tracking-normal text-black font-normal mt-1.5 text-center leading-none truncate w-full">{label}</span>
@@ -412,109 +424,226 @@ const Inbound = () => {
         }
 
         try {
-            const db = await getDB();
-            const allGrns = await db.getAll('grn_pending') || [];
             const targetIr = importRef.trim().toUpperCase();
-            
-            // 1. Obtener GRNs asociadas a la IR desde po_lookup
-            let poInfo = await db.get('po_lookup', `ir_${targetIr}`);
-            if (!poInfo) {
-                const allPoItems = await db.getAll('po_lookup') || [];
-                poInfo = allPoItems.find(p => {
-                    const irVal = getImportRefFromMatch(p);
-                    return matchRef(irVal, targetIr);
-                });
-            }
+            const groupedExpected = {};
+            const grnToItems = {}; // grn -> [ { code, expected } ]
+            let totalGrnsCount = 0;
+            let completedGrnsCount = 0;
+            let grnTotalProgress = 0;
 
-            const associatedGrns = new Set();
-            if (poInfo && poInfo.items) {
-                poInfo.items.forEach(it => {
-                    const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
-                    if (grnVal) {
-                        grnVal.split(',').forEach(g => {
-                            const gKey = g.trim();
-                            if (gKey) {
-                                associatedGrns.add(gKey);
+            if (isTauri()) {
+                const statsData = await tauriGetInboundIrStatsData(targetIr);
+                if (statsData) {
+                    if (statsData.expected_items && Array.isArray(statsData.expected_items)) {
+                        statsData.expected_items.forEach(it => {
+                            const code = String(it.item_code || '').toUpperCase().trim();
+                            if (code) {
+                                groupedExpected[code] = { expected: Number(it.total_expected) || 0 };
                             }
                         });
                     }
-                });
-            }
 
-            // 2. Filtrar líneas de la GRN para esta IR (por GRN_Number si hay asociadas, sino fallback a Import_Reference)
-            let irLines = [];
-            allGrns.forEach(g => {
-                const code = String(g.Item_Code || g.item_code || '').toUpperCase().trim();
-                if (g.grns) {
-                    // Si el nuevo formato estructurado de grns está presente:
-                    let itemExpectedForIr = 0;
-                    Object.entries(g.grns).forEach(([grnNum, qty]) => {
-                        if (associatedGrns.has(grnNum.toUpperCase().trim())) {
-                            itemExpectedForIr += parseInt(qty) || 0;
+                    // Sincronizar waybill si está vacío
+                    if (statsData.waybill && !waybill) {
+                        setWaybill(statsData.waybill);
+                    }
+
+                    // Si no teníamos refItems y vinieron en el fallback de la orden de compra
+                    if (statsData.po_items && statsData.po_items.length > 0 && (!refItems || refItems.length === 0)) {
+                        // Expandir cada item: una fila por cada GRN individual
+                        const expanded = [];
+                        statsData.po_items.forEach(p => {
+                            const grnRaw = p.grn ? String(p.grn).trim() : '';
+                            // Separar por coma y por "/"
+                            const grnParts = grnRaw.split(/[,\/]/).map(g => g.trim()).filter(g => g && g !== 'N/A' && g !== 'SIN GRN');
+                            if (grnParts.length > 0) {
+                                grnParts.forEach(grn => {
+                                    expanded.push({
+                                        item_code: p.item_code,
+                                        qty: p.qty,
+                                        grn: grn,
+                                        customer_ref: p.customer_ref
+                                    });
+                                });
+                            } else {
+                                expanded.push({
+                                    item_code: p.item_code,
+                                    qty: p.qty,
+                                    grn: grnRaw || 'N/A',
+                                    customer_ref: p.customer_ref
+                                });
+                            }
+                        });
+                        setRefItems(expanded);
+                    }
+
+                    // Mapeo de GRNs para progreso de GRNs individuales
+                    if (statsData.po_items && statsData.po_items.length > 0) {
+                        const has280Data = statsData.source === '280';
+                        const grnDetailMap = statsData.grn_detail_expected || {};
+
+                        statsData.po_items.forEach(it => {
+                            const itemCode = String(it.item_code || '').toUpperCase().trim();
+                            const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
+                            const qty = parseInt(it.qty) || 0;
+
+                            if (grnVal) {
+                                grnVal.split(/[,\/]/).forEach(g => {
+                                    const gKey = g.trim().toUpperCase();
+                                    if (gKey && gKey !== 'N/A' && gKey !== 'SIN GRN') {
+                                        let expectedQty = 0;
+                                        if (grnDetailMap[itemCode] && grnDetailMap[itemCode][gKey] !== undefined) {
+                                            expectedQty = grnDetailMap[itemCode][gKey];
+                                        } else if (!has280Data) {
+                                            expectedQty = qty;
+                                        }
+
+                                        if (expectedQty > 0) {
+                                            if (!grnToItems[gKey]) grnToItems[gKey] = [];
+                                            grnToItems[gKey].push({ code: itemCode, expected: expectedQty });
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    }
+                }
+            } else {
+                // Fallback modo Web con IndexedDB (replicando exactamente logix_react)
+                const db = await getDB();
+                const allGrns = await db.getAll('grn_pending') || [];
+                const allPos = await db.getAll('po_lookup') || [];
+                const poInfo = allPos.find(p => {
+                    const irStr = getImportRefFromMatch(p);
+                    return matchRef(irStr, targetIr);
+                });
+
+                const associatedGrns = new Set();
+                if (poInfo && poInfo.items) {
+                    poInfo.items.forEach(it => {
+                        const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
+                        if (grnVal) {
+                            grnVal.split(/[,\/]/).forEach(g => {
+                                const gKey = g.trim();
+                                if (gKey && gKey !== 'N/A' && gKey !== 'SIN GRN') {
+                                    associatedGrns.add(gKey.toUpperCase());
+                                }
+                            });
                         }
                     });
-                    if (itemExpectedForIr > 0) {
-                        irLines.push({
-                            Item_Code: code,
-                            total_expected: itemExpectedForIr
-                        });
-                    }
-                } else {
-                    // Fallback para formato plano (Item_Code, GRN_Number, Quantity, Import_Reference)
-                    const grnNum = (g.GRN_Number || g.grn_number || '').trim().toUpperCase();
-                    const qty = parseInt(g.Quantity || g.quantity || g.total_expected || 0) || 0;
-                    if (associatedGrns.size > 0) {
-                        if (grnNum && associatedGrns.has(grnNum)) {
-                            irLines.push({
-                                Item_Code: code,
-                                total_expected: qty
-                            });
-                        } else if (!grnNum && matchRef(g.Import_Reference || g.import_ref || g.import_reference, targetIr)) {
-                            irLines.push({
-                                Item_Code: code,
-                                total_expected: qty
-                            });
-                        }
-                    } else if (matchRef(g.Import_Reference || g.import_ref || g.import_reference, targetIr)) {
-                        irLines.push({
-                            Item_Code: code,
-                            total_expected: qty
-                        });
-                    }
                 }
-            });
-            
-            // 3. Agrupar irLines por Item_Code (SKU) para evitar duplicaciones
-            const groupedIrLines = {};
-            irLines.forEach(line => {
-                const code = String(line.Item_Code).toUpperCase().trim();
-                if (!groupedIrLines[code]) {
-                    groupedIrLines[code] = {
-                        Item_Code: code,
-                        total_expected: 0
-                    };
-                }
-                groupedIrLines[code].total_expected += parseInt(line.total_expected || line.Quantity || line.quantity || 0) || 0;
-            });
 
-            // Si no hay líneas de la GRN (280) para calcular en el tablero, ir a la PO Purchase (poInfo)
-            if (irLines.length === 0 && poInfo && poInfo.items) {
-                poInfo.items.forEach(it => {
-                    const code = String(it.item_code || it.Item_Code || '').toUpperCase().trim();
-                    if (code) {
-                        if (!groupedIrLines[code]) {
-                            groupedIrLines[code] = {
-                                Item_Code: code,
-                                total_expected: 0
-                            };
+                let irLines = [];
+                allGrns.forEach(g => {
+                    if (g.grns) {
+                        let itemExpectedForIr = 0;
+                        Object.entries(g.grns).forEach(([grnNum, qty]) => {
+                            if (associatedGrns.has(grnNum.toUpperCase().trim())) {
+                                itemExpectedForIr += parseInt(qty) || 0;
+                            }
+                        });
+                        if (itemExpectedForIr > 0) {
+                            irLines.push({
+                                Item_Code: g.Item_Code,
+                                total_expected: itemExpectedForIr
+                            });
                         }
-                        groupedIrLines[code].total_expected += parseInt(it.qty || it.Quantity || 0);
+                    } else {
+                        const grnNum = (g.GRN_Number || '').trim().toUpperCase();
+                        if (associatedGrns.size > 0) {
+                            if (grnNum && associatedGrns.has(grnNum)) {
+                                irLines.push(g);
+                            } else if (!grnNum && matchRef(g.Import_Reference || '', targetIr)) {
+                                irLines.push(g);
+                            }
+                        } else if (matchRef(g.Import_Reference || '', targetIr)) {
+                            irLines.push(g);
+                        }
                     }
                 });
+
+                irLines.forEach(line => {
+                    const code = String(line.Item_Code).toUpperCase().trim();
+                    if (!groupedExpected[code]) {
+                        groupedExpected[code] = { expected: 0 };
+                    }
+                    groupedExpected[code].expected += parseInt(line.total_expected) || 0;
+                });
+
+                // Fallback a PO Extractor si no hay líneas en 280
+                if (irLines.length === 0 && poInfo && poInfo.items) {
+                    poInfo.items.forEach(it => {
+                        const code = String(it.item_code || it.Item_Code || '').toUpperCase().trim();
+                        if (code) {
+                            if (!groupedExpected[code]) {
+                                groupedExpected[code] = { expected: 0 };
+                            }
+                            groupedExpected[code].expected += parseInt(it.qty || it.Quantity || 0);
+                        }
+                    });
+                }
+
+                // Progreso de GRNs en modo web
+                const grnDetailExpectedMap = {};
+                allGrns.forEach(g => {
+                    const code = String(g.Item_Code).toUpperCase().trim();
+                    if (code) {
+                        if (!grnDetailExpectedMap[code]) grnDetailExpectedMap[code] = {};
+                        if (g.grns) {
+                            Object.entries(g.grns).forEach(([grnNum, qty]) => {
+                                grnDetailExpectedMap[code][grnNum.toUpperCase().trim()] = parseInt(qty) || 0;
+                            });
+                        }
+                    }
+                });
+
+                if (poInfo && poInfo.items) {
+                    const has280Data = irLines.length > 0;
+                    poInfo.items.forEach(it => {
+                        const itemCode = String(it.item_code || '').toUpperCase().trim();
+                        const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
+                        const qty = parseInt(it.qty) || 0;
+                        if (grnVal) {
+                            grnVal.split(/[,\/]/).forEach(g => {
+                                const gKey = g.trim().toUpperCase();
+                                if (gKey && gKey !== 'N/A' && gKey !== 'SIN GRN') {
+                                    let expectedQty = 0;
+                                    if (grnDetailExpectedMap[itemCode] && grnDetailExpectedMap[itemCode][gKey] !== undefined) {
+                                        expectedQty = grnDetailExpectedMap[itemCode][gKey];
+                                    } else if (!has280Data) {
+                                        expectedQty = qty;
+                                    }
+                                    if (expectedQty > 0) {
+                                        if (!grnToItems[gKey]) grnToItems[gKey] = [];
+                                        grnToItems[gKey].push({ code: itemCode, expected: expectedQty });
+                                    }
+                                }
+                            });
+                        }
+                    });
+                }
             }
 
-            const uniqueIrLines = Object.values(groupedIrLines);
-            let totalLines = uniqueIrLines.length;
+            // Mapear cantidades recibidas desde logs
+            const receivedMap = {};
+            logs.forEach(log => {
+                const logIr = (log.importReference || log.importRef || '').trim().toUpperCase();
+                if (matchRef(logIr, targetIr)) {
+                    const code = String(log.itemCode || '').toUpperCase().trim();
+                    const qty = parseInt(log.qtyReceived) || parseInt(log.quantity) || 0;
+                    if (code) {
+                        receivedMap[code] = (receivedMap[code] || 0) + qty;
+                    }
+                }
+            });
+
+            // Unión de los SKUs esperados y recibidos
+            const allSkusSet = new Set([
+                ...Object.keys(groupedExpected),
+                ...Object.keys(receivedMap)
+            ]);
+
+            const totalLines = allSkusSet.size;
             let expectedUnits = 0;
             let receivedUnits = 0;
             let completedLines = 0;
@@ -523,144 +652,40 @@ const Inbound = () => {
             let negativeDiffLines = 0;
             let okLines = 0;
 
-            // Crear mapa de cantidades esperadas para cada SKU para el cálculo de GRNs
-            const grnExpectedMap = {};
-            uniqueIrLines.forEach(line => {
-                grnExpectedMap[line.Item_Code] = line.total_expected;
-            });
-
-            // Crear mapa de cantidades recibidas para cada ítem en esta IR
-            const receivedMap = {};
-            logs.forEach(log => {
-                const logIr = (log.importReference || log.importRef || '').trim().toUpperCase();
-                if (matchRef(logIr, targetIr)) {
-                    const code = String(log.itemCode).toUpperCase().trim();
-                    const qty = parseInt(log.qtyReceived) || parseInt(log.quantity) || 0;
-                    receivedMap[code] = (receivedMap[code] || 0) + qty;
-                }
-            });
-
-            // Hacer la unión de los SKUs esperados y los SKUs recibidos en logs
-            const allSkusSet = new Set([
-                ...uniqueIrLines.map(l => l.Item_Code),
-                ...Object.keys(receivedMap)
-            ]);
-
             allSkusSet.forEach(code => {
-                const line = groupedIrLines[code];
-                const expected = line ? line.total_expected : 0;
+                const expected = groupedExpected[code]?.expected || 0;
                 const received = receivedMap[code] || 0;
 
                 expectedUnits += expected;
                 receivedUnits += received;
 
-                if (received > 0) {
-                    startedLines += 1;
-                }
+                if (received > 0) startedLines += 1;
+                if (received >= expected && expected > 0) completedLines += 1;
 
                 const diff = received - expected;
-                if (diff > 0) {
-                    positiveDiffLines += 1;
-                } else if (diff < 0) {
-                    negativeDiffLines += 1;
-                } else {
-                    okLines += 1;
-                }
-
-                if (received >= expected && expected > 0) {
-                    completedLines += 1;
-                }
+                if (diff === 0) okLines += 1;
+                else if (diff > 0) positiveDiffLines += 1;
+                else negativeDiffLines += 1;
             });
 
-            // Crear mapa de cantidades esperadas por SKU y por GRN individual a partir de allGrns (280)
-            const grnDetailExpectedMap = {};
-            allGrns.forEach(g => {
-                const code = String(g.Item_Code || g.item_code || '').toUpperCase().trim();
-                if (code) {
-                    if (!grnDetailExpectedMap[code]) {
-                        grnDetailExpectedMap[code] = {};
+            // Calcular avance de GRNs
+            const grnKeys = Object.keys(grnToItems);
+            totalGrnsCount = grnKeys.length;
+            grnKeys.forEach(gKey => {
+                const items = grnToItems[gKey];
+                let itemsDone = 0;
+                items.forEach(it => {
+                    const rec = receivedMap[it.code] || 0;
+                    if (rec >= it.expected) {
+                        itemsDone += 1;
                     }
-                    if (g.grns) {
-                        Object.entries(g.grns).forEach(([grnNum, qty]) => {
-                            grnDetailExpectedMap[code][grnNum.toUpperCase().trim()] = parseInt(qty) || 0;
-                        });
-                    } else if (g.GRN_Number || g.grn_number) {
-                        const grnNum = String(g.GRN_Number || g.grn_number).toUpperCase().trim();
-                        const qty = parseInt(g.Quantity || g.quantity || 0) || 0;
-                        grnDetailExpectedMap[code][grnNum] = qty;
-                    }
-                }
+                });
+                const prog = items.length > 0 ? itemsDone / items.length : 0;
+                grnTotalProgress += prog;
+                if (prog === 1 && items.length > 0) completedGrnsCount += 1;
             });
 
-            // Calcular avance de GRNs asociadas
-            let totalGrns = 0;
-            let completedGrns = 0;
-            let grnTotalProgress = 0;
-            
-            try {
-                if (poInfo && poInfo.items) {
-                    const grnToItems = {}; // grn -> [ {itemCode, expected} ]
-                    
-                    poInfo.items.forEach(it => {
-                        const itemCode = String(it.item_code).toUpperCase().trim();
-                        const grnVal = it.grn ? String(it.grn).toUpperCase().trim() : '';
-                        const qty = parseInt(it.qty) || 0;
-                        
-                        if (grnVal) {
-                            grnVal.split(',').forEach(g => {
-                                const gKey = g.trim();
-                                if (gKey) {
-                                    const gKeyUpper = gKey.toUpperCase().trim();
-                                    
-                                    // Determinar la cantidad esperada de forma inteligente
-                                    let expectedQty = 0;
-                                    
-                                    if (grnDetailExpectedMap[itemCode] !== undefined && 
-                                        grnDetailExpectedMap[itemCode][gKeyUpper] !== undefined) {
-                                        expectedQty = grnDetailExpectedMap[itemCode][gKeyUpper];
-                                    } else {
-                                        expectedQty = qty;
-                                    }
-                                    
-                                    // Solo incluir en el avance si realmente se espera recibir unidades en esa GRN
-                                    if (expectedQty > 0) {
-                                        if (!grnToItems[gKeyUpper]) {
-                                            grnToItems[gKeyUpper] = [];
-                                        }
-                                        grnToItems[gKeyUpper].push({ itemCode, expected: expectedQty });
-                                    }
-                                }
-                            });
-                        }
-                    });
-                    
-                    const grnList = Object.keys(grnToItems);
-                    totalGrns = grnList.length;
-                    
-                    grnList.forEach(grn => {
-                        const itemsInGrn = grnToItems[grn];
-                        let itemsCompleted = 0;
-                        
-                        itemsInGrn.forEach(it => {
-                            const recQty = receivedMap[it.itemCode] || 0;
-                            if (recQty >= it.expected) {
-                                itemsCompleted += 1;
-                            }
-                        });
-                        
-                        const grnProgress = itemsInGrn.length > 0 ? itemsCompleted / itemsInGrn.length : 0;
-                        grnTotalProgress += grnProgress;
-                        
-                        if (grnProgress === 1 && itemsInGrn.length > 0) {
-                            completedGrns += 1;
-                        }
-                    });
-                }
-            } catch (poErr) {
-                console.error("Error calculating GRN stats from po_lookup:", poErr);
-            }
-
-            const grnProgressPercent = totalGrns > 0 ? Math.min(100, Math.round((grnTotalProgress / totalGrns) * 100)) : 0;
+            const grnProgressPercent = totalGrnsCount > 0 ? Math.min(100, Math.round((grnTotalProgress / totalGrnsCount) * 100)) : 0;
 
             setIrStats(prev => {
                 if (
@@ -672,8 +697,8 @@ const Inbound = () => {
                     prev.positiveDiffLines === positiveDiffLines &&
                     prev.negativeDiffLines === negativeDiffLines &&
                     prev.okLines === okLines &&
-                    prev.totalGrns === totalGrns &&
-                    prev.completedGrns === completedGrns &&
+                    prev.totalGrns === totalGrnsCount &&
+                    prev.completedGrns === completedGrnsCount &&
                     prev.grnProgressPercent === grnProgressPercent
                 ) {
                     return prev;
@@ -687,8 +712,8 @@ const Inbound = () => {
                     positiveDiffLines,
                     negativeDiffLines,
                     okLines,
-                    totalGrns,
-                    completedGrns,
+                    totalGrns: totalGrnsCount,
+                    completedGrns: completedGrnsCount,
                     grnProgressPercent
                 };
             });
@@ -937,7 +962,7 @@ const Inbound = () => {
                         suggestedBin: suggested
                     });
                     if (!editId) {
-                        setQuantity(res.default_qty_grn > 0 ? String(res.default_qty_grn) : '');
+                        setQuantity('');
                         const currBin = binLoc.trim().toUpperCase();
                         if ((!currBin || currBin === 'N/A' || currBin === 'SIN UBICACION' || currBin === 'NONE' || currBin === '0' || currBin === '-') && suggested) {
                             setRelocatedBin(suggested);
@@ -945,7 +970,7 @@ const Inbound = () => {
                             setRelocatedBin('');
                         }
                     }
-                    quantityRef.current?.focus();
+                    setTimeout(() => quantityRef.current?.focus(), 50);
                     setLoading(false);
                     return;
                 }
@@ -963,7 +988,7 @@ const Inbound = () => {
                     suggestedBin: suggested
                 });
                 if (!editId) {
-                    setQuantity(data.defaultQtyGrn > 0 ? String(data.defaultQtyGrn) : '');
+                    setQuantity('');
                     const currBin = binLoc.trim().toUpperCase();
                     if ((!currBin || currBin === 'N/A' || currBin === 'SIN UBICACION' || currBin === 'NONE' || currBin === '0' || currBin === '-') && suggested) {
                         setRelocatedBin(suggested);
@@ -971,7 +996,7 @@ const Inbound = () => {
                         setRelocatedBin('');
                     }
                 }
-                quantityRef.current?.focus();
+                setTimeout(() => quantityRef.current?.focus(), 50);
                 setLoading(false);
                 return;
             }
@@ -1263,7 +1288,7 @@ const Inbound = () => {
                             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-2">
                                 <div>
                                     <label className="form-label font-normal text-black">Import Reference</label>
-                                    <input type="text" value={importRef} onChange={e => setImportRef(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('import_ref', e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleLookupReference('import_ref', e.target.value))} placeholder="I.R." className="font-normal text-black" required />
+                                    <input type="text" value={importRef} onChange={e => { setImportRef(e.target.value.toUpperCase()); setRefItems([]); }} onBlur={e => handleLookupReference('import_ref', e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleLookupReference('import_ref', e.target.value))} placeholder="I.R." className="font-normal text-black" required />
                                 </div>
                                 <div>
                                     <label className="form-label font-normal text-black">Waybill</label>
@@ -1455,7 +1480,7 @@ const Inbound = () => {
 
                         {/* Columna 4: Tablero de Control de la IR */}
                         <div className="lg:col-span-1 bg-white p-3 rounded shadow-sm border border-gray-200 flex flex-col h-full min-h-[300px]">
-                            <h2 className="text-[12px] font-semibold text-black uppercase tracking-wider mb-3 border-b border-zinc-100 pb-1.5 flex items-center gap-1.5">
+                            <h2 className="text-[12px] font-normal text-[#1f1f1f] uppercase tracking-normal mb-3 border-b border-zinc-100 pb-1.5 flex items-center gap-1.5">
                                 Tablero de Control: {importRef || "S.I.R."}
                             </h2>
                             

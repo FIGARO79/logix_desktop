@@ -632,6 +632,32 @@ fn delete_inbound_rows_bulk(state: State<'_, AppState>, ids: Vec<i64>) -> Result
 }
 
 #[tauri::command]
+fn get_inbound_ir_stats_data(
+    import_ref: String,
+) -> Result<inbound::InboundIrStatsResponse, String> {
+    let po_path = get_data_file_path("po_lookup.json");
+    let grn_path = get_data_file_path("grn_master_data.json");
+    Ok(inbound::get_inbound_ir_stats_data_rust(
+        &import_ref,
+        po_path.to_str().unwrap_or("./data/po_lookup.json"),
+        grn_path.to_str().unwrap_or("./data/grn_master_data.json"),
+    ))
+}
+
+#[tauri::command]
+fn get_inbound_expected_bulk(
+    items: Vec<inbound::InboundExpectedQueryItem>,
+) -> Result<std::collections::HashMap<String, f64>, String> {
+    let po_path = get_data_file_path("po_lookup.json");
+    let grn_path = get_data_file_path("grn_master_data.json");
+    Ok(inbound::get_inbound_expected_bulk_rust(
+        items,
+        po_path.to_str().unwrap_or("./data/po_lookup.json"),
+        grn_path.to_str().unwrap_or("./data/grn_master_data.json"),
+    ))
+}
+
+#[tauri::command]
 fn save_grn_reconciliation_snapshot(
     state: State<'_, AppState>,
     payload: inbound::SaveGRNReconciliationPayload,
@@ -768,6 +794,19 @@ fn save_xdock_reservations_json(state: State<'_, AppState>, json_content: String
     Ok("Caché local de Reservas Xdock guardado en data/xdock_reservations.json".to_string())
 }
 
+fn strip_ir_prefix(s: &str) -> &str {
+    let t = s.trim();
+    if t.starts_with("IR-") || t.starts_with("IR_") || t.starts_with("IR ") {
+        &t[3..]
+    } else if t.starts_with("IR") {
+        &t[2..]
+    } else if t.starts_with("REF-") || t.starts_with("PO-") {
+        &t[4..]
+    } else {
+        t
+    }
+}
+
 #[tauri::command]
 fn lookup_inbound_reference(
     state: State<'_, AppState>,
@@ -779,6 +818,9 @@ fn lookup_inbound_reference(
 
     let clean_wb = wb.replace(|c: char| !c.is_alphanumeric(), "");
     let clean_ir = ir.replace(|c: char| !c.is_alphanumeric(), "");
+
+    let ir_stripped = strip_ir_prefix(&ir);
+    let _clean_ir_stripped = ir_stripped.replace(|c: char| !c.is_alphanumeric(), "");
 
     let grn_path = get_data_file_path("grn_master_data.json");
     let po_path = get_data_file_path("po_lookup.json");
@@ -793,40 +835,28 @@ fn lookup_inbound_reference(
             if !ir.is_empty() {
                 if let Some(ir_map) = json.get("ir_to_data").and_then(|v| v.as_object()) {
                     let mut found_wb_str = None;
-                    if let Some(e) = ir_map.get(&ir).or_else(|| ir_map.get(&clean_ir)) {
-                        found_wb_str = e.get("waybill").and_then(|v| v.as_str()).map(|s| s.to_string());
-                        if let Some(items) = e.get("items").and_then(|v| v.as_array()) {
-                            res_items = items.clone();
-                        }
-                    } else {
-                        for (k, e) in ir_map {
-                            let clean_k = k.replace(|c: char| !c.is_alphanumeric(), "").to_uppercase();
-                            if k.to_uppercase() == ir || (!clean_ir.is_empty() && clean_k == clean_ir) {
-                                found_wb_str = e.get("waybill").and_then(|v| v.as_str()).map(|s| s.to_string());
-                                if let Some(items) = e.get("items").and_then(|v| v.as_array()) {
-                                    res_items = items.clone();
-                                }
-                                break;
+                    for (k, e) in ir_map {
+                        if inbound::match_ref_rust(k, &ir) {
+                            found_wb_str = e.get("waybill").and_then(|v| v.as_str()).map(|s| s.to_string());
+                            if let Some(items) = e.get("items").and_then(|v| v.as_array()) {
+                                res_items = items.clone();
                             }
+                            res_ir = k.clone();
+                            break;
                         }
                     }
                     if let Some(wb_found) = found_wb_str {
                         if !wb_found.is_empty() { res_wb = wb_found; }
                     }
                 }
-            } else if !wb.is_empty() {
-                if let Some(wb_map) = json.get("wb_to_data").and_then(|v| v.as_object()) {
-                    let mut found_ir_str = None;
-                    if let Some(e) = wb_map.get(&wb).or_else(|| wb_map.get(&clean_wb)) {
-                        found_ir_str = e.get("import_ref").and_then(|v| v.as_str()).map(|s| s.to_string());
-                        if let Some(items) = e.get("items").and_then(|v| v.as_array()) {
-                            res_items = items.clone();
-                        }
-                    } else {
-                        for (k, e) in wb_map {
-                            let clean_k = k.replace(|c: char| !c.is_alphanumeric(), "").to_uppercase();
-                            if k.to_uppercase() == wb || (!clean_wb.is_empty() && clean_k == clean_wb) {
-                                found_ir_str = e.get("import_ref").and_then(|v| v.as_str()).map(|s| s.to_string());
+                // Si no se encontró en ir_to_data, buscar en wb_to_data
+                if res_items.is_empty() {
+                    if let Some(wb_map) = json.get("wb_to_data").and_then(|v| v.as_object()) {
+                        for (wb_k, e) in wb_map {
+                            let obj_ir = e.get("import_ref").and_then(|v| v.as_str()).unwrap_or("");
+                            if inbound::match_ref_rust(obj_ir, &ir) {
+                                res_wb = wb_k.clone();
+                                res_ir = obj_ir.to_string();
                                 if let Some(items) = e.get("items").and_then(|v| v.as_array()) {
                                     res_items = items.clone();
                                 }
@@ -834,8 +864,38 @@ fn lookup_inbound_reference(
                             }
                         }
                     }
+                }
+            } else if !wb.is_empty() {
+                if let Some(wb_map) = json.get("wb_to_data").and_then(|v| v.as_object()) {
+                    let mut found_ir_str = None;
+                    for (k, e) in wb_map {
+                        if inbound::match_ref_rust(k, &wb) {
+                            found_ir_str = e.get("import_ref").and_then(|v| v.as_str()).map(|s| s.to_string());
+                            if let Some(items) = e.get("items").and_then(|v| v.as_array()) {
+                                res_items = items.clone();
+                            }
+                            res_wb = k.clone();
+                            break;
+                        }
+                    }
                     if let Some(ir_found) = found_ir_str {
                         if !ir_found.is_empty() { res_ir = ir_found; }
+                    }
+                }
+                // Si no se encontró en wb_to_data, buscar en ir_to_data
+                if res_items.is_empty() {
+                    if let Some(ir_map) = json.get("ir_to_data").and_then(|v| v.as_object()) {
+                        for (ir_k, e) in ir_map {
+                            let obj_wb = e.get("waybill").and_then(|v| v.as_str()).unwrap_or("");
+                            if inbound::match_ref_rust(obj_wb, &wb) {
+                                res_ir = ir_k.clone();
+                                res_wb = obj_wb.to_string();
+                                if let Some(items) = e.get("items").and_then(|v| v.as_array()) {
+                                    res_items = items.clone();
+                                }
+                                break;
+                            }
+                        }
                     }
                 }
             }
@@ -1911,6 +1971,8 @@ fn main() {
             save_grn_master_json,
             save_xdock_reservations_json,
             lookup_inbound_reference,
+            get_inbound_ir_stats_data,
+            get_inbound_expected_bulk,
 
             // Counts & Sessions
             get_active_count_session,

@@ -204,6 +204,12 @@ export const deleteSavedGrnReconciliation = (id) =>
 export const lookupInboundReference = (reference) =>
     tauriInvoke('lookup_inbound_reference', { reference });
 
+export const getInboundIrStatsData = (importRef) =>
+    tauriInvoke('get_inbound_ir_stats_data', { importRef, import_ref: importRef });
+
+export const getInboundExpectedBulk = (items) =>
+    tauriInvoke('get_inbound_expected_bulk', { items });
+
 // ─────────────────────────────────────────────────────
 // COUNTS & SESSIONS
 // ─────────────────────────────────────────────────────

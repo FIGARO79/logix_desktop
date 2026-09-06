@@ -1992,23 +1992,33 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
 
             // Fallback en IndexedDB offline si no corre en Tauri
             const logs = db ? (await db.getAll('inbound_logs') || []) : [];
-            const rows = logs.map(l => ({
-                id: l.id || Math.random(),
-                Import_Reference: l.importReference || l.import_reference || '',
-                Waybill: l.waybill || '-',
-                GRN: l.grn || 'N/A',
-                Order_Line: l.order_line || '-',
-                Codigo_Item: l.itemCode || l.item_code || '',
-                Descripcion: l.itemDescription || l.item_description || '',
-                Ubicacion: l.binLocation || l.bin_location || 'N/A',
-                Reubicado: l.relocatedBin || l.relocated_bin || '',
-                Cant_Esperada: Number(l.expected_qty || l.qty_grn || 0),
-                Cant_Recibida: Number(l.qtyReceived || l.qty_received || 0),
-                Diferencia: Number(l.difference || 0),
-                Timestamp: l.timestamp || new Date().toISOString(),
-                Usuario: l.username || 'admin',
-                Snapshot_Date: l.archived_at || null
-            }));
+            const rows = [];
+            logs.forEach(l => {
+                const grnRaw = String(l.grn || 'N/A').trim();
+                const grnParts = (grnRaw && grnRaw !== 'N/A' && grnRaw !== 'SIN GRN' && (grnRaw.includes(',') || grnRaw.includes('/')))
+                    ? grnRaw.split(/[,\/]/).map(g => g.trim().toUpperCase()).filter(Boolean)
+                    : [grnRaw];
+
+                grnParts.forEach(grnVal => {
+                    rows.push({
+                        id: l.id || Math.random(),
+                        Import_Reference: l.importReference || l.import_reference || '',
+                        Waybill: l.waybill || '-',
+                        GRN: grnVal || 'N/A',
+                        Order_Line: l.order_line || '-',
+                        Codigo_Item: l.itemCode || l.item_code || '',
+                        Descripcion: l.itemDescription || l.item_description || '',
+                        Ubicacion: l.binLocation || l.bin_location || 'N/A',
+                        Reubicado: l.relocatedBin || l.relocated_bin || '',
+                        Cant_Esperada: Number(l.expected_qty || l.qty_grn || 0),
+                        Cant_Recibida: Number(l.qtyReceived || l.qty_received || 0),
+                        Diferencia: Number(l.difference || 0),
+                        Timestamp: l.timestamp || new Date().toISOString(),
+                        Usuario: l.username || 'admin',
+                        Snapshot_Date: l.archived_at || null
+                    });
+                });
+            });
             return createJsonResponse({ data: rows, archive_versions: [], snapshot_versions: [] });
         }
 

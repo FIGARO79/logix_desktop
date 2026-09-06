@@ -23,6 +23,8 @@ const Reconciliation = () => {
     const [filterText, setFilterText] = useState('');
     const [sortConfig, setSortConfig] = useState({ key: 'GRN', direction: 'ascending' });
     const [isOfflineData, setIsOfflineData] = useState(false);
+    const [filterOnlyDiff, setFilterOnlyDiff] = useState(false);
+    const [filterNoDiff, setFilterNoDiff] = useState(false);
 
     // Cargar lista de operadores para filtro multi-usuario
     useEffect(() => {
@@ -105,7 +107,30 @@ const Reconciliation = () => {
         }
     }, [refetch]);
 
-    const rawData = useMemo(() => queryData?.data || [], [queryData]);
+    // Expandir filas con múltiples GRNs para que cada GRN esté en su propia línea individual
+    const rawData = useMemo(() => {
+        const raw = queryData?.data || [];
+        const result = [];
+        raw.forEach(row => {
+            const grnStr = String(row.GRN || '').trim();
+            if (grnStr && grnStr !== 'SIN GRN' && grnStr !== 'PO EXTRACTOR' && (grnStr.includes(',') || grnStr.includes('/'))) {
+                const parts = grnStr.split(/[,\/]/).map(g => g.trim().toUpperCase()).filter(Boolean);
+                if (parts.length > 0) {
+                    parts.forEach(individualGrn => {
+                        result.push({
+                            ...row,
+                            GRN: individualGrn
+                        });
+                    });
+                } else {
+                    result.push(row);
+                }
+            } else {
+                result.push(row);
+            }
+        });
+        return result;
+    }, [queryData]);
 
     // Extraer listas únicas de IR y GRN disponibles para autocompletado y filtros
     const availableIRs = useMemo(() => {
@@ -123,7 +148,8 @@ const Reconciliation = () => {
         rawData.forEach(r => {
             if (selectedIR && r.Import_Reference !== selectedIR) return;
             if (r.GRN && r.GRN !== 'SIN GRN') {
-                set.add(r.GRN);
+                const parts = String(r.GRN).split(/[,\/]/).map(g => g.trim().toUpperCase()).filter(Boolean);
+                parts.forEach(g => set.add(g));
             }
         });
         return Array.from(set).sort();
@@ -232,10 +258,10 @@ const Reconciliation = () => {
         return sortableItems;
     }, [filteredBySelectors, sortConfig]);
 
-    const finalDisplayData = useMemo(() => {
+    const searchedData = useMemo(() => {
+        if (!filterText) return sortedData;
+        const searchStr = filterText.toLowerCase();
         return sortedData.filter(item => {
-            if (!filterText) return true;
-            const searchStr = filterText.toLowerCase();
             return Object.entries(item).some(([key, val]) => {
                 if (val === null || val === undefined) return false;
                 if (key === 'id') return false;
@@ -246,6 +272,29 @@ const Reconciliation = () => {
             });
         });
     }, [sortedData, filterText]);
+
+    const diffStats = useMemo(() => {
+        let withDiff = 0;
+        let withoutDiff = 0;
+        searchedData.forEach(item => {
+            if (Math.abs(item.Diferencia || 0) > 0.0001) {
+                withDiff++;
+            } else {
+                withoutDiff++;
+            }
+        });
+        return { withDiff, withoutDiff };
+    }, [searchedData]);
+
+    const finalDisplayData = useMemo(() => {
+        if (!filterOnlyDiff && !filterNoDiff) return searchedData;
+        return searchedData.filter(item => {
+            const hasDiff = Math.abs(item.Diferencia || 0) > 0.0001;
+            if (filterOnlyDiff && !hasDiff) return false;
+            if (filterNoDiff && hasDiff) return false;
+            return true;
+        });
+    }, [searchedData, filterOnlyDiff, filterNoDiff]);
 
     // Resumen de la conciliación en pantalla
     const reconciliationSummary = useMemo(() => {
@@ -627,7 +676,7 @@ const Reconciliation = () => {
                     </div>
 
                     {/* Botón Limpiar Filtros */}
-                    {(selectedIR || selectedGRN || (selectedOperator && selectedOperator !== 'all') || filterText) && (
+                    {(selectedIR || selectedGRN || (selectedOperator && selectedOperator !== 'all') || filterText || filterOnlyDiff || filterNoDiff) && (
                         <div className="self-end">
                             <button
                                 onClick={() => {
@@ -635,6 +684,8 @@ const Reconciliation = () => {
                                     setSelectedGRN('');
                                     setSelectedOperator('all');
                                     setFilterText('');
+                                    setFilterOnlyDiff(false);
+                                    setFilterNoDiff(false);
                                 }}
                                 className="h-7 px-2.5 text-[12px] text-[#1f1f1f] bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] rounded transition-colors font-normal cursor-pointer"
                             >
@@ -693,6 +744,46 @@ const Reconciliation = () => {
                             {reconciliationSummary.totalDiff > 0 ? `+${reconciliationSummary.totalDiff}` : reconciliationSummary.totalDiff}
                         </span>
                     </div>
+
+                    {/* Filtros Rápidos de Diferencias (replicados de logix_react) */}
+                    <div className="flex items-center gap-3 border-l border-[#e5e5e5] pl-3">
+                        <label htmlFor="filter-only-diff" className="flex items-center gap-1.5 cursor-pointer select-none text-[#1f1f1f] font-normal">
+                            <input
+                                id="filter-only-diff"
+                                type="checkbox"
+                                checked={filterOnlyDiff}
+                                onChange={(e) => {
+                                    const checked = e.target.checked;
+                                    setFilterOnlyDiff(checked);
+                                    if (checked) setFilterNoDiff(false);
+                                }}
+                                className="w-3.5 h-3.5 rounded border-[#d1d5db] text-[#b45309] focus:ring-0 cursor-pointer"
+                            />
+                            <span className="uppercase text-[10.5px]">Solo Diferencias</span>
+                            <span className={`px-1.5 py-0.2 text-[10px] rounded font-normal ${filterOnlyDiff ? 'bg-[#fef3c7] text-[#92400e] border border-[#fde68a]' : 'bg-[#f4f4f5] text-[#52525b] border border-[#e4e4e7]'}`}>
+                                {diffStats.withDiff}
+                            </span>
+                        </label>
+
+                        <label htmlFor="filter-no-diff" className="flex items-center gap-1.5 cursor-pointer select-none text-[#1f1f1f] font-normal">
+                            <input
+                                id="filter-no-diff"
+                                type="checkbox"
+                                checked={filterNoDiff}
+                                onChange={(e) => {
+                                    const checked = e.target.checked;
+                                    setFilterNoDiff(checked);
+                                    if (checked) setFilterOnlyDiff(false);
+                                }}
+                                className="w-3.5 h-3.5 rounded border-[#d1d5db] text-[#047857] focus:ring-0 cursor-pointer"
+                            />
+                            <span className="uppercase text-[10.5px]">Sin Diferencias</span>
+                            <span className={`px-1.5 py-0.2 text-[10px] rounded font-normal ${filterNoDiff ? 'bg-[#d1fae5] text-[#065f46] border border-[#a7f3d0]' : 'bg-[#f4f4f5] text-[#52525b] border border-[#e4e4e7]'}`}>
+                                {diffStats.withoutDiff}
+                            </span>
+                        </label>
+                    </div>
+
                     {reconciliationSummary.diffLines > 0 && (
                         <div className="flex items-center gap-1.5 ml-auto">
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-normal bg-[#fff4ce] text-[#794e00] border border-[#fde79a]">
@@ -720,7 +811,7 @@ const Reconciliation = () => {
                                                 { id: 'Import_Reference', label: 'I.R.' },
                                                 { id: 'Waybill', label: 'WAYBILL' },
                                                 { id: 'GRN', label: 'GRN' },
-                                                { id: 'Order_Line', label: 'LÍNEA' },
+                                                { id: 'Order_Line', label: 'LÍNEA PO' },
                                                 { id: 'Codigo_Item', label: 'CODIGO ITEM' },
                                                 { id: 'Descripcion', label: 'DESCRIPCION' },
                                                 { id: 'Ubicacion', label: 'UBICACION' },
@@ -765,7 +856,9 @@ const Reconciliation = () => {
                                                          <td className="px-3 py-1.5 whitespace-nowrap text-[#1f1f1f]" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Import_Reference}</td>
                                                          <td className="px-3 py-1.5 whitespace-nowrap text-[#1f1f1f]" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Waybill}</td>
                                                          <td className="px-3 py-1.5 whitespace-nowrap text-[#1f1f1f]" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.GRN}</td>
-                                                         <td className="px-3 py-1.5 whitespace-nowrap text-[#1f1f1f] text-center" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Order_Line || '-'}</td>
+                                                         <td className="px-3 py-1.5 whitespace-nowrap text-[#1f1f1f] text-center font-normal" style={{ borderBottom: '1px solid #f1f1f1' }}>
+                                                             {row.Order_Line && row.Order_Line !== '-' ? row.Order_Line : <span className="text-[#a1a1aa]">-</span>}
+                                                         </td>
                                                          <td className="px-3 py-1.5 whitespace-nowrap tracking-normal text-[#0067c0]" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Codigo_Item}</td>
                                                          <td className="px-3 py-1.5 truncate max-w-[260px] text-[#1f1f1f] tracking-normal" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Descripcion}</td>
                                                          <td className="px-3 py-1.5 whitespace-nowrap text-[#1f1f1f]" style={{ borderBottom: '1px solid #f1f1f1' }}>{row.Ubicacion || '-'}</td>
