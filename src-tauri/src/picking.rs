@@ -182,6 +182,8 @@ pub struct PickingAuditPackingListDto {
     pub timestamp: String,
     pub total_packages: i64,
     pub packages: HashMap<String, Vec<PackingListItemDetailDto>>,
+    #[serde(default)]
+    pub packages_dimensions: Vec<PackageDimensionInput>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -224,6 +226,8 @@ pub struct ConsolidatedOrderDto {
     pub timestamp: String,
     pub total_packages: i64,
     pub packages: HashMap<String, Vec<ConsolidatedOrderItemDto>>,
+    #[serde(default)]
+    pub packages_dimensions: Vec<PackageDimensionInput>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -410,31 +414,41 @@ pub fn import_picking_orders_bulk_db(conn: &mut Connection, orders: &[PickingOrd
 // 1. TRACKING MATRIX (/api/picking/tracking)
 // ============================================================================
 
+/// Normaliza la secuencia de despacho (ej. "0" -> "00", "00" -> "00", "1" -> "01", "01" -> "01", "" -> "00")
+pub fn normalize_despatch(d: &str) -> String {
+    let s = d.trim();
+    if s.is_empty() {
+        "00".to_string()
+    } else if let Ok(n) = s.parse::<u32>() {
+        format!("{:02}", n)
+    } else {
+        s.to_uppercase()
+    }
+}
+
 pub fn get_picking_tracking_from_db(conn: &Connection) -> Result<Vec<PickingTrackingItem>> {
     // 1. Obtener lista de auditorías existentes para marcar estado
+    // Se indexa estrictamente por (order_number, despatch_number normalizado)
     let mut stmt_audits = conn.prepare("SELECT order_number, despatch_number, status FROM picking_audits")?;
     let mut audited_map: HashMap<(String, String), String> = HashMap::new();
-    let mut audited_by_order: HashMap<String, String> = HashMap::new();
     let audit_rows = stmt_audits.query_map([], |r| {
         let o = r.get::<_, String>(0)?.trim().to_uppercase();
-        let d = r.get::<_, String>(1)?.trim().to_uppercase();
+        let d = normalize_despatch(&r.get::<_, Option<String>>(1)?.unwrap_or_default());
         let s = r.get::<_, Option<String>>(2)?.unwrap_or_else(|| "Completo".to_string());
         Ok((o, d, s))
     })?;
     for row in audit_rows.flatten() {
-        audited_by_order.insert(row.0.clone(), row.2.clone());
         audited_map.insert((row.0, row.1), row.2);
     }
 
-    // 2. Agrupar órdenes de picking_orders
+    // 2. Agrupar órdenes de picking_orders por order_number y despatch_number
     let mut stmt = conn.prepare(
         "SELECT order_number, despatch_number,
                 COALESCE(NULLIF(TRIM(MAX(customer_code)), ''), 'N/A') as cust_code,
                 COALESCE(NULLIF(TRIM(MAX(customer_name)), ''), 'Cliente General') as cust_name,
                 COUNT(*) as total_lines,
                 COALESCE(NULLIF(MAX(print_date), ''), date('now')) as p_date,
-                COALESCE(NULLIF(MAX(time_zone_hours), ''), '-05:00') as tz,
-                COALESCE(NULLIF(MAX(status), ''), 'PP') as ord_status
+                COALESCE(NULLIF(MAX(time_zone_hours), ''), '-05:00') as tz
          FROM picking_orders
          GROUP BY order_number, despatch_number
          ORDER BY p_date DESC, order_number ASC",
@@ -448,22 +462,13 @@ pub fn get_picking_tracking_from_db(conn: &Connection) -> Result<Vec<PickingTrac
         let lines: usize = row.get(4)?;
         let p_date: String = row.get(5)?;
         let tz: String = row.get(6)?;
-        let ord_status: String = row.get(7)?;
 
         let ord_upper = order.trim().to_uppercase();
-        let desp_upper = despatch.trim().to_uppercase();
-        let key = (ord_upper.clone(), desp_upper.clone());
+        let desp_norm = normalize_despatch(&despatch);
+        let key = (ord_upper, desp_norm);
 
         let (is_audited, status) = if let Some(st) = audited_map.get(&key) {
             (true, st.clone())
-        } else if let Some(st) = audited_map.iter().find(|((o, d), _)| {
-            o == &ord_upper && (d.trim_start_matches('0') == desp_upper.trim_start_matches('0') || d.is_empty() || desp_upper.is_empty())
-        }).map(|(_, st)| st) {
-            (true, st.clone())
-        } else if let Some(st) = audited_by_order.get(&ord_upper) {
-            (true, st.clone())
-        } else if ord_status == "AUDITADO" || ord_status == "Completo" {
-            (true, ord_status)
         } else {
             (false, "PP".to_string())
         };
@@ -495,16 +500,23 @@ pub fn get_picking_tracking_from_db(conn: &Connection) -> Result<Vec<PickingTrac
 pub fn get_picking_order_details_from_db(conn: &Connection, order_number: &str, despatch_number: &str) -> Result<Vec<PickingOrderRow>> {
     let order_clean = order_number.trim();
     let despatch_clean = despatch_number.trim();
+    let norm_desp = normalize_despatch(despatch_clean);
+    let alt_desp = if norm_desp == "00" { "0".to_string() } else { norm_desp.trim_start_matches('0').to_string() };
 
     let mut stmt = conn.prepare(
         "SELECT order_number, despatch_number, customer_code, customer_name,
                 item_code, item_description, order_line, requested_qty
          FROM picking_orders
-         WHERE TRIM(order_number) = ?1 AND TRIM(despatch_number) = ?2
+         WHERE UPPER(TRIM(order_number)) = UPPER(?1)
+           AND (
+               UPPER(TRIM(despatch_number)) = ?2
+               OR UPPER(TRIM(despatch_number)) = ?3
+               OR (TRIM(despatch_number) = '' AND ?2 = '00')
+           )
          ORDER BY CAST(order_line AS INTEGER) ASC, id ASC",
     )?;
 
-    let iter = stmt.query_map(params![order_clean, despatch_clean], |row| {
+    let iter = stmt.query_map(params![order_clean, norm_desp, alt_desp], |row| {
         Ok(PickingOrderRow {
             order_number: row.get(0)?,
             despatch_number: row.get(1)?,
@@ -538,16 +550,23 @@ pub fn save_picking_audit_full_to_db(conn: &mut Connection, payload: PickingAudi
     let cust_code = payload.customer_code.unwrap_or_else(|| "N/A".to_string());
     let cust_name = payload.customer_name.unwrap_or_else(|| "Cliente General".to_string());
     let ord_num = payload.order_number.trim().to_string();
-    let desp_num = payload.despatch_number.unwrap_or_else(|| "00".to_string());
-    let desp_num = if desp_num.trim().is_empty() { "00".to_string() } else { desp_num.trim().to_string() };
+    let raw_desp = payload.despatch_number.unwrap_or_else(|| "00".to_string());
+    let desp_num = normalize_despatch(&raw_desp);
+    let alt_desp = if desp_num == "00" { "0".to_string() } else { desp_num.trim_start_matches('0').to_string() };
 
     // 1. Check for existing audit by ID or order_number + despatch_number to avoid duplicate headers
     let existing_id: Option<i64> = if let Some(id) = payload.id {
         Some(id)
     } else {
         tx.query_row(
-            "SELECT id FROM picking_audits WHERE UPPER(TRIM(order_number)) = ?1 AND UPPER(TRIM(despatch_number)) = ?2",
-            params![ord_num.to_uppercase(), desp_num.to_uppercase()],
+            "SELECT id FROM picking_audits 
+             WHERE UPPER(TRIM(order_number)) = ?1 
+               AND (
+                 UPPER(TRIM(despatch_number)) = ?2
+                 OR UPPER(TRIM(despatch_number)) = ?3
+                 OR (TRIM(despatch_number) = '' AND ?2 = '00')
+               )",
+            params![ord_num.to_uppercase(), desp_num, alt_desp],
             |row| row.get(0),
         ).ok()
     };
@@ -689,10 +708,16 @@ pub fn save_picking_audit_full_to_db(conn: &mut Connection, payload: PickingAudi
         }
     }
 
-    // 5. Marcar en picking_orders como AUDITADO
+    // 5. Marcar en picking_orders como AUDITADO para la orden y secuencia de despacho específica
     let _ = tx.execute(
-        "UPDATE picking_orders SET status = 'AUDITADO' WHERE UPPER(TRIM(order_number)) = ?1",
-        params![ord_num.to_uppercase()],
+        "UPDATE picking_orders SET status = 'AUDITADO' 
+         WHERE UPPER(TRIM(order_number)) = ?1 
+           AND (
+             UPPER(TRIM(despatch_number)) = ?2 
+             OR UPPER(TRIM(despatch_number)) = ?3 
+             OR (TRIM(despatch_number) = '' AND ?2 = '00')
+           )",
+        params![ord_num.to_uppercase(), desp_num, alt_desp],
     );
 
     tx.commit()?;
@@ -838,8 +863,8 @@ pub fn update_picking_audit_full_in_db(conn: &mut Connection, id: i64, payload: 
     let cust_code = payload.customer_code.unwrap_or_else(|| "N/A".to_string());
     let cust_name = payload.customer_name.unwrap_or_else(|| "Cliente General".to_string());
     let ord_num = payload.order_number.trim().to_string();
-    let desp_num = payload.despatch_number.unwrap_or_else(|| "00".to_string());
-    let desp_num = if desp_num.trim().is_empty() { "00".to_string() } else { desp_num.trim().to_string() };
+    let raw_desp = payload.despatch_number.unwrap_or_else(|| "00".to_string());
+    let desp_num = normalize_despatch(&raw_desp);
 
     tx.execute(
         "UPDATE picking_audits SET
@@ -981,13 +1006,17 @@ pub fn delete_picking_audits_from_db(conn: &Connection, ids: &[i64]) -> Result<u
 // ============================================================================
 
 pub fn get_picking_packing_list_from_db(conn: &Connection, audit_id: i64) -> Result<Option<PickingAuditPackingListDto>> {
+    let audit_id_str = audit_id.to_string();
     let mut stmt = conn.prepare(
         "SELECT id, order_number, despatch_number, customer_code, customer_name, timestamp, packages
          FROM picking_audits
-         WHERE id = ?1",
+         WHERE id = ?1 
+            OR UPPER(TRIM(order_number)) = ?2 
+            OR LTRIM(UPPER(TRIM(order_number)), '0') = LTRIM(?2, '0')
+         ORDER BY id DESC LIMIT 1",
     )?;
 
-    let header_res = stmt.query_row(params![audit_id], |row| {
+    let header_res = stmt.query_row(params![audit_id, audit_id_str], |row| {
         Ok((
             row.get::<_, i64>(0)?,
             row.get::<_, Option<String>>(1)?.unwrap_or_default(),
@@ -1005,6 +1034,8 @@ pub fn get_picking_packing_list_from_db(conn: &Connection, audit_id: i64) -> Res
         Err(e) => return Err(e),
     };
 
+    let actual_audit_id = header.0;
+
     let mut stmt_items = conn.prepare(
         "SELECT package_number, item_code, description, order_line, qty_scan
          FROM picking_package_items
@@ -1012,7 +1043,7 @@ pub fn get_picking_packing_list_from_db(conn: &Connection, audit_id: i64) -> Res
          ORDER BY package_number ASC, id ASC",
     )?;
 
-    let items_iter = stmt_items.query_map(params![audit_id], |row| {
+    let items_iter = stmt_items.query_map(params![actual_audit_id], |row| {
         Ok((
             row.get::<_, Option<i64>>(0)?.unwrap_or(1),
             row.get::<_, Option<String>>(1)?.unwrap_or_default(),
@@ -1036,12 +1067,14 @@ pub fn get_picking_packing_list_from_db(conn: &Connection, audit_id: i64) -> Res
 
     if packages.is_empty() {
         let mut stmt_fallback = conn.prepare(
-            "SELECT item_code, description, order_line, qty_scan
+            "SELECT item_code, description, order_line, qty_scan, qty_req
              FROM picking_audit_items
-             WHERE audit_id = ?1 AND qty_scan > 0",
+             WHERE audit_id = ?1",
         )?;
-        let fb_iter = stmt_fallback.query_map(params![audit_id], |row| {
-            let q: f64 = row.get(3)?;
+        let fb_iter = stmt_fallback.query_map(params![actual_audit_id], |row| {
+            let q_scan: f64 = row.get(3).unwrap_or(0.0);
+            let q_req: f64 = row.get(4).unwrap_or(0.0);
+            let q = if q_scan > 0.0 { q_scan } else { q_req };
             Ok(PackingListItemDetailDto {
                 item_code: row.get(0)?,
                 description: row.get::<_, Option<String>>(1)?.unwrap_or_default(),
@@ -1056,6 +1089,23 @@ pub fn get_picking_packing_list_from_db(conn: &Connection, audit_id: i64) -> Res
         }
     }
 
+    let mut stmt_dims = conn.prepare(
+        "SELECT package_number, length, width, height, weight
+         FROM picking_packages
+         WHERE audit_id = ?1
+         ORDER BY package_number ASC",
+    )?;
+    let dims_iter = stmt_dims.query_map(params![actual_audit_id], |row| {
+        Ok(PackageDimensionInput {
+            package_number: row.get::<_, Option<i64>>(0)?.unwrap_or(1),
+            length: row.get::<_, Option<f64>>(1)?.unwrap_or(0.0),
+            width: row.get::<_, Option<f64>>(2)?.unwrap_or(0.0),
+            height: row.get::<_, Option<f64>>(3)?.unwrap_or(0.0),
+            weight: row.get::<_, Option<f64>>(4)?.unwrap_or(0.0),
+        })
+    })?;
+    let packages_dimensions: Vec<PackageDimensionInput> = dims_iter.flatten().collect();
+
     Ok(Some(PickingAuditPackingListDto {
         audit_id: header.0,
         order_number: header.1,
@@ -1065,6 +1115,7 @@ pub fn get_picking_packing_list_from_db(conn: &Connection, audit_id: i64) -> Res
         timestamp: header.5,
         total_packages: header.6,
         packages,
+        packages_dimensions,
     }))
 }
 
@@ -1231,6 +1282,23 @@ pub fn get_consolidated_packing_list_from_db(conn: &Connection, shipment_id: i64
             });
         }
 
+        let mut stmt_dims = conn.prepare(
+            "SELECT package_number, length, width, height, weight
+             FROM picking_packages
+             WHERE audit_id = ?1
+             ORDER BY package_number ASC",
+        )?;
+        let dims_iter = stmt_dims.query_map(params![audit_id], |row| {
+            Ok(PackageDimensionInput {
+                package_number: row.get::<_, Option<i64>>(0)?.unwrap_or(1),
+                length: row.get::<_, Option<f64>>(1)?.unwrap_or(0.0),
+                width: row.get::<_, Option<f64>>(2)?.unwrap_or(0.0),
+                height: row.get::<_, Option<f64>>(3)?.unwrap_or(0.0),
+                weight: row.get::<_, Option<f64>>(4)?.unwrap_or(0.0),
+            })
+        })?;
+        let packages_dimensions: Vec<PackageDimensionInput> = dims_iter.flatten().collect();
+
         orders.push(ConsolidatedOrderDto {
             audit_id,
             order_number: a.1,
@@ -1240,6 +1308,7 @@ pub fn get_consolidated_packing_list_from_db(conn: &Connection, shipment_id: i64
             timestamp: a.5,
             total_packages: a.6,
             packages,
+            packages_dimensions,
         });
     }
 
@@ -1486,4 +1555,85 @@ mod tests {
         assert_eq!(tracking2.len(), 1);
         assert_eq!(tracking2[0].order_number, "002");
     }
+
+    #[test]
+    fn test_tracking_multiple_despatches_of_same_order() {
+        let mut conn = setup_test_db();
+
+        // Insertar 2 órdenes con el mismo número de orden pero diferente secuencia de despacho (00 y 01)
+        let orders = vec![
+            PickingOrderImportRow {
+                shipment_id: None,
+                order_number: "0046907".to_string(),
+                despatch_number: Some("00".to_string()),
+                customer_code: Some("00034".to_string()),
+                customer_name: Some("MINERA EL ROBLE SA".to_string()),
+                carrier: None,
+                order_line: Some("1".to_string()),
+                item_code: "SKU1".to_string(),
+                item_description: Some("Item 1".to_string()),
+                requested_qty: 4.0,
+                picked_qty: Some(0.0),
+                print_date: Some("2026-07-24".to_string()),
+                time_zone_hours: Some("-05:00".to_string()),
+                status: Some("PP".to_string()),
+                timestamp: None,
+            },
+            PickingOrderImportRow {
+                shipment_id: None,
+                order_number: "0046907".to_string(),
+                despatch_number: Some("01".to_string()),
+                customer_code: Some("00034".to_string()),
+                customer_name: Some("MINERA EL ROBLE SA".to_string()),
+                carrier: None,
+                order_line: Some("2".to_string()),
+                item_code: "SKU2".to_string(),
+                item_description: Some("Item 2".to_string()),
+                requested_qty: 1.0,
+                picked_qty: Some(0.0),
+                print_date: Some("2026-07-24".to_string()),
+                time_zone_hours: Some("-05:00".to_string()),
+                status: Some("PP".to_string()),
+                timestamp: None,
+            },
+        ];
+        import_picking_orders_bulk_db(&mut conn, &orders).unwrap();
+
+        // Inicialmente ninguna está auditada
+        let tracking_init = get_picking_tracking_from_db(&conn).unwrap();
+        assert_eq!(tracking_init.len(), 2);
+        assert!(!tracking_init[0].is_audited);
+        assert!(!tracking_init[1].is_audited);
+
+        // Auditar únicamente el despacho 00
+        let audit_input = PickingAuditFullInput {
+            id: None,
+            order_number: "0046907".to_string(),
+            despatch_number: Some("00".to_string()),
+            customer_code: Some("00034".to_string()),
+            customer_name: Some("MINERA EL ROBLE SA".to_string()),
+            username: Some("operador".to_string()),
+            timestamp: Some("2026-07-24 11:28:28".to_string()),
+            status: Some("Completo".to_string()),
+            packages: Some(1),
+            items: vec![],
+            packages_assignment: serde_json::json!({}),
+            packages_dimensions: vec![],
+        };
+        save_picking_audit_full_to_db(&mut conn, audit_input).unwrap();
+
+        // Verificar matriz de tracking: despacho 00 DEBE estar auditado, pero despacho 01 DEBE continuar en PP
+        let tracking_after = get_picking_tracking_from_db(&conn).unwrap();
+        assert_eq!(tracking_after.len(), 2);
+
+        let desp_00 = tracking_after.iter().find(|t| t.order_number == "0046907" && t.despatch_number == "00").unwrap();
+        let desp_01 = tracking_after.iter().find(|t| t.order_number == "0046907" && t.despatch_number == "01").unwrap();
+
+        assert!(desp_00.is_audited, "El despacho 00 debe estar marcado como auditado");
+        assert_eq!(desp_00.status, "Completo");
+
+        assert!(!desp_01.is_audited, "El despacho 01 NO debe estar marcado como auditado");
+        assert_eq!(desp_01.status, "PP");
+    }
 }
+

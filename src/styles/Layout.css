@@ -279,7 +279,13 @@ header .header-actions {
 
 /* Ocultar elementos estructurales del layout durante la impresión */
 @media print {
-    html, body, #root, [class*="min-h-screen"], main, .main-content {
+    html, body, #root, [class*="min-h-screen"], main, .main-content, .tab-content-container, .tabs-wrapper, div[class*="h-full"] {
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+        display: block !important;
+        position: static !important;
         background: #ffffff !important;
         background-color: #ffffff !important;
         box-shadow: none !important;
@@ -292,7 +298,8 @@ header .header-actions {
     nav,
     .menu-overlay,
     .dropdown-menu,
-    aside {
+    aside,
+    .tab-content-container.hidden {
         display: none !important;
     }
 }

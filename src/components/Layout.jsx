@@ -34,9 +34,10 @@ import OccupancyDashboard from '../pages/OccupancyDashboard';
 import ManageCountDifferences from '../pages/ManageCountDifferences';
 import ManageCycleCountDifferences from '../pages/ManageCycleCountDifferences';
 import Shipments from '../pages/Shipments';
-import PackingListPrint from '../pages/PackingListPrint';
 import InboundAudit from '../pages/InboundAudit';
 import IRReconciliation from '../pages/IRReconciliation';
+import PackingListPrint from '../pages/PackingListPrint';
+import ConsolidatedPackingList from '../pages/ConsolidatedPackingList';
 import NetworkSettingsModal from './NetworkSettingsModal';
 import PrinterSettingsModal from './PrinterSettingsModal';
 import DesktopMenuBar from './DesktopMenuBar';
@@ -50,6 +51,9 @@ const ROUTE_MAP = [
     { path: '/stock', component: StockSearch },
     { path: '/spot-check', component: SpotCheck },
     { path: '/view_picking_audits', component: PickingAuditHistory },
+    { path: '/packing_list/print/:id', component: PackingListPrint },
+    { path: '/packing_list/:id', component: PackingListPrint },
+    { path: '/packing_list', component: PackingListPrint },
     { path: '/label', component: LabelPrinting },
     { path: '/planner', component: Planner },
     { path: '/planner/execution', component: PlannerExecution },
@@ -67,11 +71,11 @@ const ROUTE_MAP = [
     { path: '/admin/inventory', component: AdminInventory },
     { path: '/admin/slotting', component: SlottingConfig },
     { path: '/shipments', component: Shipments },
+    { path: '/shipments/print/:id', component: ConsolidatedPackingList },
     { path: '/update', component: Update },
     { path: '/admin/users', component: AdminUsers },
     { path: '/admin/login', component: AdminLogin },
     { path: '/counts/edit/:id', component: EditCount },
-    { path: '/packing_list/print/:id', component: PackingListPrint },
     { path: '/inbound/audit', component: InboundAudit },
 ];
 

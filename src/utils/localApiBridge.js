@@ -1357,17 +1357,45 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
             const clean = pathname.replace('/api/picking/packing_list/', '').replace('/api/picking_audit/', '').replace('/print', '');
             const auditId = parseInt(clean, 10) || 0;
 
-            if (isTauri() && auditId > 0) {
+            if (isTauri()) {
+                if (auditId > 0) {
+                    try {
+                        const pl = await callTauriCommand('get_picking_packing_list', { auditId, id: auditId });
+                        if (pl) return createJsonResponse(pl);
+                    } catch (e) {
+                        console.warn("Error getting picking packing list in Tauri:", e);
+                    }
+
+                    try {
+                        const directAudit = await callTauriCommand('get_picking_audit_by_id_full', { id: auditId, auditId });
+                        if (directAudit) return createJsonResponse(directAudit);
+                    } catch (e) {
+                        console.warn("Error getting audit detail in Tauri for packing list:", e);
+                    }
+                }
+
                 try {
-                    const pl = await callTauriCommand('get_picking_packing_list', { audit_id: auditId, auditId });
-                    if (pl) return createJsonResponse(pl);
+                    const audits = await callTauriCommand('get_picking_audits_full');
+                    if (Array.isArray(audits) && audits.length > 0) {
+                        const foundAudit = audits.find(a => 
+                            String(a.id) === String(auditId) || 
+                            String(a.id) === clean || 
+                            String(a.order_number) === clean ||
+                            (auditId > 0 && a.id === auditId)
+                        );
+                        if (foundAudit) return createJsonResponse(foundAudit);
+                    }
                 } catch (e) {
-                    console.warn("Error getting picking packing list in Tauri:", e);
+                    console.warn("Error searching in get_picking_audits_full for packing list:", e);
                 }
             }
 
             const all = db ? (await db.getAll('picking_audits') || []) : [];
-            const found = all.find(a => a.id === auditId || a.order_number === clean);
+            const pendingList = db ? (await db.getAll('pending_sync') || []) : [];
+            const foundDirect = all.find(a => String(a.id) === String(auditId) || String(a.id) === clean || String(a.order_number) === clean);
+            const foundPending = pendingList.find(item => String(item.id) === String(auditId) || String(item.payload?.order_number) === clean);
+            const found = foundDirect || (foundPending ? foundPending.payload : null);
+
             if (found) {
                 return createJsonResponse(found);
             }
@@ -1378,7 +1406,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
             const id = parseInt(pathname.replace('/api/picking_audit/', '').split('/')[0], 10) || 0;
             if (isTauri() && id > 0) {
                 try {
-                    const audit = await callTauriCommand('get_picking_audit_by_id_full', { audit_id: id, auditId: id });
+                    const audit = await callTauriCommand('get_picking_audit_by_id_full', { id, auditId: id });
                     if (audit) return createJsonResponse(audit);
                 } catch (e) {
                     console.warn("Error getting audit detail in Tauri:", e);

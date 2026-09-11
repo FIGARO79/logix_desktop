@@ -9,10 +9,18 @@
  *   const id = await savePickingAudit(payload);
  */
 
+import { invoke as apiInvoke } from '@tauri-apps/api/tauri';
+
+const isTauriEnv = () => {
+    if (typeof window === 'undefined') return false;
+    return !!(window.__TAURI__ || window.__TAURI_IPC__);
+};
+
 const getInvoke = () => {
     if (typeof window === 'undefined') return null;
     if (window.__TAURI__?.tauri?.invoke) return window.__TAURI__.tauri.invoke;
     if (window.__TAURI__?.invoke) return window.__TAURI__.invoke;
+    if (isTauriEnv()) return apiInvoke;
     return null;
 };
 
@@ -26,8 +34,12 @@ const tauriInvoke = async (cmd, args = {}) => {
             const hasWebFallback = [
                 'save_picking_audit_full',
                 'get_picking_audits_full',
+                'get_picking_audit_by_id_full',
+                'get_picking_packing_list',
                 'get_picking_tracking',
-                'get_picking_order_details'
+                'get_picking_order_details',
+                'get_consolidated_packing_list',
+                'list_shipments'
             ].includes(cmd);
 
             if (!hasWebFallback && !cmd.startsWith('save_') && !cmd.startsWith('update_') && !cmd.startsWith('delete_')) {
@@ -38,8 +50,12 @@ const tauriInvoke = async (cmd, args = {}) => {
         const hasWebFallback = [
             'save_picking_audit_full',
             'get_picking_audits_full',
+            'get_picking_audit_by_id_full',
+            'get_picking_packing_list',
             'get_picking_tracking',
-            'get_picking_order_details'
+            'get_picking_order_details',
+            'get_consolidated_packing_list',
+            'list_shipments'
         ].includes(cmd);
 
         if (!hasWebFallback && !cmd.startsWith('save_') && !cmd.startsWith('update_') && !cmd.startsWith('delete_')) {
@@ -60,6 +76,20 @@ const tauriInvoke = async (cmd, args = {}) => {
         }
     } else if (cmd === 'get_picking_audits_full') {
         const res = await fetch('/api/views/view_picking_audits');
+        if (res.ok) return await res.json();
+    } else if (cmd === 'get_picking_audit_by_id_full') {
+        const targetId = args.id || args.auditId;
+        const res = await fetch(`/api/picking/packing_list/${targetId}`);
+        if (res.ok) return await res.json();
+    } else if (cmd === 'get_picking_packing_list') {
+        const targetId = args.auditId || args.id;
+        const res = await fetch(`/api/picking/packing_list/${targetId}`);
+        if (res.ok) return await res.json();
+    } else if (cmd === 'get_consolidated_packing_list') {
+        const res = await fetch(`/api/shipments/${args.shipmentId}/packing_list`);
+        if (res.ok) return await res.json();
+    } else if (cmd === 'list_shipments') {
+        const res = await fetch('/api/shipments');
         if (res.ok) return await res.json();
     } else if (cmd === 'get_picking_tracking') {
         const res = await fetch('/api/picking/tracking');
@@ -313,7 +343,7 @@ export const getPickingAudits = () =>
     tauriInvoke('get_picking_audits_full');
 
 export const getPickingAuditById = (auditId) =>
-    tauriInvoke('get_picking_audit_by_id_full', { audit_id: auditId, auditId });
+    tauriInvoke('get_picking_audit_by_id_full', { id: auditId, auditId, audit_id: auditId });
 
 export const updatePickingAudit = (auditId, payload) =>
     tauriInvoke('update_picking_audit_full', { id: auditId, auditId, payload });
@@ -322,7 +352,7 @@ export const deletePickingAudits = (ids) =>
     tauriInvoke('delete_picking_audits', { ids });
 
 export const getPickingPackingList = (auditId) =>
-    tauriInvoke('get_picking_packing_list', { audit_id: auditId, auditId });
+    tauriInvoke('get_picking_packing_list', { auditId, audit_id: auditId, id: auditId });
 
 export const createShipment = (data) =>
     tauriInvoke('create_shipment', { data });

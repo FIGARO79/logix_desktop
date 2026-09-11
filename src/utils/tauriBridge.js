@@ -3,7 +3,7 @@ import { getDB } from './offlineDb';
 import * as XLSX from 'xlsx';
 
 export const isTauri = () => {
-    return typeof window !== 'undefined' && window.__TAURI__ !== undefined;
+    return typeof window !== 'undefined' && (window.__TAURI__ !== undefined || window.__TAURI_IPC__ !== undefined);
 };
 
 /**

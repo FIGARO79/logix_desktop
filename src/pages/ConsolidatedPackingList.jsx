@@ -86,30 +86,64 @@ const ConsolidatedPackingList = () => {
     );
 
     // Info del pedido individual
-    const OrderInfo = ({ order }) => (
-        <div className="flex justify-between items-end mb-3 text-sm print:gap-2 print:mb-2 border-b border-zinc-100 pb-1">
-            <div className="flex-1">
-                <span className="text-gray-500 uppercase text-[9px] print:text-black mr-2">Pedido / Despacho:</span>
-                <span className="text-lg text-black font-medium ">
-                    {order.order_number} <span className="mx-1 text-gray-300">/</span> {order.despatch_number}
-                </span>
+    const OrderInfo = ({ order }) => {
+        let w = 0;
+        if (order.packages_dimensions && Array.isArray(order.packages_dimensions)) {
+            order.packages_dimensions.forEach(d => {
+                w += parseFloat(d.weight) || 0;
+            });
+        }
+
+        return (
+            <div className="flex justify-between items-end mb-3 text-sm print:gap-2 print:mb-2 border-b border-zinc-100 pb-1">
+                <div className="flex-1">
+                    <span className="text-gray-500 uppercase text-[9px] print:text-black mr-2">Pedido / Despacho:</span>
+                    <span className="text-lg text-black font-medium ">
+                        {order.order_number} <span className="mx-1 text-gray-300">/</span> {order.despatch_number}
+                    </span>
+                </div>
+                <div className="text-right">
+                    <div className="flex items-baseline justify-end gap-1.5">
+                        <span className="text-gray-500 uppercase text-[9px] print:text-black mr-2">Total Bultos:</span>
+                        <span className="text-2xl font-medium  text-[#285f94] print:text-black leading-none">{order.total_packages}</span>
+                    </div>
+                    {w > 0 && (
+                        <div className="text-[10px] text-black font-mono mt-0.5">
+                            <span className="text-gray-500 uppercase text-[8px] print:text-black mr-1">Peso Total:</span>
+                            <span>{w.toFixed(2)} kg</span>
+                        </div>
+                    )}
+                </div>
             </div>
-            <div className="text-right">
-                <span className="text-gray-500 uppercase text-[9px] print:text-black mr-2">Total Bultos:</span>
-                <span className="text-2xl font-medium  text-[#285f94] print:text-black leading-none">{order.total_packages}</span>
-            </div>
-        </div>
-    );
+        );
+    };
 
     // Tabla de un bulto
-    const PackageTable = ({ keyName, packageData, hideHeader = false }) => (
-        <div className="border border-black overflow-hidden print:border-black mb-2 last:mb-0">
-            {!hideHeader && (
-                <div className="bg-white text-black px-4 py-1 border-b border-black flex justify-between items-center print:py-0.5">
-                    <h3 className="text-sm font-medium  uppercase">Bulto #{keyName}</h3>
-                    <span className="text-[10px] font-mono border border-black px-1.5 rounded">BOX-{keyName.padStart(3, '0')}</span>
-                </div>
-            )}
+    const PackageTable = ({ keyName, packageData, packageDimensions = null, hideHeader = false }) => {
+        const numL = parseFloat(packageDimensions?.length) || 0;
+        const numW = parseFloat(packageDimensions?.width) || 0;
+        const numH = parseFloat(packageDimensions?.height) || 0;
+        const numWeight = parseFloat(packageDimensions?.weight) || 0;
+        const hasDims = numL > 0 && numW > 0 && numH > 0;
+        const hasWeight = numWeight > 0;
+
+        return (
+            <div className="border border-black overflow-hidden print:border-black mb-2 last:mb-0">
+                {!hideHeader && (
+                    <div className="bg-white text-black px-4 py-1 border-b border-black flex justify-between items-center print:py-0.5">
+                        <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-medium  uppercase">Bulto #{keyName}</h3>
+                            {(hasDims || hasWeight) && (
+                                <span className="text-[10px] font-normal text-black print:text-[9px]">
+                                    {hasDims && `${numL} × ${numW} × ${numH} cm`}
+                                    {hasDims && hasWeight && ' • '}
+                                    {hasWeight && `${numWeight.toFixed(2)} kg`}
+                                </span>
+                            )}
+                        </div>
+                        <span className="text-[10px] font-mono border border-black px-1.5 rounded">BOX-{keyName.padStart(3, '0')}</span>
+                    </div>
+                )}
             <table className="min-w-full text-sm table-fixed">
                 <thead className="bg-white text-black border-b border-black">
                     <tr>
@@ -138,6 +172,7 @@ const ConsolidatedPackingList = () => {
             </table>
         </div>
     );
+};
 
     // Calcular total de páginas (1 por pedido)
     const totalPages = data.orders.length;
@@ -217,14 +252,18 @@ const ConsolidatedPackingList = () => {
 
                                     <div className="space-y-1">
                                         {sortedPkgKeys.length > 0 ? (
-                                            sortedPkgKeys.map(key => (
-                                                <PackageTable
-                                                    key={key}
-                                                    keyName={key}
-                                                    packageData={order.packages[key]}
-                                                    hideHeader={true}
-                                                />
-                                            ))
+                                            sortedPkgKeys.map(key => {
+                                                const bultoDim = (order.packages_dimensions || []).find(d => String(d.package_number) === String(key));
+                                                return (
+                                                    <PackageTable
+                                                        key={key}
+                                                        keyName={key}
+                                                        packageData={order.packages[key]}
+                                                        packageDimensions={bultoDim}
+                                                        hideHeader={sortedPkgKeys.length === 1 && !bultoDim}
+                                                    />
+                                                );
+                                            })
                                         ) : (
                                             <div className="text-center py-2 text-gray-400 italic border border-dashed border-[#d1d5db] rounded text-[11px] font-normal">
                                                 Sin bultos registrados para este pedido

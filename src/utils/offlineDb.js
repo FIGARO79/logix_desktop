@@ -1,6 +1,6 @@
 import { openDB } from 'idb';
 
-const isTauri = () => typeof window !== 'undefined' && window.__TAURI__ !== undefined;
+const isTauri = () => typeof window !== 'undefined' && (window.__TAURI__ !== undefined || window.__TAURI_IPC__ !== undefined);
 
 const DB_NAME = 'LogixOfflineDB';
 const DB_VERSION = 11;

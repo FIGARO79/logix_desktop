@@ -273,17 +273,37 @@ function App() {
                                 <Shipments />
                             </ProtectedRoute>
                         } />
+                        <Route path="/shipments/print/:id" element={
+                            <ProtectedRoute requiredPermission="picking">
+                                <ConsolidatedPackingList />
+                            </ProtectedRoute>
+                        } />
                         <Route path="/packing_list/print/:id" element={
-                            <ProtectedRoute>
+                            <ProtectedRoute requiredPermission="picking">
+                                <PackingListPrint />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/packing_list/:id" element={
+                            <ProtectedRoute requiredPermission="picking">
+                                <PackingListPrint />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/packing_list" element={
+                            <ProtectedRoute requiredPermission="picking">
                                 <PackingListPrint />
                             </ProtectedRoute>
                         } />
                     </Route>
 
                     {/* Standalone Protected Routes (No Layout) */}
-                    <Route path="/shipments/print/:id" element={
+                    <Route path="/standalone/shipments/print/:id" element={
                         <ProtectedRoute>
                             <ConsolidatedPackingList />
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/standalone/packing_list/print/:id" element={
+                        <ProtectedRoute>
+                            <PackingListPrint />
                         </ProtectedRoute>
                     } />
 

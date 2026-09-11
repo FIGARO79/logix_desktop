@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import ScannerModal from '../components/ScannerModal';
-import DimensionScanner from '../components/DimensionScanner';
+import PackageDimensionsModal from '../components/PackageDimensionsModal';
 import { useOffline } from '../hooks/useOffline';
 import { useLanguage } from '../context/LanguageContext';
 import { getDB, savePendingSync } from '../utils/offlineDb';
@@ -87,7 +87,7 @@ const PickingAudit = () => {
     const [packagesCount, setPackagesCount] = useState('1');
     const [activePackage, setActivePackage] = useState(1);
     const [packageAssignments, setPackageAssignments] = useState({}); // { item_code: { pkg_index: qty } }
-    const [dimensionScannerOpen, setDimensionScannerOpen] = useState(false);
+    const [dimensionModalOpen, setDimensionModalOpen] = useState(false);
     const [packageDimensions, setPackageDimensions] = useState({}); // { 1: {length, width, height, weight} }
 
     useEffect(() => {
@@ -480,6 +480,7 @@ const PickingAudit = () => {
                             {Array.from({ length: parseInt(packagesCount) || 1 }).map((_, i) => (
                                 <div key={i + 1} className="relative">
                                     <button
+                                        type="button"
                                         onClick={() => setActivePackage(i + 1)}
                                         className={`w-7 h-7 rounded text-[12px] font-normal transition-colors cursor-pointer ${activePackage === i + 1
                                             ? 'bg-[#0067c0] text-white shadow-sm'
@@ -487,17 +488,8 @@ const PickingAudit = () => {
                                     >
                                         {i + 1}
                                     </button>
-                                    {activePackage === i + 1 && (
-                                        <button
-                                            onClick={() => setDimensionScannerOpen(true)}
-                                            className="absolute -top-1 -right-1 bg-white border border-[#0067c0] rounded-full w-4 h-4 flex items-center justify-center text-[9px] shadow-sm hover:bg-[#f5f5f5] cursor-pointer"
-                                            title="Medir Dimensiones"
-                                        >
-                                            M
-                                        </button>
-                                    )}
                                     {packageDimensions[i + 1] && (
-                                        <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#107c41] rounded-full border border-white"></div>
+                                        <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#107c41] rounded-full border border-white" title="Medidas registradas"></div>
                                     )}
                                 </div>
                             ))}
@@ -544,8 +536,23 @@ const PickingAudit = () => {
                                 </button>
                             </div>
                         </div>
-                        <div className="hidden sm:block flex-grow text-[11px] text-[#616161]">
-                            Asignando al Bulto {activePackage}.
+                        <div className="hidden sm:flex items-center gap-2 flex-grow text-[11px] text-[#616161]">
+                            <span>Asignando al Bulto {activePackage}.</span>
+                            <button
+                                type="button"
+                                onClick={() => setDimensionModalOpen(true)}
+                                className="h-6 px-2 bg-white hover:bg-[#f5f5f5] text-[#1f1f1f] border border-[#d1d5db] rounded text-[11px] font-normal transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                                title="Ingresar o editar medidas del bulto actual"
+                            >
+                                <svg className="w-3 h-3 text-[#0067c0]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                </svg>
+                                <span>
+                                    {packageDimensions[activePackage]
+                                        ? `${packageDimensions[activePackage].length}×${packageDimensions[activePackage].width}×${packageDimensions[activePackage].height} cm${packageDimensions[activePackage].weight ? ` (${packageDimensions[activePackage].weight} kg)` : ''}`
+                                        : 'Medidas del Bulto'}
+                                </span>
+                            </button>
                         </div>
                     </div>
 
@@ -795,18 +802,28 @@ const PickingAudit = () => {
                         </div>
                     </div>
                 )}
-                {/* Dimension Scanner Modal */}
-                {dimensionScannerOpen && (
-                    <DimensionScanner
+                {/* Manual Package Dimensions Modal */}
+                {dimensionModalOpen && (
+                    <PackageDimensionsModal
+                        isOpen={dimensionModalOpen}
                         packageNumber={activePackage}
+                        initialDimensions={packageDimensions[activePackage] || null}
                         onConfirm={(dims) => {
                             setPackageDimensions(prev => ({
                                 ...prev,
                                 [activePackage]: dims
                             }));
-                            setDimensionScannerOpen(false);
+                            setDimensionModalOpen(false);
                         }}
-                        onClose={() => setDimensionScannerOpen(false)}
+                        onClear={() => {
+                            setPackageDimensions(prev => {
+                                const updated = { ...prev };
+                                delete updated[activePackage];
+                                return updated;
+                            });
+                            setDimensionModalOpen(false);
+                        }}
+                        onClose={() => setDimensionModalOpen(false)}
                     />
                 )}
             </div>
