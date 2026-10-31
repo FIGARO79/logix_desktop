@@ -13,6 +13,10 @@ export default defineConfig({
         host: '127.0.0.1',
         // No proxy needed: localApiBridge.js intercepts all /api/* fetches
         // and routes them directly to Tauri invoke commands (100% offline desktop)
+        watch: {
+            // Evita que Vite vigile la compilación de Rust y bloquee archivos en Windows
+            ignored: ['**/src-tauri/**']
+        }
     },
     build: {
         target: process.env.TAURI_PLATFORM == 'windows' ? 'chrome105' : 'safari13',

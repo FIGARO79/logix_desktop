@@ -166,6 +166,71 @@ El ejecutable directo y los instaladores se ubican en:
 
 ---
 
+## Actualizaciones Automáticas (Auto-Updater & GitHub Releases)
+
+Logix Desktop integra el sistema de actualizaciones automáticas seguras de Tauri. La aplicación instalada consulta periódicamente las nuevas versiones publicadas en GitHub Releases (`updater.json`), descarga el paquete firmado criptográficamente y solicita al usuario actualizar de forma desatendida.
+
+### 1. Par de Claves de Firma Criptográfica
+
+Para garantizar que nadie pueda enviar una actualización no autorizada, cada versión empaquetada (`.zip`) debe estar firmada digitalmente con Minisign:
+
+| Clave | Archivo | Ubicación | Propósito |
+| :--- | :--- | :--- | :--- |
+| **Pública** | `logix_updater.key.pub` | Raíz del proyecto / `src-tauri/tauri.conf.json` | Distribuida con la app en `updater.pubkey`. Verifica la autenticidad de la actualización. |
+| **Privada** | `logix_updater.key` | Raíz local (excluida en `.gitignore`) | Usada para firmar los paquetes generados. **Estrictamente confidencial.** |
+
+### 2. Configuración en GitHub Actions
+
+El repositorio cuenta con el flujo automatizado [`.github/workflows/release.yml`](.github/workflows/release.yml), que compila, firma y genera el manifiesto `updater.json` automáticamente al crear una versión.
+
+Para vincular la clave privada con GitHub:
+1. Dirígete a tu repositorio en GitHub (`https://github.com/FIGARO79/logix_desktop`).
+2. Ve a **Settings** > **Secrets and variables** > **Actions**.
+3. Haz clic en **New repository secret**.
+4. Agrega el secreto:
+   - **Name:** `TAURI_PRIVATE_KEY`
+   - **Secret:** Pega todo el contenido de tu archivo local `logix_updater.key`.
+5. Guarda el secreto haciendo clic en **Add secret**.
+
+### 3. Flujo para Publicar una Nueva Versión
+
+Cada vez que desees lanzar una actualización a los usuarios:
+
+1. Incrementa el número de versión (por ejemplo `0.0.2`):
+   - En `package.json` (`"version": "0.0.2"`)
+   - En `src-tauri/tauri.conf.json` (`"package": { "version": "0.0.2" }`)
+2. Haz commit de los cambios y crea el tag correspondiente:
+   ```bash
+   git add package.json src-tauri/tauri.conf.json
+   git commit -m "chore: release v0.0.2"
+   git tag v0.0.2
+   git push origin main --tags
+   ```
+3. GitHub Actions compilará la versión para Windows, firmará los instaladores, generará `updater.json` y creará la publicación en **Releases**.
+4. Las aplicaciones de escritorio instaladas detectarán la actualización automáticamente al iniciarse.
+
+### 4. Compilación y Firma Local (PowerShell)
+
+Si deseas compilar y firmar los paquetes localmente sin pasar por GitHub:
+
+```powershell
+$env:TAURI_PRIVATE_KEY = "C:\Figaro\logix_desktop\logix_updater.key"
+npm run tauri:build
+```
+
+Los paquetes firmados y sus firmas `.sig` se guardarán en `src-tauri/target/release/bundle/`.
+
+### 5. Regeneración de Claves (En caso de pérdida)
+
+Si llegas a perder la clave privada o requieres rotarla:
+
+```powershell
+npx tauri signer generate -w logix_updater.key --ci -f
+```
+Copia el contenido del nuevo `logix_updater.key.pub` en el campo `"pubkey"` de `src-tauri/tauri.conf.json` y actualiza el secret `TAURI_PRIVATE_KEY` en GitHub Actions.
+
+---
+
 ## Arquitectura IPC
 
 La comunicación entre el frontend React y el backend Rust se realiza mediante la capa IPC nativa de Tauri, sin peticiones HTTP:
