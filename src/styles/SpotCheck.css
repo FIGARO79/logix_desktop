@@ -1,0 +1,134 @@
+/* src/styles/SpotCheck.css — Windows Fluent UI visual language */
+
+.spot-check-page {
+    --fluent-primary: #0078d4;
+    --fluent-primary-dark: #106ebe;
+    --fluent-text: #201f1e;
+    --fluent-muted: #605e5c;
+    --fluent-border: #d2d0ce;
+    --fluent-surface: #ffffff;
+    --fluent-subtle: #f8f9fa;
+    color: var(--fluent-text);
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Segoe UI Web (West European)', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 13.5px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Normalización estricta de altura y diseño para inputs (38px uniforme) */
+.spot-check-page input[type="text"],
+.spot-check-page input[type="number"],
+.spot-check-page select {
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    box-sizing: border-box !important;
+    font-size: 13.5px !important;
+    border-radius: 3px !important;
+    border: 1px solid #8a8886 !important;
+    background-color: #ffffff !important;
+    color: var(--fluent-text) !important;
+    padding: 0 12px !important;
+    outline: none !important;
+}
+
+.spot-check-page input:focus,
+.spot-check-page select:focus {
+    border-color: var(--fluent-primary) !important;
+    box-shadow: 0 0 0 1px var(--fluent-primary) !important;
+}
+
+/* Grupo de Input + Botón Escáner: unión perfecta y misma altura (38px) */
+.spot-check-page .input-group-fluent {
+    display: flex !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    height: 38px !important;
+    max-height: 38px !important;
+}
+
+.spot-check-page .input-group-fluent input {
+    height: 38px !important;
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    border-right: none !important;
+    flex: 1 1 auto !important;
+}
+
+.spot-check-page .input-group-fluent button.scanner-btn-fluent {
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    width: 38px !important;
+    min-width: 38px !important;
+    max-width: 38px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    border-top-right-radius: 3px !important;
+    border-bottom-right-radius: 3px !important;
+    border: 1px solid #8a8886 !important;
+    background-color: #f3f2f1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: background-color 0.15s ease, border-color 0.15s ease !important;
+}
+
+.spot-check-page .input-group-fluent button.scanner-btn-fluent:hover {
+    background-color: #deecf9 !important;
+    border-color: #0078d4 !important;
+}
+
+/* Botón principal REGISTRAR: exactamente la misma altura (38px) */
+.spot-check-page button.action-btn-fluent {
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    box-sizing: border-box !important;
+    padding: 0 16px !important;
+    border-radius: 3px !important;
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.02em !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Ocultar flechas numéricas en Chrome/Firefox */
+.spot-check-page input[type=number]::-webkit-inner-spin-button,
+.spot-check-page input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.spot-check-page input[type=number] {
+    -moz-appearance: textfield;
+}
+
+/* Scrollbar suave para resultados */
+.spot-check-page ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.spot-check-page ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+.spot-check-page ::-webkit-scrollbar-thumb {
+    background: #c8c6c4;
+    border-radius: 3px;
+}
+.spot-check-page ::-webkit-scrollbar-thumb:hover {
+    background: #a19f9d;
+}
+
+@media (max-width: 1023px) {
+    .spot-check-page {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+}

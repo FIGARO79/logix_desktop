@@ -1,0 +1,163 @@
+/* src/styles/StockSearch.css — Windows Fluent visual language */
+.stock-search-page {
+    --fluent-primary: #0078d4;
+    --fluent-primary-dark: #106ebe;
+    --fluent-text: #201f1e;
+    --fluent-muted: #605e5c;
+    --fluent-border: #d2d0ce;
+    --fluent-surface: #ffffff;
+    --fluent-subtle: #f9f9f9;
+    color: var(--fluent-text);
+}
+
+/* Cards */
+.stock-search-page .rounded-lg,
+.stock-search-page .rounded-md,
+.stock-search-page .rounded {
+    border-radius: 4px;
+}
+
+.stock-search-page .border-gray-200 {
+    border-color: var(--fluent-border);
+}
+
+.stock-search-page .shadow-md,
+.stock-search-page .shadow-sm {
+    box-shadow: 0 1px 3px rgba(32, 31, 30, 0.12);
+}
+
+/* Card headers */
+.stock-search-page .bg-gray-50 {
+    background-color: var(--fluent-subtle);
+}
+
+/* Typography */
+.stock-search-page h2,
+.stock-search-page h3 {
+    font-weight: 400;
+    letter-spacing: 0;
+}
+
+/* Input overrides */
+.stock-search-page input,
+.stock-search-page select {
+    border-color: #8a8886;
+    border-radius: 2px;
+    color: var(--fluent-text);
+}
+
+.stock-search-page input:focus,
+.stock-search-page select:focus {
+    border-color: var(--fluent-primary);
+    box-shadow: 0 0 0 1px var(--fluent-primary);
+}
+
+/* Table headers — Windows Fluent: neutral light (#f3f3f3) with dark text (#201f1e) */
+.stock-search-page table thead,
+.stock-search-page table thead tr,
+.stock-search-page table thead th,
+.stock-search-page table th,
+.stock-search-page thead,
+.stock-search-page thead tr,
+.stock-search-page thead th {
+    background: #f3f3f3 !important;
+    background-color: #f3f3f3 !important;
+    color: var(--fluent-text) !important;
+    border-color: var(--fluent-border) !important;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+
+.stock-search-page thead[class*="bg-"],
+.stock-search-page thead tr[class*="bg-"],
+.stock-search-page thead th[class*="bg-"] {
+    background: #f3f3f3 !important;
+    background-color: #f3f3f3 !important;
+    color: var(--fluent-text) !important;
+}
+
+.stock-search-page thead th *,
+.stock-search-page thead tr *,
+.stock-search-page table th * {
+    color: var(--fluent-text) !important;
+}
+
+/* Search result list */
+.stock-search-page .hover\:bg-blue-50:hover {
+    background-color: #f3f9fd !important;
+}
+
+/* Item code color */
+.stock-search-page [class*="text-[#1e4a74]"] {
+    color: var(--fluent-primary-dark);
+}
+
+/* Badge overrides for stock status */
+.stock-search-page .rounded-full {
+    border-radius: 2px;
+}
+
+.stock-search-page .bg-green-100 {
+    background-color: #dff6dd;
+    color: #107c10;
+}
+
+.stock-search-page .bg-red-100 {
+    background-color: #fde7e9;
+    color: #a4262c;
+}
+
+/* Location badges */
+.stock-search-page .bg-blue-100 {
+    background-color: #eff6fc;
+    border-color: var(--fluent-border) !important;
+    color: var(--fluent-primary-dark);
+}
+
+.stock-search-page .bg-blue-50 {
+    background-color: #eff6fc;
+    border-color: var(--fluent-border) !important;
+    color: var(--fluent-primary-dark);
+}
+
+.stock-search-page .border-blue-200 {
+    border-color: var(--fluent-border);
+}
+
+/* Frozen qty warning */
+.stock-search-page .bg-red-50 {
+    background-color: #fde7e9;
+}
+
+.stock-search-page .text-red-700 {
+    color: #a4262c;
+}
+
+/* Muted text */
+.stock-search-page .text-gray-500,
+.stock-search-page .text-gray-600,
+.stock-search-page .text-gray-400 {
+    color: var(--fluent-muted) !important;
+}
+
+/* Table hover */
+.stock-search-page .divide-gray-200 > * + * {
+    border-color: var(--fluent-border);
+}
+
+/* Empty state */
+.stock-search-page .text-center.text-gray-500 {
+    color: var(--fluent-muted);
+}
+
+/* Border-t separator in results card */
+.stock-search-page .border-t {
+    border-color: var(--fluent-border);
+}
+
+@media (max-width: 768px) {
+    .stock-search-page {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+}

@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { useLanguage } from '../context/LanguageContext';
-import { useLocation } from 'react-router-dom';
 import { cacheData, getCachedData } from '../utils/offlineDb';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as XLSX from 'xlsx';
@@ -11,7 +10,6 @@ import { getDistinctOperators } from '../utils/tauriApi';
 const Reconciliation = () => {
     const { setTitle } = useOutletContext();
     const { t, language } = useLanguage();
-    const location = useLocation();
     useEffect(() => { setTitle(t('nav.reconciliation', 'Conciliación')); }, [setTitle, t, language]);
     const queryClient = useQueryClient();
 
@@ -86,13 +84,9 @@ const Reconciliation = () => {
             if (cachedData) setIsOfflineData(true);
             return { data: cachedData || [] };
         },
-        refetchInterval: () => {
-            if (location.pathname !== '/reconciliation') return false;
-            return 5000;
-        },
-        refetchOnWindowFocus: true,
-        refetchOnMount: 'always',
-        staleTime: 0
+        refetchInterval: false,
+        refetchOnWindowFocus: false,
+        staleTime: 60000
     });
 
     useEffect(() => {
@@ -185,11 +179,14 @@ const Reconciliation = () => {
         }
     };
 
+    // Claves unívocas por fila incluyendo Waybill para evitar colisiones (replicando logix_react)
+    const getRowKey = (row) => `${row.Import_Reference || ''}_${row.Waybill || ''}_${row.GRN || ''}_${row.Codigo_Item || ''}_${row.Order_Line || ''}`;
+    const getLegacyRowKey = (row) => `${row.Import_Reference || ''}_${row.GRN || ''}_${row.Codigo_Item || ''}_${row.Order_Line || ''}`;
+
     // Aplicar ediciones de diferencia sobre los datos antes de filtrar y ordenar
     const processedData = useMemo(() => {
         return rawData.map(row => {
-            const rowKey = `${row.Import_Reference}_${row.GRN}_${row.Codigo_Item}_${row.Order_Line || ''}`;
-            const edit = differenceEdits[rowKey];
+            const edit = differenceEdits[getRowKey(row)] || differenceEdits[getLegacyRowKey(row)];
 
             if (!edit) return row;
 
@@ -296,16 +293,36 @@ const Reconciliation = () => {
         });
     }, [searchedData, filterOnlyDiff, filterNoDiff]);
 
-    // Resumen de la conciliación en pantalla
+    // Paginación eficiente para evitar bloqueos en el navegador con grandes volúmenes de datos
+    const [currentPage, setCurrentPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(100);
+
+    // Resetear a página 1 cuando se alteran los filtros o búsqueda
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [selectedIR, selectedGRN, selectedOperator, filterText, filterOnlyDiff, filterNoDiff, sortConfig]);
+
+    const totalPages = Math.max(1, rowsPerPage === 'all' ? 1 : Math.ceil(finalDisplayData.length / Number(rowsPerPage)));
+
+    const paginatedRows = useMemo(() => {
+        if (rowsPerPage === 'all') return finalDisplayData;
+        const count = Number(rowsPerPage) || 100;
+        const start = (currentPage - 1) * count;
+        return finalDisplayData.slice(start, start + count);
+    }, [finalDisplayData, currentPage, rowsPerPage]);
+
+    // Resumen de la conciliación en pantalla (con totales exactos y suma consistente de diferencias)
     const reconciliationSummary = useMemo(() => {
         let totalExp = 0;
         let totalRec = 0;
+        let totalDiff = 0;
         let diffLines = 0;
         let justifiedLines = 0;
 
         finalDisplayData.forEach(r => {
             totalExp += (r.Cant_Esperada || 0);
             totalRec += (r.Cant_Recibida || 0);
+            totalDiff += (r.Diferencia || 0);
             if (Math.abs(r.Diferencia || 0) > 0.0001) {
                 diffLines++;
                 if (r.Motivo_Diferencia || r.Observacion_Operador) {
@@ -318,7 +335,7 @@ const Reconciliation = () => {
             totalLines: finalDisplayData.length,
             totalExp,
             totalRec,
-            totalDiff: totalRec - totalExp,
+            totalDiff,
             diffLines,
             justifiedLines
         };
@@ -374,8 +391,7 @@ const Reconciliation = () => {
 
     // Apertura del modal de edición de diferencia
     const handleOpenEditRow = (row) => {
-        const rowKey = `${row.Import_Reference}_${row.GRN}_${row.Codigo_Item}_${row.Order_Line || ''}`;
-        const existing = differenceEdits[rowKey];
+        const existing = differenceEdits[getRowKey(row)] || differenceEdits[getLegacyRowKey(row)];
 
         setEditingRow(row);
         setEditReason(existing?.difference_reason || row.Motivo_Diferencia || '');
@@ -387,27 +403,48 @@ const Reconciliation = () => {
         e.preventDefault();
         if (!editingRow) return;
 
-        const rowKey = `${editingRow.Import_Reference}_${editingRow.GRN}_${editingRow.Codigo_Item}_${editingRow.Order_Line || ''}`;
+        const rowKey = getRowKey(editingRow);
         const rectNum = editRectifiedQty.trim() !== '' ? parseFloat(editRectifiedQty) : editingRow.Cant_Recibida;
 
+        const editData = {
+            difference_reason: editReason.trim(),
+            operator_comment: editComment.trim(),
+            rectified_qty: isNaN(rectNum) ? editingRow.Cant_Recibida : rectNum
+        };
+
+        // Guardar en estado local (inmediato)
         setDifferenceEdits(prev => ({
             ...prev,
-            [rowKey]: {
-                difference_reason: editReason.trim(),
-                operator_comment: editComment.trim(),
-                rectified_qty: isNaN(rectNum) ? editingRow.Cant_Recibida : rectNum
-            }
+            [rowKey]: editData
         }));
+
+        // Guardar en BD (asíncrono, no bloquea UI, persistencia idéntica a logix_react)
+        fetch('/api/inbound/upsert_draft_comment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                grn_number: editingRow.GRN,
+                import_reference: editingRow.Import_Reference,
+                waybill: editingRow.Waybill || '',
+                order_line: editingRow.Order_Line || '',
+                item_code: editingRow.Codigo_Item,
+                difference_reason: editData.difference_reason,
+                operator_comment: editData.operator_comment,
+                qty_received: editData.rectified_qty
+            })
+        }).catch(err => console.error("Error guardando comentario:", err));
 
         setEditingRow(null);
     };
 
     const handleClearRowEdit = () => {
         if (!editingRow) return;
-        const rowKey = `${editingRow.Import_Reference}_${editingRow.GRN}_${editingRow.Codigo_Item}_${editingRow.Order_Line || ''}`;
+        const rowKey = getRowKey(editingRow);
+        const legacyKey = getLegacyRowKey(editingRow);
         setDifferenceEdits(prev => {
             const next = { ...prev };
             delete next[rowKey];
+            delete next[legacyKey];
             return next;
         });
         setEditingRow(null);
@@ -415,7 +452,10 @@ const Reconciliation = () => {
 
     // Guardar snapshot de conciliación permanente
     const handleConfirmSaveReconciliation = async () => {
-        const targetData = finalDisplayData.length > 0 ? finalDisplayData : filteredBySelectors;
+        // IMPORTANTE: usar filteredBySelectors (todos los ítems de la GRN seleccionada)
+        // y NO finalDisplayData (que puede estar filtrado por texto o por diferencias),
+        // para garantizar que el archivo siempre contenga las 100% de las líneas (como en logix_react).
+        const targetData = filteredBySelectors.length > 0 ? filteredBySelectors : rawData;
         if (targetData.length === 0) {
             alert("No hay registros filtrados para conciliar y guardar.");
             return;
@@ -588,7 +628,7 @@ const Reconciliation = () => {
     };
 
     return (
-        <div className="flex flex-col h-full bg-[#fcfcfc] text-[#1f1f1f] font-['Segoe_UI',Tahoma,sans-serif] font-normal tracking-normal text-[12px]">
+        <div className="reconciliation-page flex flex-col h-full bg-[#f3f3f3] text-[#201f1e] font-['Segoe_UI',Tahoma,sans-serif] font-normal tracking-normal text-[12px]">
             {/* Barra de Filtros y Acciones */}
             <div className="px-4 py-2 border-b border-[#e5e5e5] bg-white sticky top-0 z-30">
                 <div className="flex flex-wrap items-center gap-2 bg-[#f9f9f9] p-2 rounded border border-[#e5e5e5]">
@@ -804,34 +844,32 @@ const Reconciliation = () => {
                     ) : (
                         <>
                             <div className="overflow-auto max-h-[68vh]">
-                                <table className="w-full text-left border-separate border-spacing-0">
-                                    <thead className="sticky top-0 z-20">
-                                        <tr style={{ background: '#354a5f' }}>
+                                <table className="w-full text-left border-collapse font-normal">
+                                    <thead className="sticky top-0 z-20 font-normal">
+                                        <tr className="bg-[#f3f3f3] text-[#201f1e] border-b border-[#d2d0ce] font-normal">
                                             {[
                                                 { id: 'Import_Reference', label: 'I.R.' },
-                                                { id: 'Waybill', label: 'WAYBILL' },
+                                                { id: 'Waybill', label: 'Waybill' },
                                                 { id: 'GRN', label: 'GRN' },
-                                                { id: 'Order_Line', label: 'LÍNEA PO' },
-                                                { id: 'Codigo_Item', label: 'CODIGO ITEM' },
-                                                { id: 'Descripcion', label: 'DESCRIPCION' },
-                                                { id: 'Ubicacion', label: 'UBICACION' },
-                                                { id: 'Reubicado', label: 'REUBICADO' },
-                                                { id: 'Cant_Esperada', label: 'CANT ESPERADA' },
-                                                { id: 'Cant_Recibida', label: 'CANT RECIBIDA' },
-                                                { id: 'Diferencia', label: 'DIFERENCIA' },
-                                                { id: 'Motivo', label: 'MOTIVO / OBSERVACION' },
-                                                { id: 'Timestamp', label: 'FECHA' },
-                                                { id: 'Acciones', label: 'ACCIONES' }
+                                                { id: 'Order_Line', label: 'Línea' },
+                                                { id: 'Codigo_Item', label: 'Código Ítem' },
+                                                { id: 'Descripcion', label: 'Descripción' },
+                                                { id: 'Ubicacion', label: 'Ubicación' },
+                                                { id: 'Reubicado', label: 'Reubicado' },
+                                                { id: 'Cant_Esperada', label: 'Cant. Esperada' },
+                                                { id: 'Cant_Recibida', label: 'Cant. Recibida' },
+                                                { id: 'Diferencia', label: 'Diferencia' },
+                                                { id: 'Motivo', label: 'Motivo / Observación' },
+                                                { id: 'Timestamp', label: 'Fecha' },
+                                                { id: 'Acciones', label: 'Acciones' }
                                             ].map((head) => (
                                                 <th
                                                     key={head.id}
                                                     onClick={() => !['Acciones', 'Motivo'].includes(head.id) && requestSort(head.id)}
-                                                    className={`px-3 py-2 text-[11px] font-normal text-white/90 ${!['Acciones', 'Motivo'].includes(head.id) ? 'cursor-pointer select-none' : ''} whitespace-nowrap uppercase tracking-normal transition-colors`}
-                                                    style={{ borderRight: '1px solid rgba(255,255,255,0.08)' }}
-                                                    onMouseEnter={e => !['Acciones', 'Motivo'].includes(head.id) && (e.currentTarget.style.background = '#2a3c4e')}
-                                                    onMouseLeave={e => !['Acciones', 'Motivo'].includes(head.id) && (e.currentTarget.style.background = '')}
+                                                    className={`px-3 py-2 text-[12px] font-semibold text-[#201f1e] bg-[#f3f3f3] border-b border-[#d2d0ce] ${!['Acciones', 'Motivo'].includes(head.id) ? 'cursor-pointer select-none hover:bg-[#edebe9]' : ''} whitespace-nowrap transition-colors`}
+                                                    style={{ borderRight: '1px solid #edebe9' }}
                                                 >
-                                                    <div className="flex items-center gap-1 justify-center">
+                                                    <div className="flex items-center gap-1">
                                                         {head.label}
                                                         {!['Acciones', 'Motivo'].includes(head.id) && getSortIcon(head.id)}
                                                     </div>
@@ -840,8 +878,8 @@ const Reconciliation = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {finalDisplayData.length > 0 ? (
-                                            finalDisplayData.map((row, idx) => {
+                                        {paginatedRows.length > 0 ? (
+                                            paginatedRows.map((row, idx) => {
                                                 const hasDiff = Math.abs(row.Diferencia || 0) > 0.0001;
                                                 const hasEdit = !!(row.Motivo_Diferencia || row.Observacion_Operador || row.hasCustomEdit);
 
@@ -902,20 +940,78 @@ const Reconciliation = () => {
                                  </table>
                              </div>
 
-                             {/* Footer de estado */}
-                             <div className="flex items-center gap-3 px-4 py-2 border-t border-[#e5e5e5] bg-white text-[11px] text-[#616161] font-normal">
-                                 <span>Mostrando <span className="text-[#1f1f1f]">{finalDisplayData.length}</span> de <span className="text-[#1f1f1f]">{rawData.length}</span> registros totales</span>
-                                 {!isOfflineData ? (
-                                     <span className="flex items-center gap-1">
-                                         <span className="w-1.5 h-1.5 rounded-full bg-[#107c41] inline-block"></span>
-                                         Datos en tiempo real
+                             {/* Footer de estado y paginación Fluent UI */}
+                             <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 py-2 border-t border-[#e5e5e5] bg-white text-[11px] text-[#616161] font-normal">
+                                 <div className="flex items-center gap-3">
+                                     <span>
+                                         Mostrando <span className="text-[#1f1f1f]">
+                                             {finalDisplayData.length === 0 ? 0 : (currentPage - 1) * (rowsPerPage === 'all' ? finalDisplayData.length : Number(rowsPerPage)) + 1}
+                                         </span> - <span className="text-[#1f1f1f]">
+                                             {rowsPerPage === 'all' ? finalDisplayData.length : Math.min(currentPage * Number(rowsPerPage), finalDisplayData.length)}
+                                         </span> de <span className="text-[#1f1f1f]">{finalDisplayData.length}</span> registros filtrados
+                                         {rawData.length !== finalDisplayData.length && (
+                                             <span className="text-[#888] ml-1">(Total: {rawData.length})</span>
+                                         )}
                                      </span>
-                                 ) : (
-                                     <span className="flex items-center gap-1">
-                                         <span className="w-1.5 h-1.5 rounded-full bg-[#d83b01] inline-block"></span>
-                                         Datos sin conexión
-                                     </span>
-                                 )}
+
+                                     {!isOfflineData ? (
+                                         <span className="flex items-center gap-1 border-l border-[#e5e5e5] pl-3">
+                                             <span className="w-1.5 h-1.5 rounded-full bg-[#107c41] inline-block"></span>
+                                             Datos en tiempo real
+                                         </span>
+                                     ) : (
+                                         <span className="flex items-center gap-1 border-l border-[#e5e5e5] pl-3">
+                                             <span className="w-1.5 h-1.5 rounded-full bg-[#d83b01] inline-block"></span>
+                                             Datos sin conexión
+                                         </span>
+                                     )}
+                                 </div>
+
+                                 {/* Controles de paginación */}
+                                 <div className="flex items-center gap-2">
+                                     <div className="flex items-center gap-1 mr-2">
+                                         <span className="text-[#888]">Filas:</span>
+                                         <select
+                                             value={rowsPerPage}
+                                             onChange={(e) => {
+                                                 const val = e.target.value === 'all' ? 'all' : Number(e.target.value);
+                                                 setRowsPerPage(val);
+                                                 setCurrentPage(1);
+                                             }}
+                                             className="h-6 px-1.5 bg-white border border-[#d1d5db] text-[#1f1f1f] text-[11px] font-normal rounded cursor-pointer outline-none hover:border-[#0067c0]"
+                                         >
+                                             <option value={50}>50</option>
+                                             <option value={100}>100</option>
+                                             <option value={250}>250</option>
+                                             <option value={500}>500</option>
+                                             <option value="all">Todas</option>
+                                         </select>
+                                     </div>
+
+                                     {rowsPerPage !== 'all' && totalPages > 1 && (
+                                         <div className="flex items-center gap-1">
+                                             <button
+                                                 type="button"
+                                                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                                 disabled={currentPage <= 1}
+                                                 className="h-6 px-2.5 bg-white border border-[#d1d5db] text-[#1f1f1f] text-[11px] font-normal rounded hover:bg-[#f5f5f5] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                                             >
+                                                 Anterior
+                                             </button>
+                                             <span className="px-2 text-[11px] text-[#1f1f1f] font-normal select-none">
+                                                 Página {currentPage} de {totalPages}
+                                             </span>
+                                             <button
+                                                 type="button"
+                                                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                                 disabled={currentPage >= totalPages}
+                                                 className="h-6 px-2.5 bg-white border border-[#d1d5db] text-[#1f1f1f] text-[11px] font-normal rounded hover:bg-[#f5f5f5] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                                             >
+                                                 Siguiente
+                                             </button>
+                                         </div>
+                                     )}
+                                 </div>
                              </div>
                         </>
                     )}
@@ -1220,16 +1316,16 @@ const Reconciliation = () => {
                                     {/* Tabla de ítems guardados en la foto */}
                                     <div className="overflow-auto max-h-[50vh] border border-[#e5e5e5] rounded">
                                         <table className="w-full text-left text-[11.5px]">
-                                            <thead className="bg-[#354a5f] text-white font-normal sticky top-0 text-[11px]">
+                                            <thead className="bg-[#f3f3f3] text-[#201f1e] font-normal border-b border-[#d2d0ce] sticky top-0 text-[11px]">
                                                 <tr>
-                                                    <th className="px-2 py-1.5 font-normal">Línea</th>
-                                                    <th className="px-2 py-1.5 font-normal">Ítem</th>
-                                                    <th className="px-2 py-1.5 font-normal">Descripción</th>
-                                                    <th className="px-2 py-1.5 font-normal">Ubicación</th>
-                                                    <th className="px-2 py-1.5 text-center font-normal">Esperada</th>
-                                                    <th className="px-2 py-1.5 text-center font-normal">Recibida</th>
-                                                    <th className="px-2 py-1.5 text-center font-normal">Diferencia</th>
-                                                    <th className="px-2 py-1.5 font-normal">Motivo / Justificación</th>
+                                                    <th className="px-2 py-1.5 font-semibold text-[#201f1e]">Línea</th>
+                                                    <th className="px-2 py-1.5 font-semibold text-[#201f1e]">Ítem</th>
+                                                    <th className="px-2 py-1.5 font-semibold text-[#201f1e]">Descripción</th>
+                                                    <th className="px-2 py-1.5 font-semibold text-[#201f1e]">Ubicación</th>
+                                                    <th className="px-2 py-1.5 text-center font-semibold text-[#201f1e]">Esperada</th>
+                                                    <th className="px-2 py-1.5 text-center font-semibold text-[#201f1e]">Recibida</th>
+                                                    <th className="px-2 py-1.5 text-center font-semibold text-[#201f1e]">Diferencia</th>
+                                                    <th className="px-2 py-1.5 font-semibold text-[#201f1e]">Motivo / Justificación</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-[#f1f1f1]">
@@ -1264,19 +1360,19 @@ const Reconciliation = () => {
                                     ) : savedHistoryList.length > 0 ? (
                                         <div className="overflow-auto max-h-[60vh] border border-[#e5e5e5] rounded">
                                             <table className="w-full text-left text-[11.5px]">
-                                                <thead className="bg-[#354a5f] text-white font-normal sticky top-0 text-[11px]">
+                                                <thead className="bg-[#f3f3f3] text-[#201f1e] font-normal border-b border-[#d2d0ce] sticky top-0 text-[11px]">
                                                     <tr>
-                                                        <th className="px-3 py-1.5 font-normal">ID</th>
-                                                        <th className="px-3 py-1.5 font-normal">GRN</th>
-                                                        <th className="px-3 py-1.5 font-normal">I.R.</th>
-                                                        <th className="px-3 py-1.5 font-normal">Fecha Guardado</th>
-                                                        <th className="px-3 py-1.5 font-normal">Operador</th>
-                                                        <th className="px-3 py-1.5 text-center font-normal">Líneas</th>
-                                                        <th className="px-3 py-1.5 text-center font-normal">Esperada</th>
-                                                        <th className="px-3 py-1.5 text-center font-normal">Recibida</th>
-                                                        <th className="px-3 py-1.5 text-center font-normal">Diferencia</th>
-                                                        <th className="px-3 py-1.5 text-center font-normal">Estado</th>
-                                                        <th className="px-3 py-1.5 text-center font-normal">Acciones</th>
+                                                        <th className="px-3 py-1.5 font-semibold text-[#201f1e]">ID</th>
+                                                        <th className="px-3 py-1.5 font-semibold text-[#201f1e]">GRN</th>
+                                                        <th className="px-3 py-1.5 font-semibold text-[#201f1e]">I.R.</th>
+                                                        <th className="px-3 py-1.5 font-semibold text-[#201f1e]">Fecha Guardado</th>
+                                                        <th className="px-3 py-1.5 font-semibold text-[#201f1e]">Operador</th>
+                                                        <th className="px-3 py-1.5 text-center font-semibold text-[#201f1e]">Líneas</th>
+                                                        <th className="px-3 py-1.5 text-center font-semibold text-[#201f1e]">Esperada</th>
+                                                        <th className="px-3 py-1.5 text-center font-semibold text-[#201f1e]">Recibida</th>
+                                                        <th className="px-3 py-1.5 text-center font-semibold text-[#201f1e]">Diferencia</th>
+                                                        <th className="px-3 py-1.5 text-center font-semibold text-[#201f1e]">Estado</th>
+                                                        <th className="px-3 py-1.5 text-center font-semibold text-[#201f1e]">Acciones</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-[#f1f1f1]">

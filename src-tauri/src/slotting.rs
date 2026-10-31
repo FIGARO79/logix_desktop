@@ -174,14 +174,12 @@ pub fn get_suggested_bin_rust(
                 let current_score = info.score;
                 let exile_max_score_val: i32 = zone_rules.exile_max_score.parse().unwrap_or(3);
 
-                if current_spot == ideal_spot {
-                    if ideal_spot == "hot" && current_score >= 8 {
-                        return None;
-                    } else if ideal_spot == "cold" && current_score <= exile_max_score_val {
-                        return None;
-                    } else if ideal_spot == "warm" {
-                        return None;
-                    }
+                if current_spot == ideal_spot
+                    && ((ideal_spot == "hot" && current_score >= 8)
+                        || (ideal_spot == "cold" && current_score <= exile_max_score_val)
+                        || ideal_spot == "warm")
+                {
+                    return None;
                 }
             }
         }

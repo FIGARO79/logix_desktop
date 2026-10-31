@@ -34,7 +34,6 @@ import OccupancyDashboard from '../pages/OccupancyDashboard';
 import ManageCountDifferences from '../pages/ManageCountDifferences';
 import ManageCycleCountDifferences from '../pages/ManageCycleCountDifferences';
 import Shipments from '../pages/Shipments';
-import InboundAudit from '../pages/InboundAudit';
 import IRReconciliation from '../pages/IRReconciliation';
 import PackingListPrint from '../pages/PackingListPrint';
 import ConsolidatedPackingList from '../pages/ConsolidatedPackingList';
@@ -76,51 +75,59 @@ const ROUTE_MAP = [
     { path: '/admin/users', component: AdminUsers },
     { path: '/admin/login', component: AdminLogin },
     { path: '/counts/edit/:id', component: EditCount },
-    { path: '/inbound/audit', component: InboundAudit },
 ];
 
-const MenuItem = ({ to, label, desc, categoryId, onClick }) => {
+const MenuItem = React.memo(({ to, label, desc, categoryId, onClick }) => {
     const location = useLocation();
     const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to));
 
-    const itemData = {
+    const itemData = useMemo(() => ({
         href: to,
         text: label.toUpperCase(),
         desc: desc || `Módulo de ${label}`,
         categoryId: categoryId || 'recepcion'
-    };
+    }), [to, label, desc, categoryId]);
 
+    const handleDragStart = useCallback((e) => {
+        e.dataTransfer.setData('application/json', JSON.stringify(itemData));
+        e.dataTransfer.effectAllowed = 'copyMove';
+    }, [itemData]);
 
-    const handleQuickPin = (e) => {
+    const handleQuickPin = useCallback((e) => {
         e.preventDefault();
         e.stopPropagation();
         window.dispatchEvent(new CustomEvent('logix_dashboard_pin_item', { detail: itemData }));
-    };
+    }, [itemData]);
 
     return (
-        <div className="group/item flex items-center justify-between pr-2 hover:bg-white/5 transition-all">
+        <div className="group/item flex items-center justify-between pr-2 transition-all hover:bg-[#f0f0f0]">
             <Link
                 to={to}
-                className={`flex-grow flex items-center px-3 py-0.5 text-white leading-tight transition-all border-l-[3px] cursor-pointer
-                ${isActive ? 'bg-white/15 border-blue-400 font-semibold text-white' : 'border-transparent text-slate-200 hover:text-white hover:border-blue-400/50'}`}
+                draggable
+                onDragStart={handleDragStart}
+                className={`flex-grow flex cursor-pointer items-center border-l-[4px] px-4 py-1 leading-tight transition-all
+                ${isActive ? 'border-[#0078d4] bg-[#eaeaea] font-semibold text-[#0078d4]' : 'border-transparent text-[#323130] hover:border-[#0078d4]/40'}`}
                 onClick={onClick}
+                title="Arrastra esta opción al Dashboard para fijarla"
             >
-                <span className="text-[11.5px] uppercase select-none tracking-tight leading-snug">{label}</span>
+                <span className="text-[12px] uppercase select-none font-normal">{label}</span>
             </Link>
 
             <button
+                type="button"
                 onClick={handleQuickPin}
-                className="opacity-0 group-hover/item:opacity-100 p-1 text-slate-400 hover:text-amber-400 hover:bg-white/10 rounded transition-all"
+                className="inline-flex h-[22px] w-[22px] min-w-[22px] cursor-pointer items-center justify-center rounded text-[#8a8886] opacity-0 transition-all hover:bg-[#eaeaea] hover:text-[#0078d4] group-hover/item:opacity-100 !p-0"
+                style={{ width: '22px', height: '22px', minWidth: '22px', padding: 0 }}
                 title="Fijar en Dashboard"
                 aria-label="Fijar en Dashboard"
             >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '14px', height: '14px', minWidth: '14px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
             </button>
         </div>
     );
-};
+});
 
 const MAX_TABS = 10;
 
@@ -139,18 +146,15 @@ const TabContentWrapper = React.memo(({ tab, isActive, onTitleChange }) => {
     const lastRefreshKey = useRef(tab.refreshKey || 0);
     const resolved = useMemo(() => resolveComponent(tab.path), [tab.path]);
 
-    // Activar inicialización si la pestaña se vuelve activa y no lo estaba
-    useEffect(() => {
-        if (isActive && !initialized) {
-            setInitialized(true);
-        }
-    }, [isActive, initialized]);
+    // Inicializar inmediatamente si la pestaña se vuelve activa para evitar parpadeo
+    if (isActive && !initialized) {
+        setInitialized(true);
+    }
 
     // Manejar el refresco forzado solo si el refreshKey aumenta (evita disparos en el mount si ya era > 0)
     useEffect(() => {
         if (tab.refreshKey > lastRefreshKey.current) {
             setInitialized(false);
-            // El useEffect de arriba se encargará de volver a ponerlo en true si isActive es true
             lastRefreshKey.current = tab.refreshKey;
         }
     }, [tab.refreshKey]);
@@ -161,7 +165,6 @@ const TabContentWrapper = React.memo(({ tab, isActive, onTitleChange }) => {
 
     const contextValue = useMemo(() => ({ setTitle: tabSetTitle }), [tabSetTitle]);
 
-    // Retorno anticipado DESPUÉS de que todos los hooks han sido declarados
     if (!resolved) {
         return <div className="p-4 text-white">Módulo no encontrado: {tab.path}</div>;
     }
@@ -174,7 +177,6 @@ const TabContentWrapper = React.memo(({ tab, isActive, onTitleChange }) => {
             style={{ height: '100%', width: '100%' }}
         >
             <TabProvider value={contextValue}>
-                {/* Solo renderizar el componente si ha sido inicializado (Lazy Load) */}
                 {initialized ? (
                     <Component setTitle={tabSetTitle} {...resolved.params} />
                 ) : (
@@ -267,11 +269,7 @@ const Layout = () => {
     const [dragOverTabIndex, setDragOverTabIndex] = useState(null);
 
     const [activeTabId, setActiveTabId] = useState(() => {
-        const savedActive = localStorage.getItem('logix_active_tab');
-        if (savedActive && Array.isArray(tabs) && tabs.some(t => t.id === savedActive)) {
-            return savedActive;
-        }
-        return Array.isArray(tabs) && tabs.length > 0 ? tabs[0].id : null;
+        return localStorage.getItem('logix_active_tab') || null;
     });
 
     const [isNetworkModalOpen, setIsNetworkModalOpen] = useState(false);
@@ -305,6 +303,14 @@ const Layout = () => {
         activeTabIdRef.current = activeTabId;
     }, [activeTabId]);
 
+    const tabsRef = useRef(tabs);
+    useEffect(() => {
+        tabsRef.current = tabs;
+    }, [tabs]);
+
+    const lastActiveTabId = useRef(activeTabId);
+    const targetTabIdRef = useRef(null);
+
     const updateTabLabel = useCallback((tabId, newLabel) => {
         setTabs(prev => {
             const existingTab = prev.find(tab => tab.id === tabId);
@@ -320,16 +326,13 @@ const Layout = () => {
         }
     }, []);
 
-    const lastActiveTabId = useRef(activeTabId);
-    const targetTabIdRef = useRef(null);
-
     useEffect(() => {
         // Si estamos cambiando de pestaña, esperar a que activeTabId se sincronice
         // con la pestaña de destino (targetTabIdRef) para evitar sobrescribir el path
         // de la pestaña inactiva en renders intermedios desalineados.
         if (targetTabIdRef.current !== null) {
             const targetTab = tabs.find(t => t.id === targetTabIdRef.current);
-            if (activeTabId !== targetTabIdRef.current || (targetTab && location.pathname !== targetTab.path)) {
+            if (!targetTab || activeTabId !== targetTabIdRef.current || location.pathname !== targetTab.path) {
                 return;
             }
             targetTabIdRef.current = null; // Sincronización completada, limpiar
@@ -339,6 +342,7 @@ const Layout = () => {
             lastActiveTabId.current = activeTabId;
             return;
         }
+
         const activeTab = tabs.find(t => t.id === activeTabId);
         if (activeTab && activeTab.path !== location.pathname) {
             setTabs(prev => prev.map(tab =>
@@ -347,56 +351,59 @@ const Layout = () => {
         }
     }, [location.pathname, activeTabId, tabs]);
 
-    const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+    const toggleMenu = useCallback(() => setIsMenuOpen(prev => !prev), []);
 
-    const addTab = () => {
+    const addTab = useCallback(() => {
         if (tabs.length >= MAX_TABS) {
             alert(`Límite de ${MAX_TABS} pestañas alcanzado.`);
             return;
         }
         const newId = 'tab-' + Date.now();
         const newTab = { id: newId, path: '/dashboard', label: 'Inicio' };
-        setTabs([...tabs, newTab]);
+        setTabs(prev => [...prev, newTab]);
         targetTabIdRef.current = newId;
         setActiveTabId(newId);
         navigate('/dashboard');
-    };
+    }, [tabs.length, navigate]);
 
-    const closeTab = (e, id) => {
-        e.stopPropagation();
-        if (tabs.length === 1) {
+    const closeTab = useCallback((e, id) => {
+        if (e && e.stopPropagation) e.stopPropagation();
+        const currentTabs = tabsRef.current;
+        if (currentTabs.length <= 1) {
             const newId = 'tab-' + Date.now();
-            setTabs([{ id: newId, path: '/dashboard', label: 'Inicio' }]);
             targetTabIdRef.current = newId;
+            setTabs([{ id: newId, path: '/dashboard', label: 'Inicio' }]);
             setActiveTabId(newId);
             navigate('/dashboard');
             return;
         }
-        const newTabs = tabs.filter(t => t.id !== id);
+
+        const newTabs = currentTabs.filter(t => t.id !== id);
         setTabs(newTabs);
-        if (activeTabId === id) {
+
+        if (activeTabIdRef.current === id) {
             const lastTab = newTabs[newTabs.length - 1];
             targetTabIdRef.current = lastTab.id;
             setActiveTabId(lastTab.id);
             navigate(lastTab.path);
         }
-    };
+    }, [navigate]);
 
-    const switchTab = (id) => {
+    const switchTab = useCallback((id) => {
         const tab = tabs.find(t => t.id === id);
         if (tab) {
             targetTabIdRef.current = id;
             setActiveTabId(id);
             navigate(tab.path);
         }
-    };
+    }, [tabs, navigate]);
 
-    const refreshTab = (e, id) => {
-        e.stopPropagation();
+    const refreshTab = useCallback((e, id) => {
+        if (e && e.stopPropagation) e.stopPropagation();
         setTabs(prev => prev.map(tab =>
             tab.id === id ? { ...tab, refreshKey: (tab.refreshKey || 0) + 1 } : tab
         ));
-    };
+    }, []);
 
     const pointerDragRef = useRef(null);
 
@@ -414,7 +421,7 @@ const Layout = () => {
             if (!pointerDragRef.current) return;
             const diffX = moveEvent.clientX - pointerDragRef.current.startX;
 
-            if (Math.abs(diffX) > 4 && !pointerDragRef.current.hasMoved) {
+            if (Math.abs(diffX) > 14 && !pointerDragRef.current.hasMoved) {
                 pointerDragRef.current.hasMoved = true;
                 setDraggedTabIndex(pointerDragRef.current.currentIndex);
             }
@@ -464,8 +471,31 @@ const Layout = () => {
 
     useEffect(() => {
         document.title = title;
-        checkAndSyncIfNeeded();
     }, [title]);
+
+    useEffect(() => {
+        checkAndSyncIfNeeded();
+        const syncInterval = setInterval(() => {
+            checkAndSyncIfNeeded();
+        }, 15 * 60 * 1000);
+        return () => clearInterval(syncInterval);
+    }, []);
+
+    const handleCloseActiveTab = useCallback(() => {
+        closeTab(null, activeTabIdRef.current);
+    }, [closeTab]);
+
+    const handleOpenNetworkModal = useCallback(() => setIsNetworkModalOpen(true), []);
+    const handleOpenPrinterModal = useCallback(() => setIsPrinterModalOpen(true), []);
+    const handleDesktopNavigate = useCallback((path) => {
+        navigate(path);
+    }, [navigate]);
+    const handleLogout = useCallback(async () => {
+        localStorage.removeItem('user');
+        localStorage.removeItem('admin_authenticated');
+        try { await fetch('/api/logout', { method: 'POST', credentials: 'include' }); }
+        finally { navigate('/login'); }
+    }, [navigate]);
 
     const userJson = localStorage.getItem('user');
     let hasAdminPerm = false;
@@ -491,28 +521,24 @@ const Layout = () => {
     }
 
     return (
-        <div className="flex flex-col min-h-screen bg-[var(--sap-bg)] text-[var(--sap-text)] font-sans print:block print:h-auto print:overflow-visible">
+        <div className="flex flex-col min-h-screen bg-[#f3f3f3] text-[#201f1e] font-sans print:block print:h-auto print:overflow-visible">
             {/* Barra Superior Completa: Menubar de Escritorio + Shell de Pestañas */}
-            <div className="sticky top-0 z-50 print:hidden no-print shadow-md">
+            <div className="sticky top-0 z-50 print:hidden no-print">
                 <DesktopMenuBar
                     onNewTab={addTab}
-                    onCloseCurrentTab={() => closeTab({ stopPropagation: () => {} }, activeTabId)}
-                    onOpenNetworkModal={() => setIsNetworkModalOpen(true)}
-                    onOpenPrinterModal={() => setIsPrinterModalOpen(true)}
-                    onNavigate={(path) => navigate(path)}
+                    onCloseCurrentTab={handleCloseActiveTab}
+                    onOpenNetworkModal={handleOpenNetworkModal}
+                    onOpenPrinterModal={handleOpenPrinterModal}
+                    onNavigate={handleDesktopNavigate}
                     language={language}
                     setLanguage={setLanguage}
-                    onLogout={async () => {
-                        localStorage.removeItem('user');
-                        localStorage.removeItem('admin_authenticated');
-                        try { await fetch('/api/logout', { method: 'POST', credentials: 'include' }); }
-                        finally { navigate('/login'); }
-                    }}
+                    onLogout={handleLogout}
                 />
 
-                <header className="top-header bg-[var(--sap-shell-bg)] text-white h-[48px] px-4 flex items-center gap-4 border-none">
+                <header className="top-header flex h-[48px] items-center gap-4 border-b border-[#d2d0ce] bg-white px-4 text-[#201f1e] shadow-none">
                     <button
-                        className="p-2 rounded hover:bg-white/10 transition-all cursor-pointer z-[1001]"
+                        type="button"
+                        className="z-[1001] cursor-pointer rounded p-2 text-[#605e5c] transition-all hover:bg-[#f3f3f3] hover:text-[#201f1e]"
                         onClick={toggleMenu}
                         aria-label="Menú"
                     >
@@ -521,7 +547,7 @@ const Layout = () => {
                         </svg>
                     </button>
 
-                    <div className="tabs-wrapper flex-grow mr-4 min-w-0">
+                    <div className="tabs-wrapper self-stretch flex-grow mr-4 min-w-0">
                         <div className="tabs-scroll-container overflow-x-auto no-scrollbar scroll-smooth">
                             {tabs.map((tab, index) => {
                                 const isDragging = draggedTabIndex === index;
@@ -535,21 +561,22 @@ const Layout = () => {
                                                 switchTab(tab.id);
                                             }
                                         }}
-                                        className={`tab-item ${activeTabId === tab.id ? 'active' : ''} ${isDragging ? 'dragging shadow-2xl bg-white/25 scale-[1.02] z-20 cursor-grabbing' : ''}`}
+                                        className={`tab-item group ${activeTabId === tab.id ? 'active' : ''} ${isDragging ? 'dragging shadow-2xl bg-[#edebe9] scale-[1.02] z-20 cursor-grabbing' : ''}`}
                                     >
                                         <span className="tab-label font-normal tracking-normal">{t(tab.label)}</span>
                                         <div className="tab-actions flex items-center gap-1 ml-2">
                                             <button
                                                 onClick={(e) => refreshTab(e, tab.id)}
-                                                className={`tab-refresh-btn p-1 rounded hover:bg-white/10 transition-all ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                                                className={`tab-refresh-btn ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                                                 title={t('header.refresh_data', 'Refrescar datos')}
+                                                aria-label={t('header.refresh_data', 'Refrescar datos')}
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
                                                 </svg>
                                             </button>
                                             {tabs.length > 1 && (
-                                                <button onClick={(e) => closeTab(e, tab.id)} className="tab-close-btn">
+                                                <button onClick={(e) => closeTab(e, tab.id)} className="tab-close-btn" title={t('tabs.close', 'Cerrar pestaña')} aria-label={t('tabs.close', 'Cerrar pestaña')}>
                                                     <span>&#215;</span>
                                                 </button>
                                             )}
@@ -558,73 +585,72 @@ const Layout = () => {
                                 );
                             })}
                         </div>
-                        <button onClick={addTab} className="add-tab-btn">+</button>
+                        <button onClick={addTab} className="add-tab-btn" title={t('tabs.new', 'Nueva pestaña')} aria-label={t('tabs.new', 'Nueva pestaña')}>+</button>
+                    </div>
+
+                    <div className="header-actions flex items-center gap-3">
+                        {pendingCount > 0 && (
+                            <div className="hidden cursor-pointer items-center gap-1.5 rounded border border-[#f7c948] bg-[#fff4ce] px-2 py-1 text-[10px] font-medium text-[#323130] sm:flex" onClick={handleManualSync}>
+                                {pendingCount} {t('header.pending', 'PENDIENTES')}
+                            </div>
+                        )}
+                        <div className={`flex items-center gap-1.5 rounded-full border border-solid px-3 py-1 text-[9px] font-medium uppercase transition-all ${!isOnline ? 'border-[#d13438] bg-[#fde7e9] text-[#a4262c]' : 'border-[#107c41] bg-[#dff6dd] text-[#107c41]'}`}>
+                            {!isOnline ? 'OFFLINE' : 'ONLINE'}
+                        </div>
                     </div>
                 </header>
             </div>
 
             {/* Sidebar Menu Sincronizado a 76px (Menubar 28px + Shell 48px) */}
             <div
-                className={`fixed left-0 w-64 bg-[var(--sap-shell-bg)] shadow-2xl z-[999] overflow-y-auto transform transition-transform duration-300 ease-in-out print:hidden no-print ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                className={`fixed left-0 z-[999] w-64 overflow-y-auto border-r border-[#e1dfdd] bg-[#f9f9f9] shadow-xl transition-transform duration-300 ease-in-out print:hidden no-print ${
+                    isMenuOpen ? 'translate-x-0' : '-translate-x-full'
+                }`}
                 style={{ top: '76px', height: 'calc(100vh - 76px)' }}
             >
-                <nav className="py-1 flex flex-col min-h-full">
-                    <div className="flex-grow">
-                        <div className="px-3 mb-1">
-                            <div className="px-2 text-[10px] font-bold text-white uppercase tracking-wider mb-0.5 opacity-80">{t('menu.main', 'Principal')}</div>
-                            <MenuItem to="/dashboard" label={t('nav.home', 'Inicio')} desc={t('nav.home_desc', 'Panel principal y accesos rápidos')} categoryId="recepcion" onClick={toggleMenu} />
-                            <MenuItem to="/stock" label={t('nav.stock', 'Consultar Stock')} desc={t('nav.stock_desc', 'Búsqueda global de inventario y saldos')} categoryId="recepcion" onClick={toggleMenu} />
-                        </div>
-                        <div className="px-3 mb-1">
-                            <div className="px-2 text-[10px] font-bold text-white uppercase tracking-wider mb-0.5 border-t border-white/10 pt-1.5 opacity-80">{t('menu.inbound', 'Operaciones Inbound')}</div>
-                            <MenuItem to="/inbound" label={t('nav.inbound', 'Recepción')} desc={t('nav.inbound_desc', 'Entrada de mercancía y referencias')} categoryId="recepcion" onClick={toggleMenu} />
-                            <MenuItem to="/reconciliation" label={t('nav.reconciliation', 'Conciliación')} desc={t('nav.reconciliation_desc', 'Cruce de documentos y discrepancias')} categoryId="recepcion" onClick={toggleMenu} />
-                            <MenuItem to="/inbound/audit" label={t('nav.inbound_audit', 'Auditoría Agente')} desc={t('nav.inbound_audit_desc', 'Control de calidad y recepción física')} categoryId="recepcion" onClick={toggleMenu} />
-                            <MenuItem to="/view_logs" label={t('nav.view_logs', 'Registros')} desc={t('nav.view_logs_desc', 'Consulta de registros históricos')} categoryId="recepcion" onClick={toggleMenu} />
-                            <MenuItem to="/ir-reconciliation" label={t('nav.ir_dashboard', 'Dashboard IR')} desc={t('nav.ir_dashboard_desc', 'Estado general de Import References')} categoryId="recepcion" onClick={toggleMenu} />
-                        </div>
-                        <div className="px-3 mb-1">
-                            <div className="px-2 text-[10px] font-bold text-white uppercase tracking-wider mb-0.5 border-t border-white/10 pt-1.5 opacity-80">{t('menu.outbound', 'Operaciones Outbound')}</div>
-                            <MenuItem to="/picking" label={t('nav.picking', 'Picking')} desc={t('nav.picking_desc', 'Verificación de pedidos y empaque')} categoryId="despacho" onClick={toggleMenu} />
-                            <MenuItem to="/view_picking_audits" label={t('nav.packing', 'Empaque')} desc={t('nav.packing_desc', 'Listas de empaque y auditorías')} categoryId="despacho" onClick={toggleMenu} />
-                            <MenuItem to="/shipments" label={t('nav.shipments', 'Despacho')} desc={t('nav.shipments_desc', 'Gestión de despachos y embarques')} categoryId="despacho" onClick={toggleMenu} />
-                            <MenuItem to="/label" label={t('nav.label', 'Etiquetado')} desc={t('nav.label_desc', 'Impresión de etiquetas operativas')} categoryId="despacho" onClick={toggleMenu} />
-                        </div>
-                        <div className="px-3 mb-1">
-                            <div className="px-2 text-[10px] font-bold text-white uppercase tracking-wider mb-0.5 border-t border-white/10 pt-1.5 opacity-80">{t('menu.inventory', 'Control Inventario')}</div>
-                            <MenuItem to="/planner" label={t('nav.planner', 'Plan Cíclico')} desc={t('nav.planner_desc', 'Programación de conteos cíclicos')} categoryId="inventario" onClick={toggleMenu} />
-                            <MenuItem to="/inventory-dashboard" label={t('nav.metrics', 'Métricas')} desc={t('nav.metrics_desc', 'Indicadores de exactitud')} categoryId="inventario" onClick={toggleMenu} />
-                            <MenuItem to="/view_counts/recordings" label={t('nav.recordings', 'Históricos')} desc={t('nav.recordings_desc', 'Grabaciones y trazabilidad')} categoryId="inventario" onClick={toggleMenu} />
-                            <MenuItem to="/planner/manage_differences" label={t('nav.differences', 'Diferencias')} desc={t('nav.differences_desc', 'Gestión de ajustes y discrepancias')} categoryId="inventario" onClick={toggleMenu} />
-                            <MenuItem to="/counts" label={t('nav.w2w', 'Inventario W2W')} desc={t('nav.w2w_desc', 'Conteo masivo wall-to-wall')} categoryId="inventario" onClick={toggleMenu} />
-                            {hasAdminPerm && <MenuItem to="/counts/manage" label={t('nav.manage_counts', 'Edición Conteos')} desc={t('nav.manage_counts_desc', 'Gestión de registros de conteo')} categoryId="inventario" onClick={toggleMenu} />}
-                            {hasAdminPerm && <MenuItem to="/view_counts" label={t('nav.general_count', 'Conteo General')} desc={t('nav.general_count_desc', 'Consolidado de conteos')} categoryId="inventario" onClick={toggleMenu} />}
-                            <MenuItem to="/express-audit" label={t('nav.manual_cycle', 'Ciclo Manual')} desc={t('nav.manual_cycle_desc', 'Conteo ciego y auditoría rápida')} categoryId="inventario" onClick={toggleMenu} />  
-                            <MenuItem to="/spot-check" label={t('nav.spot_check', 'Spot Check')} desc={t('nav.spot_check_desc', 'Auditorías rápidas en piso')} categoryId="inventario" onClick={toggleMenu} />
-                        </div>
-                        <div className="px-3 mb-1">
-                            <div className="px-2 text-[10px] font-bold text-white uppercase tracking-wider mb-0.5 border-t border-white/10 pt-1.5 opacity-80">{t('menu.system', 'Sistema')}</div>
-                            <MenuItem to="/admin/inventory" label={t('nav.admin_inventory', 'Adm. Inventario')} desc={t('nav.admin_inventory_desc', 'Control de ciclos de conteo')} categoryId="admin" onClick={toggleMenu} />
-                            <MenuItem to="/admin/slotting" label={t('nav.slotting_config', 'Config. Slotting')} desc={t('nav.slotting_config_desc', 'Parámetros de ubicaciones')} categoryId="admin" onClick={toggleMenu} />
-                            <MenuItem to="/occupancy" label={t('nav.occupancy', 'Ocupación Bodega')} desc={t('nav.occupancy_desc', 'Análisis de espacio y ubicaciones')} categoryId="admin" onClick={toggleMenu} />
-                            <MenuItem to="/update" label={t('nav.update_data', 'Carga de Datos')} desc={t('nav.update_data_desc', 'Actualización masiva vía ficheros')} categoryId="admin" onClick={toggleMenu} />
-                        </div>
+                <nav className="py-2">
+                    <div className="px-4 mb-2">
+                        <div className="mb-1 px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#605e5c]">{t('menu.main', 'Principal')}</div>
+                        <MenuItem to="/dashboard" label={t('nav.home', 'Inicio')} desc={t('nav.home_desc', 'Panel principal y accesos rápidos')} categoryId="recepcion" onClick={toggleMenu} />
+                        <MenuItem to="/stock" label={t('nav.stock', 'Consultar Stock')} desc={t('nav.stock_desc', 'Búsqueda global de inventario y saldos')} categoryId="recepcion" onClick={toggleMenu} />
                     </div>
-
-                    {/* Pie del Sidebar / Cerrar Sesión */}
-                    <div className="px-4 py-3 border-t border-white/10 bg-black/15 mt-auto">
+                    <div className="px-4 mb-2">
+                        <div className="mb-1 border-t border-[#e1dfdd] px-2 pt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#605e5c]">{t('menu.inbound', 'Operaciones Inbound')}</div>
+                        <MenuItem to="/inbound" label={t('nav.inbound', 'Recepción')} desc={t('nav.inbound_desc', 'Entrada de mercancía y referencias')} categoryId="recepcion" onClick={toggleMenu} />
+                        <MenuItem to="/reconciliation" label={t('nav.reconciliation', 'Conciliación')} desc={t('nav.reconciliation_desc', 'Cruce de documentos y discrepancias')} categoryId="recepcion" onClick={toggleMenu} />
+                        <MenuItem to="/view_logs" label={t('nav.view_logs', 'Registros')} desc={t('nav.view_logs_desc', 'Consulta de registros históricos')} categoryId="recepcion" onClick={toggleMenu} />
+                        <MenuItem to="/ir-reconciliation" label={t('nav.ir_dashboard', 'Dashboard IR')} desc={t('nav.ir_dashboard_desc', 'Estado general de Import References')} categoryId="recepcion" onClick={toggleMenu} />
+                    </div>
+                    <div className="px-4 mb-2">
+                        <div className="mb-1 border-t border-[#e1dfdd] px-2 pt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#605e5c]">{t('menu.outbound', 'Operaciones Outbound')}</div>
+                        <MenuItem to="/picking" label={t('nav.picking', 'Picking')} desc={t('nav.picking_desc', 'Verificación de pedidos y empaque')} categoryId="despacho" onClick={toggleMenu} />
+                        <MenuItem to="/view_picking_audits" label={t('nav.packing', 'Empaque')} desc={t('nav.packing_desc', 'Listas de empaque y auditorías')} categoryId="despacho" onClick={toggleMenu} />
+                        <MenuItem to="/shipments" label={t('nav.shipments', 'Despacho')} desc={t('nav.shipments_desc', 'Gestión de despachos y embarques')} categoryId="despacho" onClick={toggleMenu} />
+                        <MenuItem to="/label" label={t('nav.label', 'Etiquetado')} desc={t('nav.label_desc', 'Impresión de etiquetas operativas')} categoryId="despacho" onClick={toggleMenu} />
+                    </div>
+                    <div className="px-4 mb-2">
+                        <div className="mb-1 border-t border-[#e1dfdd] px-2 pt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#605e5c]">{t('menu.inventory', 'Control Inventario')}</div>
+                        <MenuItem to="/planner" label={t('nav.planner', 'Plan Cíclico')} desc={t('nav.planner_desc', 'Programación de conteos cíclicos')} categoryId="inventario" onClick={toggleMenu} />
+                        <MenuItem to="/inventory-dashboard" label={t('nav.metrics', 'Métricas')} desc={t('nav.metrics_desc', 'Indicadores de exactitud')} categoryId="inventario" onClick={toggleMenu} />
+                        <MenuItem to="/view_counts/recordings" label={t('nav.recordings', 'Históricos')} desc={t('nav.recordings_desc', 'Grabaciones y trazabilidad')} categoryId="inventario" onClick={toggleMenu} />
+                        <MenuItem to="/planner/manage_differences" label={t('nav.differences', 'Diferencias')} desc={t('nav.differences_desc', 'Gestión de ajustes y discrepancias')} categoryId="inventario" onClick={toggleMenu} />
+                        <MenuItem to="/counts" label={t('nav.w2w', 'Inventario W2W')} desc={t('nav.w2w_desc', 'Conteo masivo wall-to-wall')} categoryId="inventario" onClick={toggleMenu} />
+                        {hasAdminPerm && <MenuItem to="/counts/manage" label={t('nav.manage_counts', 'Edición Conteos')} desc={t('nav.manage_counts_desc', 'Gestión de registros de conteo')} categoryId="inventario" onClick={toggleMenu} />}
+                        {hasAdminPerm && <MenuItem to="/view_counts" label={t('nav.general_count', 'Conteo General')} desc={t('nav.general_count_desc', 'Consolidado de conteos')} categoryId="inventario" onClick={toggleMenu} />}
+                        <MenuItem to="/express-audit" label={t('nav.manual_cycle', 'Ciclo Manual')} desc={t('nav.manual_cycle_desc', 'Conteo ciego y auditoría rápida')} categoryId="inventario" onClick={toggleMenu} />
+                        <MenuItem to="/spot-check" label={t('nav.spot_check', 'Spot Check')} desc={t('nav.spot_check_desc', 'Auditorías rápidas en piso')} categoryId="inventario" onClick={toggleMenu} />
+                    </div>
+                    <div className="px-4 mb-2">
+                        <div className="mb-1 border-t border-[#e1dfdd] px-2 pt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#605e5c]">{t('menu.system', 'Sistema')}</div>
+                        <MenuItem to="/admin/inventory" label={t('nav.admin_inventory', 'Adm. Inventario')} desc={t('nav.admin_inventory_desc', 'Control de ciclos de conteo')} categoryId="admin" onClick={toggleMenu} />
+                        <MenuItem to="/admin/slotting" label={t('nav.slotting_config', 'Config. Slotting')} desc={t('nav.slotting_config_desc', 'Parámetros de ubicaciones')} categoryId="admin" onClick={toggleMenu} />
+                        <MenuItem to="/occupancy" label={t('nav.occupancy', 'Ocupación Bodega')} desc={t('nav.occupancy_desc', 'Análisis de espacio y ubicaciones')} categoryId="admin" onClick={toggleMenu} />
+                        <MenuItem to="/update" label={t('nav.update_data', 'Carga de Datos')} desc={t('nav.update_data_desc', 'Actualización masiva vía ficheros')} categoryId="admin" onClick={toggleMenu} />
                         <button
-                            className="w-full flex items-center justify-start px-2 py-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-all uppercase text-[11px] font-semibold tracking-tight text-left cursor-pointer"
-                            onClick={async () => {
-                                localStorage.removeItem('user');
-                                localStorage.removeItem('admin_authenticated');
-                                try { await fetch('/api/logout', { method: 'POST', credentials: 'include' }); }
-                                finally { navigate('/login'); }
-                            }}
+                            className="mt-2 flex w-full cursor-pointer items-center justify-start !justify-start border-l-[4px] border-transparent px-4 py-1 text-left text-[12px] font-semibold uppercase text-[#a4262c] transition-all hover:bg-[#fde7e9]"
+                            style={{ justifyContent: 'flex-start' }}
+                            onClick={handleLogout}
                         >
-                            <svg className="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                            </svg>
                             {t('menu.logout', 'Cerrar Sesión')}
                         </button>
                     </div>
@@ -633,13 +659,14 @@ const Layout = () => {
 
             {/* Overlay Sincronizado a 76px */}
             <div
-                className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity z-[998] print:hidden no-print ${isMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}
+                className={`fixed inset-0 z-[998] bg-black/20 backdrop-blur-sm transition-opacity duration-300 print:hidden no-print ${
+                    isMenuOpen ? 'visible opacity-100' : 'invisible opacity-0 pointer-events-none'
+                }`}
                 style={{ top: '76px' }}
                 onClick={toggleMenu}
             ></div>
-
             {/* Main Content */}
-            <main className="main-content flex-grow overflow-y-auto overflow-x-hidden print:overflow-visible print:h-auto bg-[#fafafa]">
+            <main className="main-content flex-grow overflow-y-auto overflow-x-hidden print:overflow-visible print:h-auto bg-[#f3f3f3]">
                 <div className="w-full h-full">
                     {tabs.map(tab => (
                         <TabContentWrapper

@@ -207,7 +207,7 @@ impl Database {
         conn.execute(
             "CREATE TABLE IF NOT EXISTS saved_grn_reconciliation_items (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                reconciliation_id INTEGER NOT NULL,
+                reconciliation_id INTEGER DEFAULT 0,
                 grn_number TEXT NOT NULL,
                 import_reference TEXT NOT NULL,
                 waybill TEXT DEFAULT '',

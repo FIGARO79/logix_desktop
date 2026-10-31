@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
-import { useLocation } from 'react-router-dom';
 import { getDB, getGRNExpectedQtyBulk } from '../utils/offlineDb';
 
 const InboundHistory = () => {
     const { setTitle } = useOutletContext();
-    const location = useLocation();
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -156,12 +154,6 @@ const InboundHistory = () => {
         }, 15000);
         return () => clearInterval(interval);
     }, [currentVersion]);
-
-    useEffect(() => {
-        if (location.pathname === '/view_logs' && !currentVersion) {
-            loadLogs('', true);
-        }
-    }, [location.pathname, currentVersion]);
 
     const filteredLogs = logs.filter(log => {
         const search = searchTerm.trim().toLowerCase();

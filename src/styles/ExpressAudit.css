@@ -1,0 +1,206 @@
+/* src/styles/ExpressAudit.css — Windows Fluent visual language */
+.express-audit-page {
+    --fluent-primary: #0078d4;
+    --fluent-primary-dark: #106ebe;
+    --fluent-text: #201f1e;
+    --fluent-muted: #605e5c;
+    --fluent-border: #d2d0ce;
+    --fluent-surface: #ffffff;
+    --fluent-subtle: #f9f9f9;
+    color: var(--fluent-text);
+}
+
+/* Cards */
+.express-audit-page .rounded-lg,
+.express-audit-page .rounded-md,
+.express-audit-page .rounded {
+    border-radius: 4px;
+}
+
+.express-audit-page .border-gray-200 {
+    border-color: var(--fluent-border);
+}
+
+.express-audit-page .shadow,
+.express-audit-page .shadow-sm {
+    box-shadow: 0 1px 3px rgba(32, 31, 30, 0.12);
+}
+
+/* Typography */
+.express-audit-page h2,
+.express-audit-page h3 {
+    font-weight: 400;
+    letter-spacing: 0;
+}
+
+/* Form labels */
+.express-audit-page .form-label {
+    color: var(--fluent-muted);
+    font-weight: 600;
+    letter-spacing: 0;
+}
+
+/* Inputs */
+.express-audit-page input,
+.express-audit-page select {
+    border-color: #8a8886;
+    border-radius: 2px;
+    color: var(--fluent-text);
+}
+
+.express-audit-page input:focus,
+.express-audit-page select:focus {
+    border-color: var(--fluent-primary) !important;
+    box-shadow: 0 0 0 1px var(--fluent-primary);
+}
+
+/* Data field (readonly display) */
+.express-audit-page .data-field {
+    background-color: var(--fluent-subtle);
+    border-color: var(--fluent-border);
+    border-radius: 2px;
+}
+
+/* Increment/decrement buttons */
+.express-audit-page .bg-gray-100 {
+    background-color: #f3f3f3;
+    border-color: #8a8886;
+}
+
+/* Analysis panel */
+.express-audit-page .bg-gray-50 {
+    background-color: var(--fluent-subtle);
+}
+
+.express-audit-page .bg-gray-50.border.rounded-lg {
+    border-color: var(--fluent-border);
+    border-radius: 4px;
+}
+
+/* Location match indicators */
+.express-audit-page .bg-emerald-50 {
+    background-color: #dff6dd;
+}
+
+.express-audit-page .border-emerald-200 {
+    border-color: #c8e6c9;
+}
+
+.express-audit-page .text-emerald-950 {
+    color: #107c10;
+}
+
+.express-audit-page .bg-red-50 {
+    background-color: #fde7e9;
+}
+
+.express-audit-page .border-red-200 {
+    border-color: #f1c0c0;
+}
+
+.express-audit-page .text-red-950 {
+    color: #a4262c;
+}
+
+/* Difference colors */
+.express-audit-page .text-blue-700 {
+    color: var(--fluent-primary);
+}
+
+.express-audit-page .text-red-700 {
+    color: #a4262c;
+}
+
+.express-audit-page .text-emerald-700 {
+    color: #107c10;
+}
+
+/* Table header — neutral light */
+.express-audit-page thead.bg-slate-100,
+.express-audit-page thead {
+    background-color: #f3f3f3 !important;
+}
+
+.express-audit-page thead th {
+    color: var(--fluent-text) !important;
+    font-weight: 400;
+    letter-spacing: 0;
+}
+
+.express-audit-page .border-slate-200 {
+    border-color: var(--fluent-border);
+}
+
+/* Table headers — Windows Fluent: neutral light (#f3f3f3) with dark text (#201f1e) */
+.express-audit-page table thead,
+.express-audit-page table thead tr,
+.express-audit-page table thead th,
+.express-audit-page table th,
+.express-audit-page thead,
+.express-audit-page thead tr,
+.express-audit-page thead th {
+    background: #f3f3f3 !important;
+    background-color: #f3f3f3 !important;
+    color: var(--fluent-text) !important;
+    border-color: var(--fluent-border) !important;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+
+.express-audit-page thead[class*="bg-"],
+.express-audit-page thead tr[class*="bg-"],
+.express-audit-page thead th[class*="bg-"] {
+    background: #f3f3f3 !important;
+    background-color: #f3f3f3 !important;
+    color: var(--fluent-text) !important;
+}
+
+.express-audit-page thead th *,
+.express-audit-page thead tr *,
+.express-audit-page table th * {
+    color: var(--fluent-text) !important;
+}
+
+/* Table body */
+.express-audit-page tbody tr {
+    border-bottom-color: var(--fluent-border);
+}
+
+.express-audit-page .divide-gray-200 > * + * {
+    border-color: var(--fluent-border);
+}
+
+.express-audit-page tbody tr:hover,
+.express-audit-page .hover\:bg-blue-50:hover {
+    background-color: #f3f9fd !important;
+}
+
+/* Alternate row */
+.express-audit-page tbody tr.bg-gray-50 {
+    background-color: var(--fluent-subtle);
+}
+
+/* Muted text */
+.express-audit-page .text-gray-500,
+.express-audit-page .text-gray-600,
+.express-audit-page .text-gray-400 {
+    color: var(--fluent-muted) !important;
+}
+
+/* Item code links */
+.express-audit-page [class*="text-[#1e4a74]"] {
+    color: var(--fluent-primary-dark);
+}
+
+/* Border separator */
+.express-audit-page .border-t,
+.express-audit-page .border-b {
+    border-color: var(--fluent-border);
+}
+
+@media (max-width: 768px) {
+    .express-audit-page {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+}

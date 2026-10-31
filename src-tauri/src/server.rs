@@ -58,10 +58,8 @@ impl HostServerManager {
             }
         }
         if ips.is_empty() {
-            if let Ok(ip) = local_ip_address::local_ip() {
-                if let IpAddr::V4(ipv4) = ip {
-                    ips.push(ipv4.to_string());
-                }
+            if let Ok(IpAddr::V4(ipv4)) = local_ip_address::local_ip() {
+                ips.push(ipv4.to_string());
             }
         }
         ips

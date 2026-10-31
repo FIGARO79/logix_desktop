@@ -2,79 +2,37 @@
 
 /* Note: Base header styles are in Global.css (.top-header) */
 
-/* SAP Fiori Side Navigation (Menu Desplegable) */
-.dropdown-menu {
-    position: fixed;
-    top: 48px; /* Matches Global.css header height */
-    left: 0;
-    width: 16rem;
-    max-height: calc(100vh - 48px);
-    background-color: var(--sap-shell-bg);
-    box-shadow: 0 0 0.5rem 0 rgba(0, 0, 0, 0.5);
-    transition: transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
-    overflow-y: auto;
-    z-index: 999;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+/* Contraste de los encabezados del menú claro */
+.fixed.left-0.w-64 nav > div > div:first-child {
+    color: #605e5c !important;
 }
 
-.dropdown-menu::-webkit-scrollbar {
+.fixed.left-0.w-64 {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+.fixed.left-0.w-64::-webkit-scrollbar {
     width: 4px;
 }
 
-.dropdown-menu::-webkit-scrollbar-track {
+.fixed.left-0.w-64::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.dropdown-menu::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.15);
+.fixed.left-0.w-64::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.15);
     border-radius: 4px;
 }
 
-.dropdown-menu::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(255, 255, 255, 0.3);
+.fixed.left-0.w-64::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.25);
 }
 
-.dropdown-menu.open {
-    transform: translateX(0);
-}
-
-.dropdown-menu nav {
-    padding: 0;
-}
-
-.dropdown-menu a,
-.dropdown-menu .logout-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    color: var(--sap-shell-text);
-    text-decoration: none;
-    border-radius: 0;
-    width: 100%;
-}
-
-.dropdown-menu a:hover,
-.dropdown-menu .logout-btn:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-.menu-overlay {
-    position: fixed;
-    top: 48px;
-    left: 0;
-    width: 100%;
-    height: calc(100vh - 48px);
-    background-color: rgba(0, 0, 0, 0.4);
-    z-index: 998;
-    transition: opacity 0.2s;
-    opacity: 0;
-    visibility: hidden;
-}
-
-.menu-overlay.visible {
-    opacity: 1;
-    visibility: visible;
+/* Sidebar Menu Desplegable — Alineado a logix_react (Fluido sin parpadeo) */
+.fixed.left-0.w-64 {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
 
 /* Mobile Rotation Overlay */
@@ -106,6 +64,12 @@
 }
 
 /* Estilos de Pestañas (Tab System) */
+.top-header {
+    background-color: #ffffff !important;
+    color: #201f1e !important;
+    box-shadow: none !important;
+}
+
 .no-scrollbar::-webkit-scrollbar {
     display: none;
 }
@@ -119,23 +83,28 @@
     display: flex;
     align-items: flex-end;
     gap: 2px;
-    height: 100%;
-    margin-left: 1rem;
+    height: calc(100% + 1px);
+    align-self: stretch;
+    margin-left: 0.75rem;
+    margin-bottom: -1px;
     padding-top: 6px; /* Para que las pestañas no toquen el borde superior */
+    position: relative;
+    z-index: 10;
 }
 
 .tabs-scroll-container {
     display: flex;
     align-items: flex-end;
-    gap: 0px; /* Chrome las tiene juntas */
-    height: calc(100% - 2px);
+    gap: 2px;
+    height: 100%;
     margin-bottom: 0px;
+    padding-bottom: 0px;
     flex: 0 1 auto;
     min-width: 0;
     max-width: calc(100% - 40px);
 }
 
-/* Estilo de la pestaña individual (Chrome Style) */
+/* Estilo de la pestaña individual (Fluent Style) */
 .tab-item {
     display: flex;
     align-items: center;
@@ -144,59 +113,77 @@
     max-width: 240px;
     height: 34px;
     padding: 0 10px 0 14px;
-    border-radius: 8px 8px 0 0;
-    cursor: pointer;
-    transition: background-color 0.1s, opacity 0.15s, border-color 0.15s;
+    border-radius: 4px 4px 0 0;
+    cursor: grab;
+    transition: background-color 0.1s, border-color 0.15s;
     position: relative;
-    -webkit-user-select: none;
     user-select: none;
-    background-color: rgba(255, 255, 255, 0.04); /* Inactivo muy oscuro */
-    color: rgba(255, 255, 255, 0.7);
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-weight: 400;
+    background-color: #edebe9;
+    color: #605e5c;
+    border: 1px solid #d2d0ce;
+    border-bottom: 1px solid #d2d0ce;
+    margin-bottom: 1px;
+}
+
+.tab-item:hover {
+    cursor: pointer;
 }
 
 .tab-item:active {
-    cursor: pointer;
+    cursor: grabbing;
 }
 
 /* Estado de Arrastre */
 .tab-item.dragging {
     opacity: 0.35;
-    background-color: rgba(255, 255, 255, 0.08);
-    cursor: pointer;
+    background-color: #f3f3f3;
+    cursor: grabbing;
 }
 
 /* Indicadores visuales de punto de inserción (soltado) */
 .tab-item.drag-over-left {
-    border-left: 2px solid #3b82f6 !important;
-    box-shadow: -3px 0 8px -1px rgba(59, 130, 246, 0.6);
+    border-left: 2px solid #0078d4 !important;
+    box-shadow: -3px 0 8px -1px rgba(0, 120, 212, 0.4);
 }
 
 .tab-item.drag-over-right {
-    border-right: 2px solid #3b82f6 !important;
-    box-shadow: 3px 0 8px -1px rgba(59, 130, 246, 0.6);
+    border-right: 2px solid #0078d4 !important;
+    box-shadow: 3px 0 8px -1px rgba(0, 120, 212, 0.4);
 }
 
-/* Pestaña Activa */
+/* Pestaña Activa integrada al cuerpo */
 .tab-item.active {
-    background-color: rgba(255, 255, 255, 0.15); /* Activo más claro, uniendo con toolbar */
-    color: #ffffff;
-    border-right: 1px solid transparent; /* Sin borde en activo */
-    z-index: 2; /* Por encima de las demás */
-    font-weight: 400;
+    background-color: #f3f3f3;
+    color: #201f1e;
+    font-weight: 500;
+    height: 36px;
+    border: 1px solid #d2d0ce;
+    border-bottom: none !important;
+    margin-bottom: 0px !important;
+    z-index: 20;
+    box-shadow: none;
+}
+
+.tab-item.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: #f3f3f3;
+    z-index: 25;
 }
 
 .tab-item:not(.active):hover {
-    background-color: rgba(255, 255, 255, 0.08);
+    background-color: #e1dfdd;
+    color: #201f1e;
 }
 
 .tab-label {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
     font-size: 0.85rem;
-    font-weight: 400 !important;
-    letter-spacing: normal !important;
+    font-weight: 400;
+    letter-spacing: 0;
     text-align: left;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -204,33 +191,52 @@
     flex-grow: 1;
 }
 
-/* Botón de cerrar pestaña */
+/* Acciones de pestaña (Refrescar y Cerrar) */
+.tab-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px !important;
+    margin-left: 4px;
+    flex-shrink: 0;
+}
+
+.tab-refresh-btn,
 .tab-close-btn {
-    width: 20px !important;
-    height: 20px !important;
-    min-width: 20px !important;
-    min-height: 20px !important;
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    min-height: 18px !important;
     padding: 0 !important;
-    margin-left: 8px;
-    border-radius: 50%;
+    margin: 0 !important;
+    margin-left: 0 !important;
+    border-radius: 3px;
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0; /* Importante para que no se deforme */
-    opacity: 0;
-    transition: background-color 0.1s;
+    flex-shrink: 0;
+    border: none;
     background-color: transparent;
-    color: rgba(255, 255, 255, 0.7);
+    color: #605e5c;
+    cursor: pointer;
+    transition: background-color 0.1s, color 0.1s;
+}
+
+.tab-close-btn span {
+    font-size: 14px;
+    line-height: 1;
+    display: block;
+    margin-top: -1px;
 }
 
 .tab-item:hover .tab-close-btn,
 .tab-item.active .tab-close-btn {
-    opacity: 1; /* En Chrome siempre aparece al hacer hover o estar activa */
+    opacity: 1;
 }
 
+.tab-refresh-btn:hover,
 .tab-close-btn:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-    color: white;
+    background-color: #e1dfdd;
+    color: #201f1e;
 }
 
 /* Separador Chrome ' | ' antes del + */
@@ -238,7 +244,7 @@
     content: '';
 }
 
-/* Botón de añadir pestaña (+) estilo Chrome */
+/* Botón de añadir pestaña (+) estilo Windows Fluent */
 .add-tab-btn {
     display: flex;
     align-items: center;
@@ -246,20 +252,27 @@
     width: 28px;
     height: 28px;
     min-width: 28px;
-    border-radius: 50%;
-    background-color: transparent; /* Sin fondo circular por defecto */
-    color: rgba(255, 255, 255, 0.8);
+    border-radius: 4px;
+    background-color: transparent;
+    color: #605e5c;
     border: none;
-    transition: background-color 0.2s;
-    margin-left: 8px;
-    margin-bottom: 4px; /* Alinear con el centro de las pestañas */
+    transition: background-color 0.15s, color 0.15s;
+    margin-left: 6px;
+    margin-bottom: 3px; /* Alinear con las pestañas */
     flex-shrink: 0;
     cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
 }
 
 .add-tab-btn:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: white;
+    background-color: #edebe9;
+    color: #201f1e;
+}
+
+.add-tab-btn:active {
+    background-color: #e1dfdd;
+    color: #201f1e;
 }
 
 header .header-actions {
@@ -279,13 +292,7 @@ header .header-actions {
 
 /* Ocultar elementos estructurales del layout durante la impresión */
 @media print {
-    html, body, #root, [class*="min-h-screen"], main, .main-content, .tab-content-container, .tabs-wrapper, div[class*="h-full"] {
-        height: auto !important;
-        min-height: 0 !important;
-        max-height: none !important;
-        overflow: visible !important;
-        display: block !important;
-        position: static !important;
+    html, body, #root, [class*="min-h-screen"], main, .main-content {
         background: #ffffff !important;
         background-color: #ffffff !important;
         box-shadow: none !important;
@@ -298,8 +305,7 @@ header .header-actions {
     nav,
     .menu-overlay,
     .dropdown-menu,
-    aside,
-    .tab-content-container.hidden {
+    aside {
         display: none !important;
     }
 }

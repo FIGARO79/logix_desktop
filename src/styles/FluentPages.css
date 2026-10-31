@@ -1,0 +1,383 @@
+/* src/styles/FluentPages.css — Shared Windows Fluent overrides for all remaining pages */
+/* Each page gets a scoping class so rules only apply within that page's root div */
+
+.inbound-page,
+.reconciliation-page,
+.inbound-history-page,
+.inbound-audit-page,
+.picking-audit-page,
+.picking-audit-history-page,
+.shipments-page,
+.packing-list-print-page,
+.consolidated-packing-list-page,
+.dashboard-inventario-page,
+.occupancy-dashboard-page,
+.planner-page,
+.planner-execution-page,
+.manage-cycle-diff-page,
+.edit-count-page,
+.manage-counts-page,
+.manage-count-diff-page,
+.view-counts-page,
+.cycle-count-history-page,
+.slotting-config-page,
+.admin-inventory-page,
+.admin-users-page,
+.login-page,
+.admin-login-page,
+.register-page,
+.set-password-page,
+.error-page,
+.label-printing-page {
+    --fluent-primary: #0078d4;
+    --fluent-primary-dark: #106ebe;
+    --fluent-text: #201f1e;
+    --fluent-muted: #605e5c;
+    --fluent-border: #d2d0ce;
+    --fluent-surface: #ffffff;
+    --fluent-subtle: #f9f9f9;
+    font-family: var(--logix-font-family, 'Segoe UI', 'Segoe', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif);
+    color: var(--fluent-text);
+    background-color: #f3f3f3;
+}
+
+/* Shared rules using CSS nesting */
+.inbound-page,
+.reconciliation-page,
+.inbound-history-page,
+.inbound-audit-page,
+.picking-audit-page,
+.picking-audit-history-page,
+.shipments-page,
+.packing-list-print-page,
+.consolidated-packing-list-page,
+.dashboard-inventario-page,
+.occupancy-dashboard-page,
+.planner-page,
+.planner-execution-page,
+.manage-cycle-diff-page,
+.edit-count-page,
+.manage-counts-page,
+.manage-count-diff-page,
+.view-counts-page,
+.cycle-count-history-page,
+.slotting-config-page,
+.admin-inventory-page,
+.admin-users-page,
+.login-page,
+.admin-login-page,
+.register-page,
+.set-password-page,
+.error-page,
+.label-printing-page {
+
+    font-family: var(--logix-font-family, 'Segoe UI', 'Segoe', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif);
+
+    /* Form controls inherit font */
+    & button,
+    & input,
+    & select,
+    & textarea {
+        font-family: inherit;
+    }
+
+    /* Border radius normalization */
+    & .rounded-xl,
+    & .rounded-lg,
+    & .rounded-md,
+    & .rounded {
+        border-radius: 4px;
+    }
+
+    & .rounded-full {
+        border-radius: 9999px;
+    }
+
+    /* Fluent UI Progress Spinner */
+    & .fluent-spinner {
+        border-radius: 9999px;
+        border-style: solid;
+        border-color: #edebe9;
+        border-top-color: #0078d4;
+    }
+
+    /* Shadows */
+    & .shadow-sm,
+    & .shadow-md,
+    & .shadow,
+    & .shadow-lg,
+    & .shadow-xl {
+        box-shadow: 0 1px 3px rgba(32, 31, 30, 0.12);
+    }
+
+    /* Borders */
+    & .border-gray-200,
+    & .border-gray-300,
+    & .border-gray-100,
+    & .border-slate-200,
+    & .border-slate-100,
+    & .border-slate-300,
+    & .border-zinc-200,
+    & .border-zinc-100,
+    & .border-zinc-300 {
+        border-color: var(--fluent-border);
+    }
+
+    /* Background surfaces */
+    & .bg-gray-50,
+    & .bg-gray-100,
+    & .bg-slate-50,
+    & .bg-slate-100,
+    & .bg-zinc-50,
+    & .bg-zinc-100 {
+        background-color: var(--fluent-subtle);
+    }
+
+    /* Typography */
+    & h1, & h2, & h3, & h4 {
+        font-weight: 400;
+        letter-spacing: 0;
+    }
+
+    /* Form labels */
+    & .form-label {
+        font-weight: 600;
+        letter-spacing: 0;
+    }
+
+    /* Inputs */
+    & input:not([type='checkbox']):not([type='radio']),
+    & select,
+    & textarea {
+        border-color: #8a8886;
+        border-radius: 2px;
+        color: var(--fluent-text);
+    }
+
+    & input:not([type='checkbox']):not([type='radio']):focus,
+    & select:focus,
+    & textarea:focus {
+        border-color: var(--fluent-primary) !important;
+        box-shadow: 0 0 0 1px var(--fluent-primary);
+    }
+
+    /* Table headers — Windows Fluent: neutral light (#f3f3f3) with dark text (#201f1e) */
+    & table:not(.packing-table) thead,
+    & table:not(.packing-table) thead tr,
+    & table:not(.packing-table) thead th,
+    & table:not(.packing-table) th,
+    & thead:not(.packing-table thead),
+    & thead:not(.packing-table thead) tr,
+    & thead:not(.packing-table thead) th {
+        background: #f3f3f3 !important;
+        background-color: #f3f3f3 !important;
+        color: var(--fluent-text) !important;
+        border-color: var(--fluent-border) !important;
+        font-weight: 600;
+        letter-spacing: 0;
+    }
+
+    /* Anulación específica para documentos y etiquetas de impresión de empaque */
+    & .packing-table,
+    & .packing-table thead,
+    & .packing-table thead tr,
+    & .packing-table thead th,
+    & .packing-table th,
+    & .packing-table tbody,
+    & .packing-table tbody tr,
+    & .packing-table tbody td,
+    & .packing-table tfoot,
+    & .packing-table tfoot tr,
+    & .packing-table tfoot td {
+        background: transparent !important;
+        background-color: transparent !important;
+        background-image: none !important;
+    }
+
+    /* Force all header variants (Tailwind classes, inline styles, dark gradients) to light */
+    & thead[class*="bg-"],
+    & thead tr[class*="bg-"],
+    & thead th[class*="bg-"],
+    & thead tr[style*="background"],
+    & thead th[style*="background"],
+    & tr[style*="#354a5f"],
+    & tr[style*="#111827"],
+    & tr[style*="#1e4a74"],
+    & tr[style*="#3d5068"],
+    & th[style*="linear-gradient"],
+    & th[style*="#3d5068"] {
+        background: #f3f3f3 !important;
+        background-color: #f3f3f3 !important;
+        color: var(--fluent-text) !important;
+    }
+
+    /* Ensure all text, icons, and spans inside headers inherit the dark text color */
+    & thead th *,
+    & thead tr *,
+    & table th * {
+        color: var(--fluent-text) !important;
+    }
+
+    /* Table body */
+    & tbody tr:hover {
+        background-color: #f3f9fd !important;
+    }
+
+    /* Table body font size and compact vertical padding normalization */
+    & tbody td,
+    & table tbody td,
+    & .sap-table tbody td,
+    & .logix-table tbody td {
+        font-size: 0.875rem !important; /* 14px */
+        line-height: 1.25rem !important;
+        padding-top: 0.25rem !important; /* 4px (py-1) compact */
+        padding-bottom: 0.25rem !important;
+    }
+
+    & thead th,
+    & table thead th,
+    & .sap-table thead th,
+    & .logix-table thead th {
+        padding-top: 0.3125rem !important; /* 5px (py-1.5) compact */
+        padding-bottom: 0.3125rem !important;
+    }
+
+    & td, & th {
+        border-bottom-color: var(--fluent-border) !important;
+    }
+
+    /* Dividers */
+    & [class*="divide-"] > * + * {
+        border-color: var(--fluent-border);
+    }
+
+    /* Border separators */
+    & .border-t,
+    & .border-b {
+        border-color: var(--fluent-border);
+    }
+
+    /* Status badges — Fluent semantic colors */
+    & .bg-green-100,
+    & .bg-emerald-100 {
+        background-color: #dff6dd;
+    }
+
+    & .bg-red-100,
+    & .bg-red-50 {
+        background-color: #fde7e9;
+    }
+
+    & .bg-yellow-100,
+    & .bg-amber-100,
+    & .bg-orange-100 {
+        background-color: #fff4ce;
+    }
+
+    & .bg-blue-100 {
+        background-color: #eff6fc;
+    }
+
+    /* Semantic text */
+    & .text-emerald-700,
+    & .text-emerald-800,
+    & .text-green-700,
+    & .text-green-800 {
+        color: #107c10;
+    }
+
+    & .text-red-700,
+    & .text-red-800 {
+        color: #a4262c;
+    }
+
+    & .text-amber-700,
+    & .text-amber-800,
+    & .text-orange-700 {
+        color: #ca5010;
+    }
+
+    /* Muted text */
+    & .text-gray-500,
+    & .text-gray-400,
+    & .text-slate-500,
+    & .text-slate-400,
+    & .text-zinc-500,
+    & .text-zinc-400 {
+        color: var(--fluent-muted) !important;
+    }
+
+    /* Item code links */
+    & [class*="text-[#1e4a74]"] {
+        color: var(--fluent-primary-dark);
+    }
+
+    /* Primary action buttons */
+    & .bg-emerald-600,
+    & .bg-emerald-700 {
+        background-color: var(--fluent-primary) !important;
+    }
+
+    & .bg-emerald-600:hover:not(:disabled),
+    & .bg-emerald-700:hover:not(:disabled) {
+        background-color: var(--fluent-primary-dark) !important;
+    }
+
+    /* Success / Finalize buttons */
+    & .btn-success,
+    & .btn-sap.btn-success {
+        background-color: #107c41 !important;
+        border-color: #107c41 !important;
+        color: #ffffff !important;
+    }
+
+    & .btn-success:hover:not(:disabled),
+    & .btn-sap.btn-success:hover:not(:disabled) {
+        background-color: #0e6c38 !important;
+        border-color: #0e6c38 !important;
+    }
+
+    /* Data field (readonly display) */
+    & .data-field {
+        background-color: var(--fluent-subtle);
+        border-color: var(--fluent-border);
+        border-radius: 2px;
+    }
+}
+
+/* Login family pages — special rules for centered card layouts */
+.login-page .logix-login-card,
+.admin-login-page .logix-login-card,
+.register-page .logix-login-card,
+.set-password-page .logix-login-card {
+    border-radius: 4px;
+    border-top-color: var(--fluent-primary);
+}
+
+/* Responsive */
+@media (max-width: 1023px) {
+    .inbound-page,
+.reconciliation-page,
+.inbound-history-page,
+    .inbound-audit-page,
+    .picking-audit-page,
+    .picking-audit-history-page,
+    .shipments-page,
+    .dashboard-inventario-page,
+    .occupancy-dashboard-page,
+    .planner-page,
+    .planner-execution-page,
+    .manage-cycle-diff-page,
+    .edit-count-page,
+    .manage-counts-page,
+    .manage-count-diff-page,
+    .view-counts-page,
+    .cycle-count-history-page,
+    .slotting-config-page,
+    .admin-inventory-page,
+    .admin-users-page,
+    .label-printing-page {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+}

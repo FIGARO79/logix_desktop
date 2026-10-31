@@ -263,7 +263,7 @@ pub fn calculate_reconciliation(
         }
         counts_by_item
             .entry(code)
-            .or_insert_with(HashMap::new)
+            .or_default()
             .entry(stage)
             .and_modify(|q| *q += counted_qty)
             .or_insert(counted_qty);
@@ -468,7 +468,7 @@ pub fn calculate_general_inventory_stats(
 
     let accuracy_percentage = if total_system_value > 0.0 {
         let raw_acc = (1.0 - (abs_variance_value / total_system_value)) * 100.0;
-        raw_acc.max(0.0).min(100.0)
+        raw_acc.clamp(0.0, 100.0)
     } else {
         100.0
     };

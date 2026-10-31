@@ -1,0 +1,86 @@
+.update-page {
+    --update-border: #e1dfdd;
+    --update-muted: #605e5c;
+    --update-blue: #0078d4;
+    --update-surface: #ffffff;
+}
+
+.update-page > .grid {
+    gap: 1.25rem;
+}
+
+.update-page .bg-white {
+    background-color: var(--update-surface) !important;
+    border-color: var(--update-border) !important;
+    border-radius: 2px !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08) !important;
+}
+
+.update-page .border-zinc-100,
+.update-page .border-zinc-200,
+.update-page .border-zinc-300 {
+    border-color: var(--update-border) !important;
+}
+
+.update-page .bg-zinc-50,
+.update-page .bg-zinc-50\/50,
+.update-page .bg-zinc-50\/70,
+.update-page .bg-zinc-100 {
+    background-color: #faf9f8 !important;
+}
+
+.update-page h3 {
+    color: #323130 !important;
+    letter-spacing: 0.04em;
+}
+
+.update-page h3 svg,
+.update-page [class*='border-dashed'] svg {
+    display: none;
+}
+
+.update-page input:not([type='checkbox']):not([type='radio']),
+.update-page select {
+    border-color: #8a8886;
+    border-radius: 2px;
+}
+
+.update-page input:not([type='checkbox']):not([type='radio']):focus,
+.update-page select:focus {
+    border-color: var(--update-blue) !important;
+    box-shadow: 0 0 0 1px var(--update-blue);
+}
+
+.update-page button[class*='bg-[#285f94]'] {
+    background-color: var(--update-blue) !important;
+}
+
+.update-page button[class*='bg-[#285f94]']:hover {
+    background-color: #106ebe !important;
+}
+
+.update-page button[class*='bg-red-'] {
+    border-radius: 2px;
+}
+
+.update-page [class*='border-dashed'] {
+    border-color: #c8c6c4 !important;
+    border-radius: 2px !important;
+    background-color: #faf9f8 !important;
+}
+
+.update-page [class*='border-dashed']:hover,
+.update-page [class*='border-dashed'][class*='border-[#285f94]'] {
+    border-color: var(--update-blue) !important;
+    background-color: #eff6fc !important;
+}
+
+.update-page .text-zinc-500,
+.update-page .text-zinc-600,
+.update-page .text-zinc-700 {
+    color: var(--update-muted) !important;
+}
+
+.update-page [class*='rounded-lg'] {
+    border-radius: 2px !important;
+}

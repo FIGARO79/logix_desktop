@@ -10,13 +10,18 @@ export const downloadMasterData = async () => {
         
         const data = await res.json();
         const db = await getDB();
-        
+
+        // En modo desktop local independiente, los datos maestros residen directamente en SQLite
+        if (!data || !data.master_items) {
+            return true;
+        }
+
         const tx = db.transaction(['master_items', 'grn_pending', 'xdock_reservations', 'po_lookup', 'sync_metadata'], 'readwrite');
-        
+
         // Limpiar y cargar Master Items
         const itemStore = tx.objectStore('master_items');
         await itemStore.clear();
-        for (const item of data.master_items) {
+        for (const item of (data.master_items || [])) {
             if (item && item.Item_Code) {
                 itemStore.put(item);
             }

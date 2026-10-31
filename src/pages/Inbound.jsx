@@ -29,24 +29,13 @@ const DEFAULT_IR_STATS = {
     grnProgressPercent: 0
 };
 
-const Dial = ({ percent, label, valueText, strokeColor = "#1679E0", strokeWidth = 8, trackStrokeWidth = 5 }) => {
+const Dial = ({ percent, label, valueText, strokeColor = "#0078d4", strokeWidth = 8, trackStrokeWidth = 5 }) => {
     const radius = 35;
     const circumference = 2 * Math.PI * radius;
     const numPercent = Number(percent);
     const validPercent = isNaN(numPercent) ? 0 : Math.min(100, Math.max(0, Math.round(numPercent)));
-    const targetOffset = circumference - (validPercent / 100) * circumference;
+    const offset = circumference - (validPercent / 100) * circumference;
 
-    // Start at full circumference (empty arc) and animate to target
-    const [animatedOffset, setAnimatedOffset] = useState(circumference);
-
-    useEffect(() => {
-        // Use rAF to ensure the initial render paints with empty arc first
-        const frameId = requestAnimationFrame(() => {
-            setAnimatedOffset(targetOffset);
-        });
-        return () => cancelAnimationFrame(frameId);
-    }, [targetOffset]);
-    
     return (
         <div className="flex flex-col items-center justify-center p-1.5 bg-zinc-50/50 rounded border border-zinc-100 shadow-sm flex-1 min-w-0">
             <div className="relative flex items-center justify-center" style={{ width: '85px', height: '85px' }}>
@@ -55,8 +44,9 @@ const Dial = ({ percent, label, valueText, strokeColor = "#1679E0", strokeWidth 
                         cx="42.5" 
                         cy="42.5" 
                         r={radius} 
-                        stroke="#e5e7eb" 
+                        className="text-zinc-200" 
                         strokeWidth={trackStrokeWidth} 
+                        stroke="currentColor" 
                         fill="transparent" 
                     />
                     <circle 
@@ -66,10 +56,10 @@ const Dial = ({ percent, label, valueText, strokeColor = "#1679E0", strokeWidth 
                         stroke={strokeColor} 
                         strokeWidth={strokeWidth} 
                         strokeDasharray={circumference} 
-                        strokeDashoffset={animatedOffset} 
+                        strokeDashoffset={offset} 
                         strokeLinecap="round" 
                         fill="transparent" 
-                        style={{ transition: 'stroke-dashoffset 600ms ease-out' }}
+                        className="transition-all duration-300 ease-out"
                     />
                 </svg>
                 <div className="absolute text-center flex flex-col items-center justify-center pointer-events-none">
@@ -102,7 +92,6 @@ const Inbound = () => {
 
     // --- Estados de Datos ---
     const [itemData, setItemData] = useState(null);
-    const [refItems, setRefItems] = useState([]);
     const [versions, setVersions] = useState([]);
     const [currentVersion, setCurrentVersion] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
@@ -446,35 +435,6 @@ const Inbound = () => {
                     // Sincronizar waybill si está vacío
                     if (statsData.waybill && !waybill) {
                         setWaybill(statsData.waybill);
-                    }
-
-                    // Si no teníamos refItems y vinieron en el fallback de la orden de compra
-                    if (statsData.po_items && statsData.po_items.length > 0 && (!refItems || refItems.length === 0)) {
-                        // Expandir cada item: una fila por cada GRN individual
-                        const expanded = [];
-                        statsData.po_items.forEach(p => {
-                            const grnRaw = p.grn ? String(p.grn).trim() : '';
-                            // Separar por coma y por "/"
-                            const grnParts = grnRaw.split(/[,\/]/).map(g => g.trim()).filter(g => g && g !== 'N/A' && g !== 'SIN GRN');
-                            if (grnParts.length > 0) {
-                                grnParts.forEach(grn => {
-                                    expanded.push({
-                                        item_code: p.item_code,
-                                        qty: p.qty,
-                                        grn: grn,
-                                        customer_ref: p.customer_ref
-                                    });
-                                });
-                            } else {
-                                expanded.push({
-                                    item_code: p.item_code,
-                                    qty: p.qty,
-                                    grn: grnRaw || 'N/A',
-                                    customer_ref: p.customer_ref
-                                });
-                            }
-                        });
-                        setRefItems(expanded);
                     }
 
                     // Mapeo de GRNs para progreso de GRNs individuales
@@ -874,9 +834,6 @@ const Inbound = () => {
                     const resIr = res.import_ref || res.importRef || res.ir || '';
                     if (resWb && !matchRef(resWb, normalizedValue)) setWaybill(resWb);
                     if (resIr && !matchRef(resIr, normalizedValue)) setImportRef(resIr);
-                    if (res.items && Array.isArray(res.items) && res.items.length > 0) {
-                        setRefItems(res.items);
-                    }
                     if (resWb || resIr) return;
                 }
             } catch (err) {
@@ -907,9 +864,6 @@ const Inbound = () => {
                 if (match) {
                     if (!foundIr) foundIr = getImportRefFromMatch(match);
                     if (!foundWb) foundWb = getWaybillFromMatch(match);
-                    if (match.items && Array.isArray(match.items)) {
-                        setRefItems(match.items);
-                    }
                 }
             } catch (e) {
                 console.error("Error en búsqueda de referencia:", e);
@@ -1265,7 +1219,7 @@ const Inbound = () => {
 
     return (
         <>
-            <div className="container-wrapper px-4 pt-1 pb-4 lg:h-[calc(100vh-5px)] lg:flex lg:flex-col lg:overflow-hidden" style={{ paddingTop: '0.75rem' }}>
+            <div className="inbound-page container-wrapper px-4 pt-1 pb-4 lg:h-[calc(100vh-5px)] lg:flex lg:flex-col lg:overflow-hidden" style={{ paddingTop: '0.75rem' }}>
                 <form onSubmit={handleSaveLog} className="lg:flex-shrink-0 mb-0">
 
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-1">
@@ -1288,7 +1242,7 @@ const Inbound = () => {
                             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-2">
                                 <div>
                                     <label className="form-label font-normal text-black">Import Reference</label>
-                                    <input type="text" value={importRef} onChange={e => { setImportRef(e.target.value.toUpperCase()); setRefItems([]); }} onBlur={e => handleLookupReference('import_ref', e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleLookupReference('import_ref', e.target.value))} placeholder="I.R." className="font-normal text-black" required />
+                                    <input type="text" value={importRef} onChange={e => setImportRef(e.target.value.toUpperCase())} onBlur={e => handleLookupReference('import_ref', e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleLookupReference('import_ref', e.target.value))} placeholder="I.R." className="font-normal text-black" required />
                                 </div>
                                 <div>
                                     <label className="form-label font-normal text-black">Waybill</label>
@@ -1300,7 +1254,6 @@ const Inbound = () => {
                                         <input
                                             type="text"
                                             ref={itemCodeRef}
-                                            list="inbound-item-suggestions"
                                             value={itemCode}
                                             onChange={e => setItemCode(e.target.value.toUpperCase())}
                                             onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), findItem(e.target.value))}
@@ -1308,16 +1261,11 @@ const Inbound = () => {
                                             className="font-normal text-black"
                                             required
                                             disabled={!!editId}
+                                            autoComplete="off"
+                                            autoCorrect="off"
+                                            autoCapitalize="off"
+                                            spellCheck={false}
                                         />
-                                        {refItems.length > 0 && (
-                                            <datalist id="inbound-item-suggestions">
-                                                {refItems.map((it, idx) => (
-                                                    <option key={idx} value={it.item_code || it.item || it.code}>
-                                                        {`Cant: ${it.qty || it.quantity || 0} | GRN: ${it.grn || 'N/A'}`}
-                                                    </option>
-                                                ))}
-                                            </datalist>
-                                        )}
                                         <button
                                             type="button"
                                             className="btn-sap btn-secondary w-[30px] h-[30px] !p-0 flex items-center justify-center"
@@ -1601,19 +1549,19 @@ const Inbound = () => {
                     <div className="overflow-x-auto lg:flex-grow lg:overflow-y-auto min-h-0">
                         <table className="w-full text-[12px] border-collapse font-normal">
                             <thead className="sticky top-0 z-20">
-                                <tr className="bg-[#354a5f] text-white border-b border-[#2a3c4d]">
-                                    <th className="px-2.5 py-1.5 text-left text-[11.5px] font-normal tracking-normal">Ref</th>
-                                    <th className="px-2.5 py-1.5 text-left text-[11.5px] font-normal tracking-normal">Waybill</th>
-                                    <th className="px-2.5 py-1.5 text-left text-[11.5px] font-normal tracking-normal">Item</th>
-                                    <th className="px-2.5 py-1.5 text-left text-[11.5px] font-normal tracking-normal">Desc</th>
-                                    <th className="px-2.5 py-1.5 text-left text-[11.5px] font-normal tracking-normal">Orig</th>
-                                    <th className="px-2.5 py-1.5 text-left text-[11.5px] font-normal tracking-normal">New</th>
-                                    <th className="px-2.5 py-1.5 text-center text-[11.5px] font-normal tracking-normal">Qty</th>
-                                    <th className="px-2.5 py-1.5 text-center text-[11.5px] font-normal tracking-normal">Esp.</th>
-                                    <th className="px-2.5 py-1.5 text-center text-[11.5px] font-normal tracking-normal">Dif.</th>
-                                    <th className="px-2.5 py-1.5 text-left text-[11.5px] font-normal tracking-normal">Fecha</th>
-                                    <th className="px-2.5 py-1.5 text-left text-[11.5px] font-normal tracking-normal">User</th>
-                                    <th className="px-2.5 py-1.5 text-center text-[11.5px] font-normal tracking-normal">Acc</th>
+                                <tr className="bg-[#f3f3f3] text-[#201f1e] border-b border-[#d2d0ce]">
+                                    <th className="px-2.5 py-1.5 text-left text-[11.5px] font-semibold text-[#201f1e] tracking-normal">Ref</th>
+                                    <th className="px-2.5 py-1.5 text-left text-[11.5px] font-semibold text-[#201f1e] tracking-normal">Waybill</th>
+                                    <th className="px-2.5 py-1.5 text-left text-[11.5px] font-semibold text-[#201f1e] tracking-normal">Item</th>
+                                    <th className="px-2.5 py-1.5 text-left text-[11.5px] font-semibold text-[#201f1e] tracking-normal">Desc</th>
+                                    <th className="px-2.5 py-1.5 text-left text-[11.5px] font-semibold text-[#201f1e] tracking-normal">Orig</th>
+                                    <th className="px-2.5 py-1.5 text-left text-[11.5px] font-semibold text-[#201f1e] tracking-normal">New</th>
+                                    <th className="px-2.5 py-1.5 text-center text-[11.5px] font-semibold text-[#201f1e] tracking-normal">Qty</th>
+                                    <th className="px-2.5 py-1.5 text-center text-[11.5px] font-semibold text-[#201f1e] tracking-normal">Esp.</th>
+                                    <th className="px-2.5 py-1.5 text-center text-[11.5px] font-semibold text-[#201f1e] tracking-normal">Dif.</th>
+                                    <th className="px-2.5 py-1.5 text-left text-[11.5px] font-semibold text-[#201f1e] tracking-normal">Fecha</th>
+                                    <th className="px-2.5 py-1.5 text-left text-[11.5px] font-semibold text-[#201f1e] tracking-normal">User</th>
+                                    <th className="px-2.5 py-1.5 text-center text-[11.5px] font-semibold text-[#201f1e] tracking-normal">Acc</th>
                                 </tr>
                             </thead>
 

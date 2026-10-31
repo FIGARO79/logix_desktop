@@ -3,6 +3,8 @@ use rusqlite::{params, Connection, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
+use std::sync::RwLock;
+use std::time::Instant;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LogInbound {
@@ -257,12 +259,7 @@ pub fn get_logs_from_db(conn: &Connection, version_date: Option<String>) -> Resu
         })
     })?;
 
-    let mut logs = Vec::new();
-    for l in log_iter {
-        if let Ok(item) = l {
-            logs.push(item);
-        }
-    }
+    let logs: Vec<LogInbound> = log_iter.flatten().collect();
     Ok(logs)
 }
 
@@ -414,12 +411,14 @@ pub fn save_log_to_db(
         );
     }
 
+    invalidate_inbound_reconciliation_cache();
     Ok(entry)
 }
 
 /// Elimina un log
 pub fn delete_log_from_db(conn: &Connection, id: i64) -> Result<()> {
     conn.execute("DELETE FROM inbound_logs WHERE id = ?1", params![id])?;
+    invalidate_inbound_reconciliation_cache();
     Ok(())
 }
 
@@ -430,6 +429,7 @@ pub fn archive_logs_in_db(conn: &Connection) -> Result<usize> {
         "UPDATE inbound_logs SET archived_at = ?1 WHERE archived_at IS NULL OR archived_at = ''",
         params![now],
     )?;
+    invalidate_inbound_reconciliation_cache();
     Ok(rows)
 }
 
@@ -439,12 +439,7 @@ pub fn get_versions_from_db(conn: &Connection) -> Result<Vec<String>> {
         "SELECT DISTINCT version_date FROM inbound_logs WHERE version_date IS NOT NULL AND version_date != '' ORDER BY version_date DESC",
     )?;
     let iter = stmt.query_map([], |row| row.get(0))?;
-    let mut versions = Vec::new();
-    for v in iter {
-        if let Ok(ver) = v {
-            versions.push(ver);
-        }
-    }
+    let versions: Vec<String> = iter.flatten().collect();
     Ok(versions)
 }
 
@@ -496,13 +491,11 @@ pub fn find_item_inbound(
                     row.get::<_, Option<String>>(6)?.unwrap_or_default(),
                 ))
             })?;
-            for item_res in iter {
-                if let Ok(item) = item_res {
-                    let clean_db: String = item.0.chars().filter(|c| c.is_alphanumeric()).collect();
-                    if clean_db.to_uppercase() == alphanumeric_code {
-                        master_item = Some(item);
-                        break;
-                    }
+            for item in iter.flatten() {
+                let clean_db: String = item.0.chars().filter(|c| c.is_alphanumeric()).collect();
+                if clean_db.to_uppercase() == alphanumeric_code {
+                    master_item = Some(item);
+                    break;
                 }
             }
         }
@@ -790,12 +783,7 @@ pub fn get_alerts_from_db(conn: &Connection) -> Result<Vec<InboundAlert>> {
         })
     })?;
 
-    let mut alerts = Vec::new();
-    for a in iter {
-        if let Ok(alert) = a {
-            alerts.push(alert);
-        }
-    }
+    let alerts: Vec<InboundAlert> = iter.flatten().collect();
     Ok(alerts)
 }
 
@@ -836,10 +824,8 @@ pub fn get_ir_reconciliations_from_db(conn: &Connection) -> Result<Vec<IrReconci
     })?;
 
     let mut records = Vec::new();
-    for r in iter {
-        if let Ok(rec) = r {
-            records.push(rec);
-        }
+    for rec in iter.flatten() {
+        records.push(rec);
     }
     Ok(records)
 }
@@ -962,7 +948,59 @@ pub fn save_grn_reconciliation_snapshot_in_db(
     }
 
     tx.commit()?;
+    invalidate_inbound_reconciliation_cache();
     Ok(recon_id)
+}
+
+/// UPSERT: Guarda o actualiza un comentario/justificación borrador individual en BD (replicando logix_react)
+pub fn upsert_draft_comment_in_db(
+    conn: &Connection,
+    payload: UpsertDraftCommentPayload,
+) -> Result<()> {
+    let now_ts = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    let ir = payload.import_reference.trim().to_uppercase();
+    let grn = payload.grn_number.trim().to_uppercase();
+    let wb = payload.waybill.as_deref().unwrap_or("").trim().to_uppercase();
+    let oline = payload.order_line.as_deref().unwrap_or("").trim().to_string();
+    let code = payload.item_code.trim().to_uppercase();
+    let reason = payload.difference_reason.as_deref().unwrap_or("").trim().to_string();
+    let comment = payload.operator_comment.as_deref().unwrap_or("").trim().to_string();
+    let qty_rec = payload.qty_received.unwrap_or(0.0);
+
+    // Buscar si existe un borrador (reconciliation_id IS NULL OR reconciliation_id = 0)
+    let existing_id: Option<i64> = conn.query_row(
+        "SELECT id FROM saved_grn_reconciliation_items
+         WHERE (reconciliation_id IS NULL OR reconciliation_id = 0)
+           AND import_reference = ?1 AND grn_number = ?2 AND item_code = ?3 AND order_line = ?4
+           AND (waybill = ?5 OR ?5 = '' OR waybill = '')
+         LIMIT 1",
+        params![ir, grn, code, oline, wb],
+        |row| row.get(0),
+    ).ok();
+
+    if let Some(id) = existing_id {
+        conn.execute(
+            "UPDATE saved_grn_reconciliation_items
+             SET waybill = CASE WHEN ?1 != '' THEN ?1 ELSE waybill END,
+                 difference_reason = ?2,
+                 operator_comment = ?3,
+                 qty_received = ?4,
+                 reconciled_at = ?5
+             WHERE id = ?6",
+            params![wb, reason, comment, qty_rec, now_ts, id],
+        )?;
+    } else {
+        conn.execute(
+            "INSERT INTO saved_grn_reconciliation_items (
+                reconciliation_id, grn_number, import_reference, waybill, order_line,
+                item_code, description, location, relocated_bin, qty_expected,
+                qty_received, difference, difference_reason, operator_comment, reconciled_at
+            ) VALUES (0, ?1, ?2, ?3, ?4, ?5, '', '', '', 0.0, ?6, 0.0, ?7, ?8, ?9)",
+            params![grn, ir, wb, oline, code, qty_rec, reason, comment, now_ts],
+        )?;
+    }
+
+    Ok(())
 }
 
 /// Obtiene la lista de conciliaciones históricas guardadas
@@ -1204,6 +1242,18 @@ pub fn run_inbound_auditor_db(
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpsertDraftCommentPayload {
+    pub grn_number: String,
+    pub import_reference: String,
+    pub waybill: Option<String>,
+    pub order_line: Option<String>,
+    pub item_code: String,
+    pub difference_reason: Option<String>,
+    pub operator_comment: Option<String>,
+    pub qty_received: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InboundReconciliationRow {
     pub id: i64,
     #[serde(rename = "Import_Reference")]
@@ -1228,6 +1278,10 @@ pub struct InboundReconciliationRow {
     pub cant_recibida: f64,
     #[serde(rename = "Diferencia")]
     pub diferencia: f64,
+    #[serde(rename = "Total_Esperado_IR")]
+    pub total_esperado_ir: f64,
+    #[serde(rename = "Diferencia_Real_IR")]
+    pub diferencia_real_ir: f64,
     #[serde(rename = "Timestamp")]
     pub timestamp: String,
     #[serde(rename = "Usuario")]
@@ -1247,6 +1301,23 @@ pub struct InboundReconciliationResponse {
     pub snapshot_versions: Vec<String>,
 }
 
+#[derive(Debug, Clone)]
+struct JsonFileCache {
+    path: String,
+    mtime: Option<std::time::SystemTime>,
+    data: Option<Value>,
+}
+
+static PO_CACHE: RwLock<Option<JsonFileCache>> = RwLock::new(None);
+static GRN_CACHE: RwLock<Option<JsonFileCache>> = RwLock::new(None);
+static ACTIVE_RECONCILIATION_CACHE: RwLock<Option<(Instant, InboundReconciliationResponse)>> = RwLock::new(None);
+
+pub fn invalidate_inbound_reconciliation_cache() {
+    if let Ok(mut cache) = ACTIVE_RECONCILIATION_CACHE.write() {
+        *cache = None;
+    }
+}
+
 fn read_json_file_fallback(path_str: &str) -> Option<Value> {
     if let Ok(data) = std::fs::read_to_string(path_str) {
         if let Ok(val) = serde_json::from_str(&data) {
@@ -1262,7 +1333,41 @@ fn read_json_file_fallback(path_str: &str) -> Option<Value> {
     None
 }
 
+fn read_cached_json_file(path_str: &str, cache_lock: &'static RwLock<Option<JsonFileCache>>) -> Option<Value> {
+    let actual_path = if std::path::Path::new(path_str).exists() {
+        path_str.to_string()
+    } else {
+        let fallback = format!("../{}", path_str.trim_start_matches("./"));
+        if std::path::Path::new(&fallback).exists() {
+            fallback
+        } else {
+            path_str.to_string()
+        }
+    };
+
+    let current_mtime = std::fs::metadata(&actual_path).ok().and_then(|m| m.modified().ok());
+
+    if let Ok(guard) = cache_lock.read() {
+        if let Some(ref cache) = *guard {
+            if cache.path == actual_path && cache.mtime == current_mtime && current_mtime.is_some() {
+                return cache.data.clone();
+            }
+        }
+    }
+
+    let val = read_json_file_fallback(&actual_path);
+    if let Ok(mut guard) = cache_lock.write() {
+        *guard = Some(JsonFileCache {
+            path: actual_path,
+            mtime: current_mtime,
+            data: val.clone(),
+        });
+    }
+    val
+}
+
 /// Genera la vista completa de Conciliación de Inbound cruzando logs físicos con GRNs y PO Extractor
+#[allow(clippy::too_many_arguments)]
 pub fn get_inbound_reconciliation_view(
     conn: &Connection,
     po_json_path: &str,
@@ -1274,9 +1379,26 @@ pub fn get_inbound_reconciliation_view(
     filter_import_ref: Option<String>,
     is_history: bool,
 ) -> Result<InboundReconciliationResponse> {
-    // 1. Cargar JSONs de PO Extractor y GRNs
-    let po_json = read_json_file_fallback(po_json_path);
-    let grn_json = read_json_file_fallback(grn_json_path);
+    let is_active_view = archive_date.is_none()
+        && snapshot_date.is_none()
+        && filter_grn.is_none()
+        && filter_waybill.is_none()
+        && filter_import_ref.is_none()
+        && !is_history;
+
+    if is_active_view {
+        if let Ok(guard) = ACTIVE_RECONCILIATION_CACHE.read() {
+            if let Some((instant, ref cached_resp)) = *guard {
+                if instant.elapsed().as_secs() < 60 {
+                    return Ok(cached_resp.clone());
+                }
+            }
+        }
+    }
+
+    // 1. Cargar JSONs de PO Extractor y GRNs usando caché en memoria
+    let po_json = read_cached_json_file(po_json_path, &PO_CACHE);
+    let grn_json = read_cached_json_file(grn_json_path, &GRN_CACHE);
 
     // 2. Extraer versiones disponibles de archivo y snapshot
     let mut archive_versions = Vec::new();
@@ -1388,6 +1510,20 @@ pub fn get_inbound_reconciliation_view(
         }
     }
 
+    // 3b. Precargar descripciones de inventario en memoria para evitar miles de queries lentas a SQLite
+    let mut item_descriptions: HashMap<String, String> = HashMap::new();
+    if let Ok(mut stmt_desc) = conn.prepare("SELECT item_code, description FROM inventory_items WHERE description IS NOT NULL AND description != ''") {
+        if let Ok(iter) = stmt_desc.query_map([], |row| {
+            let code: String = row.get::<_, String>(0)?.trim().to_uppercase();
+            let desc: String = row.get::<_, String>(1)?.trim().to_string();
+            Ok((code, desc))
+        }) {
+            for (code, desc) in iter.flatten() {
+                item_descriptions.insert(code, desc);
+            }
+        }
+    }
+
     // 4. Construir Master Maps de PO Extractor (GRN -> IR/WB, Customer Ref / Order Number -> IR/WB)
     let mut grn_to_ir_wb: HashMap<String, (String, String)> = HashMap::new();
     let mut item_custref_to_ir_wb: HashMap<(String, String), (String, String)> = HashMap::new();
@@ -1398,6 +1534,57 @@ pub fn get_inbound_reconciliation_view(
     let mut grn_to_custref: HashMap<String, String> = HashMap::new();
     let mut ir_item_to_order_line: HashMap<(String, String), String> = HashMap::new();
     let mut wb_item_to_order_line: HashMap<(String, String), String> = HashMap::new();
+
+    // 4.1 Cargar GRNs confirmadas/guardadas desde la DB SQLite para NUNCA desasociarlas (replicando logix_react)
+    if let Ok(mut stmt_saved) = conn.prepare("
+        SELECT import_reference, grn_number, waybill
+        FROM saved_grn_reconciliations
+        WHERE grn_number IS NOT NULL AND grn_number != ''
+    ") {
+        if let Ok(iter) = stmt_saved.query_map([], |row| {
+            let ir: String = row.get::<_, Option<String>>(0)?.unwrap_or_default().trim().to_uppercase();
+            let grn: String = row.get::<_, Option<String>>(1)?.unwrap_or_default().trim().to_uppercase();
+            let wb: String = row.get::<_, Option<String>>(2)?.unwrap_or_default().trim().to_uppercase();
+            Ok((ir, grn, wb))
+        }) {
+            for res in iter.flatten() {
+                let (ir, grn, wb) = res;
+                if !ir.is_empty() && !grn.is_empty() {
+                    for g in grn.split(&[',', '/'][..]) {
+                        let g_clean = g.trim().to_uppercase();
+                        if !g_clean.is_empty() {
+                            grn_to_ir_wb.insert(g_clean, (ir.clone(), wb.clone()));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if let Ok(mut stmt_saved_items) = conn.prepare("
+        SELECT DISTINCT import_reference, grn_number, waybill
+        FROM saved_grn_reconciliation_items
+        WHERE grn_number IS NOT NULL AND grn_number != ''
+    ") {
+        if let Ok(iter) = stmt_saved_items.query_map([], |row| {
+            let ir: String = row.get::<_, Option<String>>(0)?.unwrap_or_default().trim().to_uppercase();
+            let grn: String = row.get::<_, Option<String>>(1)?.unwrap_or_default().trim().to_uppercase();
+            let wb: String = row.get::<_, Option<String>>(2)?.unwrap_or_default().trim().to_uppercase();
+            Ok((ir, grn, wb))
+        }) {
+            for res in iter.flatten() {
+                let (ir, grn, wb) = res;
+                if !ir.is_empty() && !grn.is_empty() {
+                    for g in grn.split(&[',', '/'][..]) {
+                        let g_clean = g.trim().to_uppercase();
+                        if !g_clean.is_empty() {
+                            grn_to_ir_wb.insert(g_clean, (ir.clone(), wb.clone()));
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     if let Some(ref po) = po_json {
         if let Some(wb_map) = po.get("wb_to_data").and_then(|v| v.as_object()) {
@@ -1425,11 +1612,7 @@ pub fn get_inbound_reconciliation_view(
                                         if !st.is_empty() && st != "-" { Some(st.to_string()) } else { None }
                                     } else if let Some(n) = v.as_i64() {
                                         Some(n.to_string())
-                                    } else if let Some(f) = v.as_f64() {
-                                        Some((f as i64).to_string())
-                                    } else {
-                                        None
-                                    }
+                                    } else { v.as_f64().map(|f| (f as i64).to_string()) }
                                 })
                                 .unwrap_or_default();
                             if !order_line_val.is_empty() && !item_code.is_empty() {
@@ -1481,11 +1664,7 @@ pub fn get_inbound_reconciliation_view(
                                         if !st.is_empty() && st != "-" { Some(st.to_string()) } else { None }
                                     } else if let Some(n) = v.as_i64() {
                                         Some(n.to_string())
-                                    } else if let Some(f) = v.as_f64() {
-                                        Some((f as i64).to_string())
-                                    } else {
-                                        None
-                                    }
+                                    } else { v.as_f64().map(|f| (f as i64).to_string()) }
                                 })
                                 .unwrap_or_default();
                             if !order_line_val.is_empty() && !item_code.is_empty() {
@@ -1560,11 +1739,7 @@ pub fn get_inbound_reconciliation_view(
                         if !st.is_empty() { Some(st.to_string()) } else { None }
                     } else if let Some(n) = v.as_i64() {
                         Some(n.to_string())
-                    } else if let Some(f) = v.as_f64() {
-                        Some((f as i64).to_string())
-                    } else {
-                        None
-                    }
+                    } else { v.as_f64().map(|f| (f as i64).to_string()) }
                 })
                 .unwrap_or_default();
             let explicit_ir = row.get("Import_Reference").or_else(|| row.get("import_reference")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
@@ -1633,9 +1808,14 @@ pub fn get_inbound_reconciliation_view(
     // 5b. Fallback a PO Extractor: Si una IR existe en po_lookup.json pero NO tiene líneas en el Reporte 280,
     // agregar sus líneas esperadas desde po_lookup.json para permitir la conciliación contra la orden de compra.
     let mut irs_with_280: HashSet<String> = HashSet::new();
+    let mut irs_with_280_clean: HashSet<String> = HashSet::new();
     for line in &df_280 {
         if line.ir_map != "SIN I.R. MAESTRA" && !line.ir_map.is_empty() {
             irs_with_280.insert(line.ir_map.clone());
+            let stripped: String = strip_ir_prefix(&line.ir_map).chars().filter(|c| c.is_alphanumeric()).collect();
+            if !stripped.is_empty() {
+                irs_with_280_clean.insert(stripped);
+            }
         }
     }
 
@@ -1647,7 +1827,9 @@ pub fn get_inbound_reconciliation_view(
                 return;
             }
             // Si ya existen registros del 280 para esta IR, prevalece el 280 (Prioridad 1)
-            let has_280 = irs_with_280.iter().any(|existing| match_ref_rust(existing, &ir_clean));
+            let ir_stripped: String = strip_ir_prefix(&ir_clean).chars().filter(|c| c.is_alphanumeric()).collect();
+            let has_280 = irs_with_280.contains(&ir_clean)
+                || (!ir_stripped.is_empty() && irs_with_280_clean.contains(&ir_stripped));
             if has_280 {
                 return;
             }
@@ -1667,11 +1849,7 @@ pub fn get_inbound_reconciliation_view(
                             if !st.is_empty() { Some(st.to_string()) } else { None }
                         } else if let Some(n) = v.as_i64() {
                             Some(n.to_string())
-                        } else if let Some(f) = v.as_f64() {
-                            Some((f as i64).to_string())
-                        } else {
-                            None
-                        }
+                        } else { v.as_f64().map(|f| (f as i64).to_string()) }
                     })
                     .unwrap_or_default();
                 let grn_raw = item.get("grn").and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
@@ -1742,6 +1920,61 @@ pub fn get_inbound_reconciliation_view(
         }
     }
 
+    // 5.1 PROTECCIÓN Y RECUPERACIÓN DE GRNs COMPLETAS O RECIBIDAS (replicando logix_react):
+    // Si alguna GRN no tiene I.R. maestra asignada, pero sus ítems ya están registrados
+    // físicamente en los logs de bodega, autodescubrir su I.R. activa para NUNCA
+    // desasociarla ni mostrar la cantidad recibida en cero.
+    let mut unmapped_grns: HashSet<String> = HashSet::new();
+    let mut grn_to_items_map: HashMap<String, HashSet<String>> = HashMap::new();
+    for line in &df_280 {
+        if (line.ir_map == "SIN I.R. MAESTRA" || line.ir_map.is_empty())
+            && !line.grn.is_empty()
+            && line.grn != "SIN GRN"
+            && line.grn != "PO EXTRACTOR"
+        {
+            unmapped_grns.insert(line.grn.clone());
+            if !line.item_code.is_empty() {
+                grn_to_items_map.entry(line.grn.clone()).or_default().insert(line.item_code.clone());
+            }
+        }
+    }
+
+    if !unmapped_grns.is_empty() && !logs_grouped.is_empty() {
+        let mut recovered_mappings: HashMap<String, (String, String)> = HashMap::new();
+
+        for (u_grn, grn_item_codes) in grn_to_items_map {
+            let mut ir_matches: HashMap<String, (HashSet<String>, String)> = HashMap::new();
+            for ((ir, code), lg) in &logs_grouped {
+                if !ir.is_empty() && ir != "SIN I.R. MAESTRA" && grn_item_codes.contains(code) {
+                    let entry = ir_matches.entry(ir.clone()).or_insert_with(|| (HashSet::new(), lg.waybill_log.clone()));
+                    entry.0.insert(code.clone());
+                    if entry.1.is_empty() && !lg.waybill_log.is_empty() {
+                        entry.1 = lg.waybill_log.clone();
+                    }
+                }
+            }
+
+            if let Some((best_ir, (items_set, wb))) = ir_matches.into_iter().max_by_key(|(_, (set, _))| set.len()) {
+                if !items_set.is_empty() {
+                    recovered_mappings.insert(u_grn, (best_ir, wb));
+                }
+            }
+        }
+
+        if !recovered_mappings.is_empty() {
+            for line in df_280.iter_mut() {
+                if line.ir_map == "SIN I.R. MAESTRA" || line.ir_map.is_empty() {
+                    if let Some((rec_ir, rec_wb)) = recovered_mappings.get(&line.grn) {
+                        line.ir_map = rec_ir.clone();
+                        if (line.wb_map == "SIN WAYBILL" || line.wb_map.is_empty()) && !rec_wb.is_empty() {
+                            line.wb_map = rec_wb.clone();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // 6. Calcular Totales Esperados por (ir_map, item_code)
     let mut total_exp_ir_item: HashMap<(String, String), f64> = HashMap::new();
     for line in &df_280 {
@@ -1749,53 +1982,120 @@ pub fn get_inbound_reconciliation_view(
         *total_exp_ir_item.entry(key).or_insert(0.0) += line.quantity;
     }
 
-    // 7. Cargar comentarios guardados de saved_grn_reconciliation_items
-    let mut saved_comments: HashMap<(String, String, String, String), (String, String)> = HashMap::new();
+    // 7. Cargar comentarios guardados de saved_grn_reconciliation_items (indexación jerárquica con Guía / Waybill de logix_react)
+    type CommentWbKey = (String, String, String, String, String);
+    type CommentVal = (String, String);
+    let mut saved_comments_with_wb: HashMap<CommentWbKey, CommentVal> = HashMap::new();
+    let mut saved_comments_without_wb: HashMap<(String, String, String, String), (String, String)> = HashMap::new();
+    let mut saved_comments_by_wb_it: HashMap<(String, String), (String, String)> = HashMap::new();
+    let mut saved_comments_by_grn_it: HashMap<(String, String), (String, String)> = HashMap::new();
+    let mut saved_comments_by_ir_it: HashMap<(String, String), (String, String)> = HashMap::new();
+
     if let Ok(mut stmt_comments) = conn.prepare("
-        SELECT import_reference, grn_number, item_code, order_line, difference_reason, operator_comment
+        SELECT import_reference, waybill, grn_number, item_code, order_line, difference_reason, operator_comment
         FROM saved_grn_reconciliation_items
-        ORDER BY id ASC
+        ORDER BY id DESC
     ") {
         if let Ok(iter) = stmt_comments.query_map([], |r| {
             let ir: String = r.get::<_, Option<String>>(0)?.unwrap_or_default().trim().to_uppercase();
-            let grn: String = r.get::<_, Option<String>>(1)?.unwrap_or_default().trim().to_uppercase();
-            let code: String = r.get::<_, Option<String>>(2)?.unwrap_or_default().trim().to_uppercase();
-            let oline: String = r.get::<_, Option<String>>(3)?.unwrap_or_default().trim().to_string();
-            let reason: String = r.get::<_, Option<String>>(4)?.unwrap_or_default();
-            let comment: String = r.get::<_, Option<String>>(5)?.unwrap_or_default();
-            Ok((ir, grn, code, oline, reason, comment))
+            let wb: String = r.get::<_, Option<String>>(1)?.unwrap_or_default().trim().to_uppercase();
+            let grn: String = r.get::<_, Option<String>>(2)?.unwrap_or_default().trim().to_uppercase();
+            let code: String = r.get::<_, Option<String>>(3)?.unwrap_or_default().trim().to_uppercase();
+            let oline: String = r.get::<_, Option<String>>(4)?.unwrap_or_default().trim().to_string();
+            let reason: String = r.get::<_, Option<String>>(5)?.unwrap_or_default().trim().to_string();
+            let comment: String = r.get::<_, Option<String>>(6)?.unwrap_or_default().trim().to_string();
+            Ok((ir, wb, grn, code, oline, reason, comment))
         }) {
             for item in iter.flatten() {
-                let (ir, grn, code, oline, reason, comment) = item;
-                saved_comments.insert((ir, grn, code, oline), (reason, comment));
+                let (ir, wb, grn, code, oline, reason, comment) = item;
+                if reason.is_empty() && comment.is_empty() {
+                    continue;
+                }
+                let pair = (reason, comment);
+                if !wb.is_empty() {
+                    saved_comments_with_wb.entry((ir.clone(), wb.clone(), grn.clone(), code.clone(), oline.clone())).or_insert_with(|| pair.clone());
+                    saved_comments_with_wb.entry((ir.clone(), wb.clone(), grn.clone(), code.clone(), String::new())).or_insert_with(|| pair.clone());
+                    saved_comments_by_wb_it.entry((wb.clone(), code.clone())).or_insert_with(|| pair.clone());
+                }
+                saved_comments_without_wb.entry((ir.clone(), grn.clone(), code.clone(), oline.clone())).or_insert_with(|| pair.clone());
+                saved_comments_without_wb.entry((ir.clone(), grn.clone(), code.clone(), String::new())).or_insert_with(|| pair.clone());
+                saved_comments_by_grn_it.entry((grn.clone(), code.clone())).or_insert_with(|| pair.clone());
+                saved_comments_by_ir_it.entry((ir.clone(), code.clone())).or_insert_with(|| pair.clone());
             }
         }
     }
 
-    // 8. Join Final: Generar filas a partir de las líneas del Reporte 280
-    let mut rows: Vec<InboundReconciliationRow> = Vec::new();
-    let mut processed_keys: HashSet<(String, String)> = HashSet::new();
-
-    // Map para contar el número de líneas por (ir_map, item_code) para asignar la diferencia no duplicada
-    let mut group_sizes: HashMap<(String, String), usize> = HashMap::new();
-    for line in &df_280 {
+    // 8. Join Final y Distribución en Cascada (Waterfall - exactamente idéntico a logix_react):
+    // Agrupar filas de df_280 por (ir_map, item_code) para distribuir Cant_Recibida en cascada línea por línea
+    // respetando el orden de GRN y Order_Line para no duplicar cantidades contadas ni diferencias
+    let mut groups: HashMap<(String, String), Vec<usize>> = HashMap::new();
+    for (idx, line) in df_280.iter().enumerate() {
         let key = (line.ir_map.clone(), line.item_code.clone());
-        *group_sizes.entry(key).or_insert(0) += 1;
+        groups.entry(key).or_default().push(idx);
     }
 
-    let mut current_row_index_in_group: HashMap<(String, String), usize> = HashMap::new();
+    #[derive(Clone, Copy)]
+    struct LineCalc {
+        cant_rec: f64,
+        diff: f64,
+        total_exp: f64,
+        diff_real_ir: f64,
+    }
+    let mut line_calcs: HashMap<usize, LineCalc> = HashMap::with_capacity(df_280.len());
+
+    for (key, indices) in groups.iter_mut() {
+        // Ordenar las líneas del grupo por [GRN, order_line_num]
+        indices.sort_by(|&a_idx, &b_idx| {
+            let a = &df_280[a_idx];
+            let b = &df_280[b_idx];
+            let a_line_num = a.order_line.trim().parse::<i64>().unwrap_or(0);
+            let b_line_num = b.order_line.trim().parse::<i64>().unwrap_or(0);
+            (&a.grn, a_line_num).cmp(&(&b.grn, b_line_num))
+        });
+
+        let total_rec = logs_grouped.get(key).map(|lg| lg.qty_received).unwrap_or(0.0);
+        let total_exp = *total_exp_ir_item.get(key).unwrap_or(&0.0);
+        let diff_real_ir = total_rec - total_exp;
+        let group_size = indices.len();
+
+        let mut cum_prev_exp = 0.0;
+        for (pos, &idx) in indices.iter().enumerate() {
+            let line = &df_280[idx];
+            let is_last = pos == group_size - 1;
+
+            let rem_rec = (total_rec - cum_prev_exp).max(0.0);
+            let cant_rec_line = if !is_last {
+                line.quantity.min(rem_rec)
+            } else {
+                rem_rec
+            };
+            let diff_line = cant_rec_line - line.quantity;
+            cum_prev_exp += line.quantity;
+
+            line_calcs.insert(idx, LineCalc {
+                cant_rec: cant_rec_line,
+                diff: diff_line,
+                total_exp,
+                diff_real_ir,
+            });
+        }
+    }
+
+    let mut rows: Vec<InboundReconciliationRow> = Vec::new();
+    let mut processed_keys: HashSet<(String, String)> = HashSet::new();
 
     for (idx, line) in df_280.iter().enumerate() {
         let key = (line.ir_map.clone(), line.item_code.clone());
         processed_keys.insert(key.clone());
 
-        let cur_idx = current_row_index_in_group.entry(key.clone()).or_insert(0);
-        *cur_idx += 1;
-        let is_last_row_of_group = *cur_idx == *group_sizes.get(&key).unwrap_or(&1);
+        let calc = line_calcs.get(&idx).copied().unwrap_or(LineCalc {
+            cant_rec: 0.0,
+            diff: -line.quantity,
+            total_exp: line.quantity,
+            diff_real_ir: -line.quantity,
+        });
 
-        let total_exp = *total_exp_ir_item.get(&key).unwrap_or(&line.quantity);
-
-        let (cant_rec, wb_final, bin, reloc, ts, user, log_id, snap_d) = if let Some(lg) = logs_grouped.get(&key) {
+        let (wb_final, bin, reloc, ts, user, log_id, snap_d) = if let Some(lg) = logs_grouped.get(&key) {
             let wb = if line.wb_map != "SIN WAYBILL" && !line.wb_map.is_empty() {
                 line.wb_map.clone()
             } else if !lg.waybill_log.is_empty() {
@@ -1803,12 +2103,12 @@ pub fn get_inbound_reconciliation_view(
             } else {
                 line.wb_map.clone()
             };
-            (lg.qty_received, wb, lg.bin_location.clone(), lg.relocated_bin.clone(), lg.timestamp_log.clone(), lg.username_log.clone(), lg.id, lg.snapshot_date.clone())
+            (wb, lg.bin_location.clone(), lg.relocated_bin.clone(), lg.timestamp_log.clone(), lg.username_log.clone(), lg.id, lg.snapshot_date.clone())
         } else {
-            (0.0, line.wb_map.clone(), String::new(), String::new(), String::new(), "admin".to_string(), (idx + 1) as i64, None)
+            (line.wb_map.clone(), String::new(), String::new(), String::new(), "admin".to_string(), (idx + 1) as i64, None)
         };
 
-        // Si la descripción está vacía o es por defecto, buscar en logs o en inventory_items
+        // Si la descripción está vacía o es por defecto, buscar en logs o en inventory_items precargados
         let mut desc_final = line.description.clone();
         if desc_final.is_empty() || desc_final == "No en sistema 280" {
             if let Some(lg) = logs_grouped.get(&key) {
@@ -1817,19 +2117,13 @@ pub fn get_inbound_reconciliation_view(
                 }
             }
             if desc_final.is_empty() || desc_final == "No en sistema 280" {
-                let clean_code = line.item_code.trim();
-                let clean_code_no_prefix = clean_code.trim_start_matches(".>").trim_start_matches('.').trim();
+                let clean_code = line.item_code.trim().to_uppercase();
+                let clean_code_no_prefix = clean_code.trim_start_matches(".>").trim_start_matches('.').trim().to_string();
                 let dot_prefix = format!(".>{}", clean_code_no_prefix);
-                if let Ok(mut stmt_desc) = conn.prepare("
-                    SELECT description FROM inventory_items
-                    WHERE item_code = ?1 OR item_code = ?2 OR item_code = ?3
-                    ORDER BY CASE WHEN description != '' THEN 0 ELSE 1 END LIMIT 1
-                ") {
-                    if let Ok(d) = stmt_desc.query_row(params![clean_code, clean_code_no_prefix, dot_prefix], |r| r.get::<_, String>(0)) {
-                        if !d.trim().is_empty() {
-                            desc_final = d.trim().to_string();
-                        }
-                    }
+                if let Some(d) = item_descriptions.get(&clean_code)
+                    .or_else(|| item_descriptions.get(&clean_code_no_prefix))
+                    .or_else(|| item_descriptions.get(&dot_prefix)) {
+                    desc_final = d.clone();
                 }
             }
         }
@@ -1844,17 +2138,14 @@ pub fn get_inbound_reconciliation_view(
             "-".to_string()
         };
 
-        // La diferencia total se muestra en la última fila del grupo para no duplicarla visualmente
-        let diff = if is_last_row_of_group {
-            cant_rec - total_exp
-        } else {
-            0.0
-        };
-
-        let (motivo, observacion) = saved_comments
-            .get(&(line.ir_map.clone(), line.grn.clone(), line.item_code.clone(), order_line_display.clone()))
-            .or_else(|| saved_comments.get(&(line.ir_map.clone(), line.grn.clone(), line.item_code.clone(), String::new())))
-            .or_else(|| saved_comments.get(&(line.ir_map.clone(), line.grn.clone(), line.item_code.clone(), "-".to_string())))
+        let (motivo, observacion) = saved_comments_with_wb
+            .get(&(line.ir_map.clone(), wb_final.clone(), line.grn.clone(), line.item_code.clone(), order_line_display.clone()))
+            .or_else(|| saved_comments_with_wb.get(&(line.ir_map.clone(), wb_final.clone(), line.grn.clone(), line.item_code.clone(), String::new())))
+            .or_else(|| saved_comments_without_wb.get(&(line.ir_map.clone(), line.grn.clone(), line.item_code.clone(), order_line_display.clone())))
+            .or_else(|| saved_comments_without_wb.get(&(line.ir_map.clone(), line.grn.clone(), line.item_code.clone(), String::new())))
+            .or_else(|| saved_comments_by_wb_it.get(&(wb_final.clone(), line.item_code.clone())))
+            .or_else(|| saved_comments_by_grn_it.get(&(line.grn.clone(), line.item_code.clone())))
+            .or_else(|| saved_comments_by_ir_it.get(&(line.ir_map.clone(), line.item_code.clone())))
             .cloned()
             .map(|(r, c)| (
                 if r.is_empty() { None } else { Some(r) },
@@ -1873,8 +2164,10 @@ pub fn get_inbound_reconciliation_view(
             ubicacion: bin,
             reubicado: reloc,
             cant_esperada: line.quantity,
-            cant_recibida: cant_rec,
-            diferencia: diff,
+            cant_recibida: calc.cant_rec,
+            diferencia: calc.diff,
+            total_esperado_ir: calc.total_exp,
+            diferencia_real_ir: calc.diff_real_ir,
             timestamp: ts,
             usuario: user,
             snapshot_date: snap_d,
@@ -1888,19 +2181,13 @@ pub fn get_inbound_reconciliation_view(
         if !processed_keys.contains(&(ir.clone(), code.clone())) {
             let mut desc_final = lg.item_description.clone();
             if desc_final.is_empty() || desc_final == "No en reporte 280" {
-                let clean_code = code.trim();
-                let clean_code_no_prefix = clean_code.trim_start_matches(".>").trim_start_matches('.').trim();
+                let clean_code = code.trim().to_uppercase();
+                let clean_code_no_prefix = clean_code.trim_start_matches(".>").trim_start_matches('.').trim().to_string();
                 let dot_prefix = format!(".>{}", clean_code_no_prefix);
-                if let Ok(mut stmt_desc) = conn.prepare("
-                    SELECT description FROM inventory_items
-                    WHERE item_code = ?1 OR item_code = ?2 OR item_code = ?3
-                    ORDER BY CASE WHEN description != '' THEN 0 ELSE 1 END LIMIT 1
-                ") {
-                    if let Ok(d) = stmt_desc.query_row(params![clean_code, clean_code_no_prefix, dot_prefix], |r| r.get::<_, String>(0)) {
-                        if !d.trim().is_empty() {
-                            desc_final = d.trim().to_string();
-                        }
-                    }
+                if let Some(d) = item_descriptions.get(&clean_code)
+                    .or_else(|| item_descriptions.get(&clean_code_no_prefix))
+                    .or_else(|| item_descriptions.get(&dot_prefix)) {
+                    desc_final = d.clone();
                 }
                 if desc_final.is_empty() {
                     desc_final = "No en reporte 280".to_string();
@@ -1915,10 +2202,14 @@ pub fn get_inbound_reconciliation_view(
                 "-".to_string()
             };
 
-            let (motivo, observacion) = saved_comments
-                .get(&(ir.clone(), "SIN GRN".to_string(), code.clone(), order_line_sin_grn.clone()))
-                .or_else(|| saved_comments.get(&(ir.clone(), "SIN GRN".to_string(), code.clone(), String::new())))
-                .or_else(|| saved_comments.get(&(ir.clone(), "SIN GRN".to_string(), code.clone(), "-".to_string())))
+            let (motivo, observacion) = saved_comments_with_wb
+                .get(&(ir.clone(), lg.waybill_log.clone(), "SIN GRN".to_string(), code.clone(), order_line_sin_grn.clone()))
+                .or_else(|| saved_comments_with_wb.get(&(ir.clone(), lg.waybill_log.clone(), "SIN GRN".to_string(), code.clone(), String::new())))
+                .or_else(|| saved_comments_without_wb.get(&(ir.clone(), "SIN GRN".to_string(), code.clone(), order_line_sin_grn.clone())))
+                .or_else(|| saved_comments_without_wb.get(&(ir.clone(), "SIN GRN".to_string(), code.clone(), String::new())))
+                .or_else(|| saved_comments_by_wb_it.get(&(lg.waybill_log.clone(), code.clone())))
+                .or_else(|| saved_comments_by_grn_it.get(&("SIN GRN".to_string(), code.clone())))
+                .or_else(|| saved_comments_by_ir_it.get(&(ir.clone(), code.clone())))
                 .cloned()
                 .map(|(r, c)| (
                     if r.is_empty() { None } else { Some(r) },
@@ -1939,6 +2230,8 @@ pub fn get_inbound_reconciliation_view(
                 cant_esperada: 0.0,
                 cant_recibida: lg.qty_received,
                 diferencia: lg.qty_received,
+                total_esperado_ir: 0.0,
+                diferencia_real_ir: lg.qty_received,
                 timestamp: lg.timestamp_log.clone(),
                 usuario: lg.username_log.clone(),
                 snapshot_date: lg.snapshot_date.clone(),
@@ -1991,11 +2284,19 @@ pub fn get_inbound_reconciliation_view(
             .cmp(&(&b.import_reference, &b.grn, b_num, &b.order_line, &b.codigo_item))
     });
 
-    Ok(InboundReconciliationResponse {
+    let response = InboundReconciliationResponse {
         data: rows,
         archive_versions,
         snapshot_versions,
-    })
+    };
+
+    if is_active_view {
+        if let Ok(mut guard) = ACTIVE_RECONCILIATION_CACHE.write() {
+            *guard = Some((Instant::now(), response.clone()));
+        }
+    }
+
+    Ok(response)
 }
 
 pub fn get_inbound_ir_stats_data_rust(
@@ -2015,8 +2316,8 @@ pub fn get_inbound_ir_stats_data_rust(
         };
     }
 
-    let po_json = read_json_file_fallback(po_json_path);
-    let grn_json = read_json_file_fallback(grn_json_path);
+    let po_json = read_cached_json_file(po_json_path, &PO_CACHE);
+    let grn_json = read_cached_json_file(grn_json_path, &GRN_CACHE);
 
     let mut found_wb = String::new();
     let mut po_items = Vec::new();
@@ -2096,17 +2397,13 @@ pub fn get_inbound_ir_stats_data_rust(
                 continue;
             }
 
-            let mut matches = false;
-            if !associated_grns.is_empty() && !grn.is_empty() && associated_grns.contains(&grn) {
-                matches = true;
-            } else if !r_ir.is_empty() && match_ref_rust(&r_ir, &ir_clean) {
-                matches = true;
-            }
+            let matches = (!associated_grns.is_empty() && !grn.is_empty() && associated_grns.contains(&grn))
+                || (!r_ir.is_empty() && match_ref_rust(&r_ir, &ir_clean));
 
             if matches {
                 *grouped_280.entry(item_code.clone()).or_insert(0.0) += qty;
                 if !grn.is_empty() {
-                    let map_for_item = grn_detail_expected.entry(item_code).or_insert_with(HashMap::new);
+                    let map_for_item = grn_detail_expected.entry(item_code).or_default();
                     *map_for_item.entry(grn).or_insert(0.0) += qty;
                 }
             }
@@ -2190,6 +2487,7 @@ pub fn unarchive_logs_version_db(conn: &Connection, version_date: &str) -> Resul
         "UPDATE inbound_logs SET archived_at = NULL WHERE version_date = ?1 OR archived_at LIKE ?2",
         params![v, format!("{}%", v)],
     )?;
+    invalidate_inbound_reconciliation_cache();
     Ok(rows)
 }
 
@@ -2198,6 +2496,7 @@ pub fn restore_inbound_rows_bulk_db(conn: &Connection, ids: &[i64]) -> Result<us
     for id in ids {
         count += conn.execute("UPDATE inbound_logs SET archived_at = NULL WHERE id = ?1", params![id])?;
     }
+    invalidate_inbound_reconciliation_cache();
     Ok(count)
 }
 
@@ -2206,6 +2505,7 @@ pub fn delete_inbound_rows_bulk_db(conn: &Connection, ids: &[i64]) -> Result<usi
     for id in ids {
         count += conn.execute("DELETE FROM inbound_logs WHERE id = ?1", params![id])?;
     }
+    invalidate_inbound_reconciliation_cache();
     Ok(count)
 }
 
@@ -2593,5 +2893,75 @@ mod tests {
         delete_saved_grn_reconciliation_from_db(&conn, recon_id).unwrap();
         let list_after = get_saved_grn_reconciliations_list_from_db(&conn, None, None).unwrap();
         assert_eq!(list_after.len(), 0);
+    }
+
+    #[test]
+    fn test_reconciliation_cascade_and_autorecovery() {
+        let conn = setup_test_db();
+
+        // Insertar logs de bodega:
+        // 1) 8 unidades físicas para IR-TEST, SKU-CASCADE
+        // 2) 4 unidades físicas para IR-RECOVERED, SKU-UNMAPPED
+        conn.execute("
+            INSERT INTO inbound_logs (
+                timestamp, import_reference, waybill, item_code, item_description,
+                bin_location, relocated_bin, qty_received, qty_grn, difference,
+                username, client_id, archived_at, version_date
+            ) VALUES
+            ('2026-10-29 10:00:00', 'IR-TEST', 'WB-TEST', 'SKU-CASCADE', 'CASCADE ITEM', 'BIN-1', '', 8.0, 10.0, -2.0, 'admin', 'c1', NULL, '2026-10-29'),
+            ('2026-10-29 10:05:00', 'IR-RECOVERED', 'WB-REC', 'SKU-UNMAPPED', 'RECOVERED ITEM', 'BIN-2', '', 4.0, 4.0, 0.0, 'admin', 'c2', NULL, '2026-10-29');
+        ", []).unwrap();
+
+        let temp_dir = std::env::temp_dir().join("logix_test_cascade");
+        let _ = std::fs::create_dir_all(&temp_dir);
+        let po_path = temp_dir.join("po_lookup.json");
+        let grn_path = temp_dir.join("grn_master_data.json");
+        std::fs::write(&po_path, "{}").unwrap();
+
+        // 2 líneas para SKU-CASCADE (Exp 5 y Exp 5) + 1 línea para SKU-UNMAPPED sin IR en 280
+        let grn_content = r#"[
+            {"Item_Code":"SKU-CASCADE","Item_Description":"CASCADE ITEM","Quantity":5.0,"GRN_Number":"GRN-1","Order_Number":"O1","Order_Line":"1","Import_Reference":"IR-TEST","Waybill":"WB-TEST"},
+            {"Item_Code":"SKU-CASCADE","Item_Description":"CASCADE ITEM","Quantity":5.0,"GRN_Number":"GRN-2","Order_Number":"O2","Order_Line":"2","Import_Reference":"IR-TEST","Waybill":"WB-TEST"},
+            {"Item_Code":"SKU-UNMAPPED","Item_Description":"RECOVERED ITEM","Quantity":4.0,"GRN_Number":"GRN-UNMAPPED","Order_Number":"O3","Order_Line":"1","Import_Reference":"","Waybill":""}
+        ]"#;
+        std::fs::write(&grn_path, grn_content).unwrap();
+
+        let res = get_inbound_reconciliation_view(
+            &conn,
+            po_path.to_str().unwrap(),
+            grn_path.to_str().unwrap(),
+            None,
+            None,
+            None,
+            None,
+            None,
+            false,
+        ).unwrap();
+
+        // 1. Verificar cascada en SKU-CASCADE:
+        let r1 = res.data.iter().find(|r| r.grn == "GRN-1").expect("GRN-1 exists");
+        let r2 = res.data.iter().find(|r| r.grn == "GRN-2").expect("GRN-2 exists");
+
+        // Fila 1 debe absorber min(5.0, 8.0) = 5.0 (diferencia 0.0)
+        assert_eq!(r1.cant_esperada, 5.0);
+        assert_eq!(r1.cant_recibida, 5.0);
+        assert_eq!(r1.diferencia, 0.0);
+        assert_eq!(r1.total_esperado_ir, 10.0);
+        assert_eq!(r1.diferencia_real_ir, -2.0);
+
+        // Fila 2 (última) debe absorber el remanente 8.0 - 5.0 = 3.0 (diferencia 3.0 - 5.0 = -2.0)
+        assert_eq!(r2.cant_esperada, 5.0);
+        assert_eq!(r2.cant_recibida, 3.0);
+        assert_eq!(r2.diferencia, -2.0);
+        assert_eq!(r2.total_esperado_ir, 10.0);
+        assert_eq!(r2.diferencia_real_ir, -2.0);
+
+        // 2. Verificar auto-recuperación de GRN-UNMAPPED:
+        let r3 = res.data.iter().find(|r| r.grn == "GRN-UNMAPPED").expect("GRN-UNMAPPED exists");
+        assert_eq!(r3.import_reference, "IR-RECOVERED");
+        assert_eq!(r3.waybill, "WB-REC");
+        assert_eq!(r3.cant_esperada, 4.0);
+        assert_eq!(r3.cant_recibida, 4.0);
+        assert_eq!(r3.diferencia, 0.0);
     }
 }

@@ -548,6 +548,30 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
             return createJsonResponse({ success: true, id: Date.now(), message: "Conciliación guardada localmente" });
         }
 
+        if (pathname === '/api/inbound/upsert_draft_comment' && method === 'POST') {
+            if (isTauri()) {
+                try {
+                    await callTauriCommand('upsert_draft_comment', {
+                        payload: {
+                            grn_number: body?.grn_number || '',
+                            import_reference: body?.import_reference || '',
+                            waybill: body?.waybill || null,
+                            order_line: body?.order_line || null,
+                            item_code: body?.item_code || '',
+                            difference_reason: body?.difference_reason || null,
+                            operator_comment: body?.operator_comment || null,
+                            qty_received: body?.qty_received !== undefined ? Number(body.qty_received) : null
+                        }
+                    });
+                    return createJsonResponse({ success: true, message: "Comentario guardado" });
+                } catch (e) {
+                    console.error("Error in upsert_draft_comment:", e);
+                    return createErrorResponse(e.message || String(e), 500);
+                }
+            }
+            return createJsonResponse({ success: true, message: "Comentario guardado localmente" });
+        }
+
         // Auditor de Inbound
         if (pathname === '/api/inbound/auditor/alerts') {
             if (isTauri()) {

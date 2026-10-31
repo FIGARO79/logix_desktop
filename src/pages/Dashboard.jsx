@@ -92,6 +92,12 @@ const Dashboard = () => {
     });
     const dropTargetRef = useRef(null);
 
+    const handleCardClick = (item) => {
+        if (item?.href) {
+            navigate(item.href);
+        }
+    };
+
     useEffect(() => {
         dropTargetRef.current = dropTarget;
     }, [dropTarget]);
@@ -203,7 +209,7 @@ const Dashboard = () => {
             const dx = moveEvent.clientX - p.startX;
             const dy = moveEvent.clientY - p.startY;
 
-            if (!p.hasMoved && Math.hypot(dx, dy) > 5) {
+            if (!p.hasMoved && Math.hypot(dx, dy) > 12) {
                 p.hasMoved = true;
                 setDragging({
                     item: p.item,
@@ -263,7 +269,7 @@ const Dashboard = () => {
             setDropTarget(null);
 
             if (!wasDragging) {
-                // Fue un clic simple -> Navegar a la página
+                // Fue un clic simple -> Navegar dentro de la misma pestaña
                 if (clickedItem?.href) {
                     navigate(clickedItem.href);
                 }
@@ -382,6 +388,7 @@ const Dashboard = () => {
                                                         data-cat-id={category.id}
                                                         data-card-idx={idx}
                                                         onPointerDown={(e) => handlePointerDown(e, item, category.id, idx)}
+                                                        onClick={() => handleCardClick(item)}
                                                         className={`group relative flex items-center justify-between gap-2.5 bg-white border rounded p-2.5 transition-all duration-150 cursor-pointer select-none ${
                                                             isBeingDragged
                                                                 ? 'opacity-25 scale-[0.98] border-dashed border-[#0067c0]'

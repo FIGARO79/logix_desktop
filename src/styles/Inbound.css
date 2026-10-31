@@ -1,0 +1,104 @@
+.inbound-page {
+    --inbound-primary: #0078d4;
+    --inbound-primary-dark: #106ebe;
+    --inbound-text: #201f1e;
+    --inbound-muted: #605e5c;
+    --inbound-border: #d2d0ce;
+    --inbound-surface: #ffffff;
+    --inbound-subtle: #f9f9f9;
+    color: var(--inbound-text);
+}
+
+.inbound-page .bg-white,
+.inbound-page .bg-zinc-50\/50 {
+    background-color: var(--inbound-surface);
+}
+
+.inbound-page .border-gray-200,
+.inbound-page .border-zinc-200,
+.inbound-page .border-zinc-100 {
+    border-color: var(--inbound-border);
+}
+
+.inbound-page .rounded-lg,
+.inbound-page .rounded-md,
+.inbound-page .rounded {
+    border-radius: 4px;
+}
+
+.inbound-page .shadow-sm,
+.inbound-page .shadow-inner {
+    box-shadow: 0 1px 3px rgba(32, 31, 30, 0.12);
+}
+
+.inbound-page h1,
+.inbound-page h2,
+.inbound-page h3,
+.inbound-page h4 {
+    color: var(--inbound-text);
+    font-weight: 400;
+    letter-spacing: 0;
+}
+
+.inbound-page input,
+.inbound-page select {
+    background-color: var(--inbound-surface);
+    border-color: #8a8886;
+    color: var(--inbound-text);
+    border-radius: 2px;
+}
+
+.inbound-page input:focus,
+.inbound-page select:focus {
+    border-color: var(--inbound-primary);
+    box-shadow: 0 0 0 1px var(--inbound-primary);
+}
+
+.inbound-page .data-field {
+    background-color: var(--inbound-subtle);
+    border-color: var(--inbound-border);
+    border-radius: 2px;
+}
+
+.inbound-page button[style*="#285f94"] {
+    background: var(--inbound-primary) !important;
+    border-color: var(--inbound-primary);
+    border-radius: 2px;
+    letter-spacing: 0;
+}
+
+.inbound-page button[style*="#285f94"]:hover:not(:disabled) {
+    background: var(--inbound-primary-dark) !important;
+}
+
+.inbound-page table thead tr[style*="#111827"] {
+    background: #f3f3f3 !important;
+    color: var(--inbound-text) !important;
+    border-bottom: 1px solid var(--inbound-border);
+}
+
+.inbound-page table th {
+    font-weight: 400;
+    letter-spacing: 0;
+}
+
+.inbound-page table tbody tr:hover {
+    background-color: #f3f9fd;
+}
+
+.inbound-page .text-blue-700,
+.inbound-page .text-blue-800,
+.inbound-page .text-blue-900 {
+    color: var(--inbound-primary-dark);
+}
+
+@media (max-width: 1023px) {
+    .inbound-page {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+
+    .inbound-page .overflow-x-auto {
+        -webkit-overflow-scrolling: touch;
+    }
+}

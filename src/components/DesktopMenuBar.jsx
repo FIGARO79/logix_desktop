@@ -52,7 +52,7 @@ const DesktopMenuBar = ({
         if (action) action();
     };
 
-    const menuBoxClass = "absolute left-0 top-full mt-0.5 w-56 bg-white border border-[#d1d5db] shadow-lg rounded-none py-0.5 z-[1050] text-[#1f1f1f] text-[12px] font-['Segoe_UI',Tahoma,sans-serif]";
+    const menuBoxClass = "absolute left-0 top-full mt-0.5 w-56 bg-white border border-[#d1d5db] shadow-md rounded-none py-0.5 z-[1050] text-[#1f1f1f] text-[12px] font-['Segoe_UI',Tahoma,sans-serif]";
     const itemClass = "w-full text-left px-3 h-6 flex items-center justify-between text-[12px] leading-none hover:bg-[#0078d4] hover:text-white cursor-pointer select-none text-[#1f1f1f] font-normal";
     const headerClass = "px-3 pt-1.5 pb-1 text-[11px] font-normal text-[#7f7f7f] uppercase tracking-wider text-left leading-none select-none";
     const separatorClass = "border-t border-[#e5e5e5] my-0.5";
@@ -60,7 +60,7 @@ const DesktopMenuBar = ({
     return (
         <div
             ref={menubarRef}
-            className="h-7 bg-[var(--sap-shell-bg)] border-b border-black/20 px-2 flex items-center text-[12px] font-['Segoe_UI',Tahoma,sans-serif] text-white/90 select-none z-[1002] relative print:hidden no-print"
+            className="h-7 bg-[#f3f3f3] border-b border-[#d2d0ce] px-2 flex items-center text-[12px] font-['Segoe_UI',Tahoma,sans-serif] text-[#201f1e] select-none z-[1002] relative print:hidden no-print"
         >
             {/* 1. ARCHIVO */}
             <div className="relative">
@@ -68,10 +68,10 @@ const DesktopMenuBar = ({
                     type="button"
                     onClick={() => handleMenuClick('archivo')}
                     onMouseEnter={() => handleMouseEnter('archivo')}
-                    className={`px-2.5 py-0.5 rounded-none text-[12px] leading-none cursor-default font-normal transition-colors ${
+                    className={`px-2.5 py-0.5 rounded-none text-[12px] leading-none cursor-pointer font-normal transition-colors ${
                         activeMenu === 'archivo'
-                            ? 'bg-white/20 text-white'
-                            : 'hover:bg-white/10 text-white/90 hover:text-white'
+                            ? 'bg-[#edebe9] text-[#201f1e]'
+                            : 'hover:bg-[#edebe9] text-[#201f1e]'
                     }`}
                 >
                     Archivo
@@ -109,10 +109,10 @@ const DesktopMenuBar = ({
                     type="button"
                     onClick={() => handleMenuClick('configuracion')}
                     onMouseEnter={() => handleMouseEnter('configuracion')}
-                    className={`px-2.5 py-0.5 rounded-none text-[12px] leading-none cursor-default font-normal transition-colors ${
+                    className={`px-2.5 py-0.5 rounded-none text-[12px] leading-none cursor-pointer font-normal transition-colors ${
                         activeMenu === 'configuracion'
-                            ? 'bg-white/20 text-white'
-                            : 'hover:bg-white/10 text-white/90 hover:text-white'
+                            ? 'bg-[#edebe9] text-[#201f1e]'
+                            : 'hover:bg-[#edebe9] text-[#201f1e]'
                     }`}
                 >
                     Configuración
@@ -170,4 +170,4 @@ const DesktopMenuBar = ({
     );
 };
 
-export default DesktopMenuBar;
+export default React.memo(DesktopMenuBar);

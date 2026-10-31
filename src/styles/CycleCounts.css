@@ -1,0 +1,248 @@
+/* src/styles/CycleCounts.css — Windows Fluent visual language for all Cycle Count pages */
+
+/* Shared Fluent tokens for cycle-count family pages */
+.cycle-counts-page,
+.manage-counts-page,
+.manage-count-diff-page,
+.view-counts-page,
+.edit-count-page,
+.cycle-count-history-page {
+    --fluent-primary: #0078d4;
+    --fluent-primary-dark: #106ebe;
+    --fluent-text: #201f1e;
+    --fluent-muted: #605e5c;
+    --fluent-border: #d2d0ce;
+    --fluent-surface: #ffffff;
+    --fluent-subtle: #f9f9f9;
+    color: var(--fluent-text);
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Segoe UI Web (West European)', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 13.5px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Shared rules scoped to all count pages */
+.cycle-counts-page,
+.manage-counts-page,
+.manage-count-diff-page,
+.view-counts-page,
+.edit-count-page,
+.cycle-count-history-page {
+
+    /* Cards */
+    & .rounded-lg,
+    & .rounded-md,
+    & .rounded {
+        border-radius: 4px;
+    }
+
+    & .shadow-sm,
+    & .shadow-md,
+    & .shadow {
+        box-shadow: 0 1px 3px rgba(32, 31, 30, 0.12);
+    }
+
+    /* Borders */
+    & .border-slate-200,
+    & .border-slate-100,
+    & .border-slate-300,
+    & .border-gray-200,
+    & .border-gray-300 {
+        border-color: var(--fluent-border);
+    }
+
+    /* Backgrounds */
+    & .bg-slate-50,
+    & .bg-slate-100,
+    & .bg-gray-50,
+    & .bg-gray-100 {
+        background-color: var(--fluent-subtle);
+    }
+
+    & .bg-white {
+        background-color: var(--fluent-surface);
+    }
+
+    /* Typography */
+    & h1, & h2, & h3, & h4 {
+        font-weight: 400;
+        letter-spacing: 0;
+    }
+
+    /* Form labels */
+    & label,
+    & .form-label {
+        font-family: inherit;
+        font-weight: 600;
+        font-size: 12.5px;
+        letter-spacing: 0.01em;
+        color: var(--fluent-text);
+    }
+
+    /* Inputs */
+    & input,
+    & select,
+    & textarea {
+        border-color: #8a8886;
+        border-radius: 2px;
+        color: var(--fluent-text);
+        font-family: inherit;
+        font-size: 14px;
+    }
+
+    & button {
+        font-family: inherit;
+        font-size: 12.5px;
+        letter-spacing: 0.01em;
+    }
+
+    & input:focus,
+    & select:focus,
+    & textarea:focus {
+        border-color: var(--fluent-primary) !important;
+        box-shadow: 0 0 0 1px var(--fluent-primary);
+    }
+
+    /* Table headers — Windows Fluent: neutral light (#f3f3f3) with dark text (#201f1e) */
+    & table thead,
+    & table thead tr,
+    & table thead th,
+    & table th,
+    & thead,
+    & thead tr,
+    & thead th {
+        background: #f3f3f3 !important;
+        background-color: #f3f3f3 !important;
+        color: var(--fluent-text) !important;
+        border-color: var(--fluent-border) !important;
+        font-weight: 600;
+        letter-spacing: 0;
+    }
+
+    /* Force all header variants (Tailwind classes, inline styles, dark gradients) to light */
+    & thead[class*="bg-"],
+    & thead tr[class*="bg-"],
+    & thead th[class*="bg-"],
+    & thead tr[style*="background"],
+    & thead th[style*="background"] {
+        background: #f3f3f3 !important;
+        background-color: #f3f3f3 !important;
+        color: var(--fluent-text) !important;
+    }
+
+    /* Ensure all text, icons, and spans inside headers inherit the dark text color */
+    & thead th *,
+    & thead tr *,
+    & table th * {
+        color: var(--fluent-text) !important;
+    }
+
+    /* Table body */
+    & tbody tr {
+        border-bottom-color: var(--fluent-border);
+    }
+
+    & tbody tr:hover {
+        background-color: #f3f9fd !important;
+    }
+
+    & td, & th {
+        border-bottom-color: var(--fluent-border) !important;
+    }
+
+    /* Dividers */
+    & [class*="divide-"] > * + * {
+        border-color: var(--fluent-border);
+    }
+
+    /* W2W badge */
+    & .bg-black.text-white {
+        background-color: var(--fluent-primary) !important;
+    }
+
+    /* Phase navigation bar */
+    & .bg-slate-50.border-slate-200 {
+        background-color: var(--fluent-subtle);
+        border-color: var(--fluent-border);
+    }
+
+    /* Active phase badge */
+    & .bg-emerald-100 {
+        background-color: #dff6dd;
+    }
+
+    & .text-emerald-800 {
+        color: #107c10;
+    }
+
+    & .border-emerald-300 {
+        border-color: #c8e6c9;
+    }
+
+    /* Status badges */
+    & .bg-green-100 {
+        background-color: #dff6dd;
+    }
+
+    & .bg-red-100,
+    & .bg-red-50 {
+        background-color: #fde7e9;
+    }
+
+    & .bg-yellow-100,
+    & .bg-amber-100 {
+        background-color: #fff4ce;
+    }
+
+    & .bg-blue-100 {
+        background-color: #eff6fc;
+    }
+
+    /* Action buttons */
+    & .bg-emerald-600,
+    & .bg-emerald-700 {
+        background-color: var(--fluent-primary) !important;
+    }
+
+    & .bg-emerald-600:hover,
+    & .bg-emerald-700:hover {
+        background-color: var(--fluent-primary-dark) !important;
+    }
+
+    /* Muted text */
+    & .text-gray-500,
+    & .text-gray-400,
+    & .text-slate-500,
+    & .text-slate-400 {
+        color: var(--fluent-muted) !important;
+    }
+
+    /* Item code */
+    & [class*="text-[#1e4a74]"] {
+        color: var(--fluent-primary-dark);
+    }
+
+    /* Rounded full badges */
+    & .rounded-full {
+        border-radius: 2px;
+    }
+
+    /* Border-t separators */
+    & .border-t,
+    & .border-b {
+        border-color: var(--fluent-border);
+    }
+}
+
+@media (max-width: 1023px) {
+    .cycle-counts-page,
+    .manage-counts-page,
+    .manage-count-diff-page,
+    .view-counts-page,
+    .edit-count-page,
+    .cycle-count-history-page {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+}

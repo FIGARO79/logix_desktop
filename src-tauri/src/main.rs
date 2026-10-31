@@ -389,13 +389,11 @@ fn get_item_details(state: State<'_, AppState>, item_code: String) -> Result<Ite
                 })
             }).map_err(|e| e.to_string())?;
 
-            for it in iter {
-                if let Ok(cand) = it {
-                    let cand_alpha: String = cand.item_code.chars().filter(|c| c.is_alphanumeric()).collect();
-                    if cand_alpha.to_uppercase() == alpha_code {
-                        result = Some(cand);
-                        break;
-                    }
+            for cand in iter.flatten() {
+                let cand_alpha: String = cand.item_code.chars().filter(|c| c.is_alphanumeric()).collect();
+                if cand_alpha.to_uppercase() == alpha_code {
+                    result = Some(cand);
+                    break;
                 }
             }
         }
@@ -667,6 +665,16 @@ fn save_grn_reconciliation_snapshot(
 }
 
 #[tauri::command]
+fn upsert_draft_comment(
+    state: State<'_, AppState>,
+    payload: inbound::UpsertDraftCommentPayload,
+) -> Result<String, String> {
+    let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    inbound::upsert_draft_comment_in_db(&conn, payload).map_err(|e| e.to_string())?;
+    Ok("Comentario guardado correctamente".to_string())
+}
+
+#[tauri::command]
 fn get_saved_grn_reconciliations(
     state: State<'_, AppState>,
     grn_filter: Option<String>,
@@ -798,8 +806,8 @@ fn strip_ir_prefix(s: &str) -> &str {
     let t = s.trim();
     if t.starts_with("IR-") || t.starts_with("IR_") || t.starts_with("IR ") {
         &t[3..]
-    } else if t.starts_with("IR") {
-        &t[2..]
+    } else if let Some(stripped) = t.strip_prefix("IR") {
+        stripped
     } else if t.starts_with("REF-") || t.starts_with("PO-") {
         &t[4..]
     } else {
@@ -939,13 +947,12 @@ fn lookup_inbound_reference(
                     if !m_ir.is_empty() { res_ir = m_ir; }
                     break;
                 }
-            } else if !clean_wb.is_empty() {
-                if clean_m_wb == clean_m_wb || m_wb == wb {
+            } else if !clean_wb.is_empty()
+                && (clean_m_wb == clean_wb || m_wb == wb) {
                     if !m_wb.is_empty() { res_wb = m_wb; }
                     if !m_ir.is_empty() { res_ir = m_ir; }
                     break;
                 }
-            }
         }
     }
 
@@ -1510,11 +1517,11 @@ fn get_occupancy_report(state: State<'_, AppState>) -> Result<Value, String> {
     };
 
     let mut sorted_zones_items: Vec<(String, i32)> = zones_by_items.into_iter().collect();
-    sorted_zones_items.sort_by(|a, b| b.1.cmp(&a.1));
+    sorted_zones_items.sort_by_key(|b| std::cmp::Reverse(b.1));
     let top_zones_by_items: HashMap<String, i32> = sorted_zones_items.into_iter().take(5).collect();
 
     let mut sorted_aisles_items: Vec<(String, i32)> = aisles_by_items.into_iter().collect();
-    sorted_aisles_items.sort_by(|a, b| b.1.cmp(&a.1));
+    sorted_aisles_items.sort_by_key(|b| std::cmp::Reverse(b.1));
     let top_aisles: HashMap<String, i32> = sorted_aisles_items.into_iter().take(5).collect();
 
     let bins_by_zone: HashMap<String, i32> = zones_map.iter().map(|(z, val)| {
@@ -1959,6 +1966,7 @@ fn main() {
             delete_ir_reconciliation,
             get_inbound_reconciliation,
             save_grn_reconciliation_snapshot,
+            upsert_draft_comment,
             get_saved_grn_reconciliations,
             get_saved_grn_reconciliation_detail,
             delete_saved_grn_reconciliation,

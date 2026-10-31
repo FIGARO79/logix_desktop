@@ -21,8 +21,6 @@ export const TRANSLATIONS = {
         'nav.inbound_desc': 'Entrada de mercancía y referencias',
         'nav.reconciliation': 'Conciliación',
         'nav.reconciliation_desc': 'Cruce de documentos y discrepancias',
-        'nav.inbound_audit': 'Auditoría Agente',
-        'nav.inbound_audit_desc': 'Control de calidad y recepción física',
         'nav.view_logs': 'Registros',
         'nav.view_logs_desc': 'Consulta de registros históricos',
         'nav.ir_dashboard': 'Dashboard IR',
@@ -119,8 +117,6 @@ export const TRANSLATIONS = {
         'nav.inbound_desc': 'Entrada de mercadorias e referências',
         'nav.reconciliation': 'Reconciliação',
         'nav.reconciliation_desc': 'Cruzamento de documentos e divergências',
-        'nav.inbound_audit': 'Auditoria Agente',
-        'nav.inbound_audit_desc': 'Controle de qualidade e conferência física',
         'nav.view_logs': 'Registros',
         'nav.view_logs_desc': 'Consulta de registros históricos',
         'nav.ir_dashboard': 'Painel IR',
@@ -215,7 +211,6 @@ export const PHRASE_MAP_PT = {
     'Consultar Stock': 'Consultar Estoque',
     'Recepción': 'Recebimento',
     'Conciliación': 'Reconciliação',
-    'Auditoría Agente': 'Auditoria Agente',
     'Registros': 'Registros',
     'Dashboard IR': 'Painel IR',
     'Picking': 'Separação',
@@ -559,9 +554,13 @@ const preserveCase = (original, replacement) => {
 // Motor de traducción reactiva bidireccional del DOM para todas las páginas internas
     useEffect(() => {
         if (typeof document === 'undefined') return;
+        // Si el idioma es español (idioma nativo de la app), no se requiere mutación de DOM
+        if (language === 'es') return;
 
-        const activeMap = language === 'pt' ? PHRASE_MAP_PT : PHRASE_MAP_ES;
+        const activeMap = PHRASE_MAP_PT;
         const mapEntries = Object.entries(activeMap).sort((a, b) => b[0].length - a[0].length);
+
+        let isTranslating = false;
 
         const translateNode = (node) => {
             if (!node || node.nodeType !== Node.TEXT_NODE) return;
@@ -650,48 +649,57 @@ const preserveCase = (original, replacement) => {
 
         const scanAndTranslate = (rootNode = document.body) => {
             if (!rootNode) return;
-            const walker = document.createTreeWalker(rootNode, NodeFilter.SHOW_TEXT, null);
-            let node;
-            while ((node = walker.nextNode())) {
-                translateNode(node);
+            isTranslating = true;
+            try {
+                const walker = document.createTreeWalker(rootNode, NodeFilter.SHOW_TEXT, null);
+                let node;
+                while ((node = walker.nextNode())) {
+                    translateNode(node);
+                }
+                const elements = rootNode.querySelectorAll ? rootNode.querySelectorAll('input, textarea, button, a, [title]') : [];
+                elements.forEach(translateAttributes);
+            } finally {
+                isTranslating = false;
             }
-            const elements = rootNode.querySelectorAll ? rootNode.querySelectorAll('input, textarea, button, a, [title]') : [];
-            elements.forEach(translateAttributes);
         };
 
-        // Escaneo inmediato al cambiar de idioma o montar
+        // Escaneo inicial al activar portugués
         scanAndTranslate();
 
-        // Observer para capturar cambios dinámicos de DOM (pestañas, modales, tablas)
-        let rafId = null;
+        // Observer seguro: sin characterData y con candado de reentrancia
+        let timeoutId = null;
         const observer = new MutationObserver((mutations) => {
-            if (rafId) cancelAnimationFrame(rafId);
-            rafId = requestAnimationFrame(() => {
-                for (const mutation of mutations) {
-                    if (mutation.type === 'childList') {
-                        for (const addedNode of mutation.addedNodes) {
-                            if (addedNode.nodeType === Node.TEXT_NODE) {
-                                translateNode(addedNode);
-                            } else if (addedNode.nodeType === Node.ELEMENT_NODE) {
-                                scanAndTranslate(addedNode);
+            if (isTranslating) return;
+            if (timeoutId) clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                if (isTranslating) return;
+                isTranslating = true;
+                try {
+                    for (const mutation of mutations) {
+                        if (mutation.type === 'childList') {
+                            for (const addedNode of mutation.addedNodes) {
+                                if (addedNode.nodeType === Node.TEXT_NODE) {
+                                    translateNode(addedNode);
+                                } else if (addedNode.nodeType === Node.ELEMENT_NODE) {
+                                    scanAndTranslate(addedNode);
+                                }
                             }
                         }
-                    } else if (mutation.type === 'characterData') {
-                        translateNode(mutation.target);
                     }
+                } finally {
+                    isTranslating = false;
                 }
-            });
+            }, 100);
         });
 
         observer.observe(document.body, {
             childList: true,
-            subtree: true,
-            characterData: true,
+            subtree: true
         });
 
         return () => {
             observer.disconnect();
-            if (rafId) cancelAnimationFrame(rafId);
+            if (timeoutId) clearTimeout(timeoutId);
         };
     }, [language]);
 

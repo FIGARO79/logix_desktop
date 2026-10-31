@@ -285,7 +285,7 @@ pub fn assign_auditor_zones_db(conn: &Connection, user_id: i64, assigned_zones: 
         "UPDATE users SET assigned_zones = ?1 WHERE id = ?2",
         params![clean, user_id],
     )?;
-    Ok(format!("Zonas/pasillos actualizados exitosamente."))
+    Ok("Zonas/pasillos actualizados exitosamente.".to_string())
 }
 
 /// Búsqueda de todos los ítems asignados a una ubicación específica (bin principal o adicional)

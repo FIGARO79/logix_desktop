@@ -36,7 +36,6 @@ import ManageCycleCountDifferences from './pages/ManageCycleCountDifferences';
 import Shipments from './pages/Shipments';
 import ConsolidatedPackingList from './pages/ConsolidatedPackingList';
 import ErrorPage from './pages/Error';
-import InboundAudit from './pages/InboundAudit';
 import IRReconciliation from './pages/IRReconciliation';
 
 // Componente de carga (para procesos internos)
@@ -237,11 +236,6 @@ function App() {
                         <Route path="/view_logs" element={
                             <ProtectedRoute requiredPermission="inbound">
                                 <InboundHistory />
-                            </ProtectedRoute>
-                        } />
-                        <Route path="/inbound/audit" element={
-                            <ProtectedRoute requiredPermission="inbound">
-                                <InboundAudit />
                             </ProtectedRoute>
                         } />
                         <Route path="/ir-reconciliation" element={

@@ -307,44 +307,42 @@ pub fn seed_picking_orders_from_csv_if_empty(conn: &mut Connection, csv_path: &s
 
         let now = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
 
-        for result in rdr.records() {
-            if let Ok(record) = result {
-                let order = idx_order.and_then(|i| record.get(i)).unwrap_or("").trim().to_string();
-                let item = idx_item.and_then(|i| record.get(i)).unwrap_or("").trim().to_string();
-                if order.is_empty() || item.is_empty() {
-                    continue;
-                }
-
-                let despatch = idx_despatch.and_then(|i| record.get(i)).unwrap_or("00").trim().to_string();
-                let cust_code = idx_cust_code.and_then(|i| record.get(i)).unwrap_or("N/A").trim().to_string();
-                let cust_name = idx_cust_name.and_then(|i| record.get(i)).unwrap_or("Cliente General").trim().to_string();
-                let desc = idx_desc.and_then(|i| record.get(i)).unwrap_or("").trim().to_string();
-                let line = idx_line.and_then(|i| record.get(i)).unwrap_or("1").trim().to_string();
-                let raw_qty = idx_qty.and_then(|i| record.get(i)).unwrap_or("0").replace(',', "");
-                let qty: f64 = raw_qty.parse().unwrap_or(0.0);
-                let print = idx_print.and_then(|i| record.get(i)).unwrap_or("").trim().to_string();
-                let tz = idx_tz.and_then(|i| record.get(i)).unwrap_or("-05:00").trim().to_string();
-                let carrier = idx_carrier.and_then(|i| record.get(i)).unwrap_or("").trim().to_string();
-
-                stmt.execute(params![
-                    order.clone(),
-                    order,
-                    despatch,
-                    cust_code,
-                    cust_name,
-                    carrier,
-                    line,
-                    item,
-                    desc,
-                    qty,
-                    0.0,
-                    print,
-                    tz,
-                    "PP",
-                    now,
-                ])?;
-                inserted += 1;
+        for record in rdr.records().flatten() {
+            let order = idx_order.and_then(|i| record.get(i)).unwrap_or("").trim().to_string();
+            let item = idx_item.and_then(|i| record.get(i)).unwrap_or("").trim().to_string();
+            if order.is_empty() || item.is_empty() {
+                continue;
             }
+
+            let despatch = idx_despatch.and_then(|i| record.get(i)).unwrap_or("00").trim().to_string();
+            let cust_code = idx_cust_code.and_then(|i| record.get(i)).unwrap_or("N/A").trim().to_string();
+            let cust_name = idx_cust_name.and_then(|i| record.get(i)).unwrap_or("Cliente General").trim().to_string();
+            let desc = idx_desc.and_then(|i| record.get(i)).unwrap_or("").trim().to_string();
+            let line = idx_line.and_then(|i| record.get(i)).unwrap_or("1").trim().to_string();
+            let raw_qty = idx_qty.and_then(|i| record.get(i)).unwrap_or("0").replace(',', "");
+            let qty: f64 = raw_qty.parse().unwrap_or(0.0);
+            let print = idx_print.and_then(|i| record.get(i)).unwrap_or("").trim().to_string();
+            let tz = idx_tz.and_then(|i| record.get(i)).unwrap_or("-05:00").trim().to_string();
+            let carrier = idx_carrier.and_then(|i| record.get(i)).unwrap_or("").trim().to_string();
+
+            stmt.execute(params![
+                order.clone(),
+                order,
+                despatch,
+                cust_code,
+                cust_name,
+                carrier,
+                line,
+                item,
+                desc,
+                qty,
+                0.0,
+                print,
+                tz,
+                "PP",
+                now,
+            ])?;
+            inserted += 1;
         }
     }
     tx.commit()?;

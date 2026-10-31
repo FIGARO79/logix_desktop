@@ -258,13 +258,11 @@ pub fn get_item_for_counting(conn: &Connection, code: &str) -> Result<ItemCounti
                     unit_cost: row.get::<_, Option<f64>>(4)?.unwrap_or(0.0),
                 })
             })?;
-            for it in iter {
-                if let Ok(cand) = it {
-                    let cand_alpha: String = cand.item_code.chars().filter(|c| c.is_alphanumeric()).collect();
-                    if cand_alpha.to_uppercase() == alpha_code {
-                        item_res = Some(cand);
-                        break;
-                    }
+            for cand in iter.flatten() {
+                let cand_alpha: String = cand.item_code.chars().filter(|c| c.is_alphanumeric()).collect();
+                if cand_alpha.to_uppercase() == alpha_code {
+                    item_res = Some(cand);
+                    break;
                 }
             }
         }
@@ -936,7 +934,7 @@ pub fn calculate_cycle_count_differences(
         let key = (item_clean, loc_clean);
         counts_by_key_stage
             .entry(key)
-            .or_insert_with(HashMap::new)
+            .or_default()
             .entry(stage)
             .and_modify(|q| *q += qty)
             .or_insert(qty);

@@ -1,25 +1,43 @@
+@import './styles/FluentPages.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-    --sap-font-family: 'Segoe UI', 'Segoe', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-    --sap-font-heading: 'Segoe UI', 'Segoe', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-    --sap-primary: #354a5f;
-    --sap-shell-bg: #354a5f;
-    --sap-bg: #f5f7fa;
-    --sap-text: #000000;
-    --sap-text-header: #000000;
+    --logix-font-family: 'Segoe UI', 'Segoe', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --sap-font-family: var(--logix-font-family);
+    --sap-font-heading: var(--logix-font-family);
+    --sap-primary: #0078d4;
+    --sap-shell-bg: #ffffff;
+    --sap-bg: #f3f3f3;
+    --sap-text: #201f1e;
+    --sap-text-header: #201f1e;
+}
+
+html, body {
+    font-family: var(--logix-font-family);
 }
 
 body, button, input, select, textarea, table, h1, h2, h3, h4, h5, h6, div, p, span, a, label {
-    font-family: 'Segoe UI', 'Segoe', -apple-system, BlinkMacSystemFont, Roboto, sans-serif !important;
+    font-family: var(--logix-font-family);
+}
+
+/* Soporte normalizado para clases monospace (SKUs, ubicaciones, códigos de barra) */
+.font-mono, [class*="font-mono"] {
+    font-family: Consolas, 'Segoe UI Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, 'Courier New', monospace !important;
+}
+
+/* Preservar tipografía de etiquetas térmicas de impresión */
+.label-container, .label-container * {
+    font-family: Arial, Helvetica, sans-serif !important;
 }
 
 body {
     color: var(--sap-text);
     line-height: 1.6;
     font-size: 16px;
+    background-color: #f3f3f3;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -81,7 +99,7 @@ body {
     scrollbar-width: none;
 }
 
-/* Force white text on table headers with dark backgrounds */
+/* Force white text on table headers with explicitly dark backgrounds */
 thead.bg-slate-700 th,
 thead.bg-slate-800 th,
 thead.bg-slate-900 th,
@@ -89,11 +107,13 @@ thead.bg-zinc-800 th,
 thead.bg-zinc-900 th,
 thead.bg-black th,
 thead[class*="bg-sap-primary"] th,
-tr[style*="background: #111827"] th,
-tr[style*="background: #354a5f"] th,
-tr.text-white th,
-thead.text-white th {
+tr[style*="background: #111827"] th {
     color: #ffffff !important;
+}
+
+/* Ensure table headers in Fluent UI use high-contrast dark text */
+table:not(.print-table):not([class*="print:"]) thead th {
+    color: #201f1e;
 }
 
 /* Force all dark/medium/light gray/zinc/slate/neutral/stone text colors to black globally */
@@ -107,9 +127,9 @@ thead.text-white th {
     color: #000000 !important;
 }
 
-/* Exclude the sidebar section titles from the global black color rule and set them to white */
-.fixed.left-0.w-64 nav > div > div {
-    color: rgba(255, 255, 255, 0.8) !important;
+/* Sidebar section titles contrast (Fluent secondary) */
+.fixed.left-0.w-64 nav > div > div:first-child {
+    color: #605e5c !important;
 }
 
 /* Ensure all elements in the sidebar menu use normal weight */
@@ -128,4 +148,21 @@ thead.text-white th {
 .fixed.left-0.w-64 button.text-red-500,
 .fixed.left-0.w-64 button.text-red-400 {
     color: #ef4444 !important;
+}
+
+/* Table body font size normalization and compact vertical padding */
+table:not(.print-table):not([class*="print:"]) tbody td,
+.sap-table tbody td,
+.logix-table tbody td {
+    font-size: 0.875rem; /* 14px */
+    line-height: 1.25rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+}
+
+table:not(.print-table):not([class*="print:"]) thead th,
+.sap-table thead th,
+.logix-table thead th {
+    padding-top: 0.3125rem;
+    padding-bottom: 0.3125rem;
 }

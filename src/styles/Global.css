@@ -1,17 +1,13 @@
 /* src/styles/Global.css */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
-
-
-/* ===== System Font Stack (Replacing SAP '72') ===== */
-/* Using native system fonts for better performance and no external dependencies */
+/* ===== System Font Stack (Segoe UI Native Performance) ===== */
+/* Using native system fonts for maximum performance and zero external dependencies */
 
 /* ===== SAP Fiori Inspired Theme (Quartz Light / Belize) ===== */
 :root {
     /* Colors */
-    --logix-primary: #285f94;
-    /* Belize Blue update */
-    --logix-primary-dark: #1e4a74;
+    --logix-primary: #0078d4;
+    /* Fluent Blue */
+    --logix-primary-dark: #106ebe;
     --logix-accent: #eebf22;
     /* Gold/Yellow */
     --logix-bg: #f7f7f7;
@@ -29,8 +25,13 @@
     --logix-critical: #e9730c;
     --logix-negative: #bb0000;
     --logix-positive: #107e3e;
-    --logix-informative: #285f94;
+    --logix-informative: #0078d4;
     --logix-neutral: #595c5f;
+    --sap-success: #107e3e;
+    --sap-error: #bb0000;
+    --sap-warning: #e9730c;
+    --sap-informative: #0078d4;
+    --sap-primary: #0078d4;
 
     /* Shell / Header */
     --logix-shell-bg: #354a5f;
@@ -41,8 +42,8 @@
     --logix-table-border: #e5e5e5;
     --logix-list-hover: #f5f5f5;
 
-    /* Fonts - Modern System Font Stack */
-    --logix-font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    /* Fonts - Modern Segoe UI System Font Stack */
+    --logix-font-family: 'Segoe UI', 'Segoe', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif;
     --logix-font-size: 0.875rem;
     /* 14px */
 }
@@ -80,16 +81,28 @@ h6 {
 }
 
 /* ===== SAP Fiori Shell Bar (Header) ===== */
-.logix-shell-bar,
-.top-header {
+.logix-shell-bar {
     background-color: var(--logix-shell-bg);
     color: var(--logix-shell-text);
     height: 48px;
-    /* Fixed height from templates */
     display: flex;
     align-items: center;
     padding: 0 1rem;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+}
+
+.top-header {
+    background-color: #ffffff;
+    color: #201f1e;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    padding: 0 1rem;
+    box-shadow: none;
     position: sticky;
     top: 0;
     width: 100%;
@@ -273,13 +286,15 @@ button {
 /* Success Button */
 .logix-button-success,
 .btn-success {
-    background-color: var(--sap-success);
-    color: white;
-    border-color: var(--sap-success);
+    background-color: var(--logix-success, #107e3e) !important;
+    color: #ffffff !important;
+    border-color: var(--logix-success, #107e3e) !important;
 }
 
-.logix-button-success:hover:not(:disabled) {
-    background-color: #0d6b34;
+.logix-button-success:hover:not(:disabled),
+.btn-success:hover:not(:disabled) {
+    background-color: #0d6b34 !important;
+    border-color: #0d6b34 !important;
 }
 
 button:disabled {
@@ -303,15 +318,13 @@ table {
 .sap-table th,
 table th {
     text-align: left;
-    padding: 0.5rem 0.75rem;
-    background: linear-gradient(180deg, #4a5f7f 0%, #3d5068 100%);
-    /* Original Dark Gradient */
-    color: #ffffff;
-    /* White text for contrast */
-    font-weight: 400;
+    padding: 0.3125rem 0.5rem;
+    background-color: var(--logix-table-header-bg);
+    color: var(--logix-text);
+    font-weight: 600;
     font-size: 0.75rem;
     text-transform: uppercase;
-    border-bottom: 1px solid var(--sap-table-border);
+    border-bottom: 1px solid var(--logix-table-border);
     position: sticky;
     top: 0;
     z-index: 10;
@@ -320,7 +333,7 @@ table th {
 .logix-table td,
 .sap-table td,
 table td {
-    padding: 0.5rem 0.75rem;
+    padding: 0.25rem 0.5rem;
     border-bottom: 1px solid var(--sap-table-border);
     color: var(--sap-text);
     vertical-align: middle;
