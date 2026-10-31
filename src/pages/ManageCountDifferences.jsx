@@ -127,7 +127,7 @@ const ManageCountDifferences = () => {
     };
 
     return (
-        <div className="max-w-[1600px] mx-auto px-4 py-4 font-['Segoe_UI',Tahoma,sans-serif] text-[12px] text-[#1f1f1f] bg-[#f8f9fa] min-h-screen">
+        <div className="max-w-[1600px] mx-auto px-4 py-4 font-['Segoe_UI',Tahoma,sans-serif] text-[12px] text-[#1f1f1f] bg-[#f3f3f3] min-h-screen">
 
             {/* Header Page */}
             <div className="flex justify-between items-center mb-3 bg-white px-4 py-2.5 rounded border border-[#d1d5db] shadow-sm">

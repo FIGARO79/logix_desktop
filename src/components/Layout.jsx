@@ -194,7 +194,7 @@ const Layout = () => {
     const location = useLocation();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [title, setTitle] = useState('Inicio');
-    const { isOnline, pendingCount, syncPendingData, refreshPendingCount } = useOffline();
+    const { pendingCount, syncPendingData, refreshPendingCount } = useOffline();
     const { language, setLanguage, t } = useLanguage();
     const [showPendingModal, setShowPendingModal] = useState(false);
     const [pendingList, setPendingList] = useState([]);
@@ -594,9 +594,6 @@ const Layout = () => {
                                 {pendingCount} {t('header.pending', 'PENDIENTES')}
                             </div>
                         )}
-                        <div className={`flex items-center gap-1.5 rounded-full border border-solid px-3 py-1 text-[9px] font-medium uppercase transition-all ${!isOnline ? 'border-[#d13438] bg-[#fde7e9] text-[#a4262c]' : 'border-[#107c41] bg-[#dff6dd] text-[#107c41]'}`}>
-                            {!isOnline ? 'OFFLINE' : 'ONLINE'}
-                        </div>
                     </div>
                 </header>
             </div>

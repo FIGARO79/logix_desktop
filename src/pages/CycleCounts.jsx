@@ -631,7 +631,7 @@ const CycleCounts = () => {
     }
 
     return (
-        <div className="max-w-[1920px] mx-auto px-4 py-3 font-['Segoe_UI',Tahoma,sans-serif] text-[12px] text-[#1f1f1f] bg-[#f8f9fa] min-h-screen">
+        <div className="max-w-[1920px] mx-auto px-4 py-3 font-['Segoe_UI',Tahoma,sans-serif] text-[12px] text-[#1f1f1f] bg-[#f3f3f3] min-h-screen">
             <ToastContainer position="top-right" autoClose={2000} />
 
             {/* Header de Navegación entre Fases */}

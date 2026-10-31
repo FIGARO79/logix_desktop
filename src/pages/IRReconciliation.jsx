@@ -80,7 +80,7 @@ const IRReconciliation = () => {
     );
 
     return (
-        <div className="max-w-[1920px] mx-auto px-4 py-3 font-['Segoe_UI',Tahoma,sans-serif] bg-[#f8f9fa] min-h-screen text-[#1f1f1f] text-[12px]">
+        <div className="max-w-[1920px] mx-auto px-4 py-3 font-['Segoe_UI',Tahoma,sans-serif] bg-[#f3f3f3] min-h-screen text-[#1f1f1f] text-[12px]">
             <div className="bg-white border border-[#d1d5db] rounded shadow-sm overflow-hidden flex flex-col">
                 <div className="bg-[#f8f9fa] p-3 border-b border-[#d1d5db] flex flex-col md:flex-row justify-between items-center gap-2">
                     <div>

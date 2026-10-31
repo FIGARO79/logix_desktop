@@ -179,9 +179,9 @@ const CycleCountHistory = () => {
     const visibleRecordings = filteredRecordings.slice(0, displayCount);
 
     return (
-        <div className="w-full h-[calc(100vh-110px)] flex flex-col font-['Segoe_UI',Tahoma,sans-serif] text-[#1f1f1f] bg-[#f8f9fa]">
+        <div className="cycle-count-history-page w-full h-[calc(100vh-110px)] flex flex-col font-['Segoe_UI',Tahoma,sans-serif] text-[#1f1f1f] bg-[#f3f3f3] pt-3">
             {/* Header bar con controles Fluent UI */}
-            <div className="bg-white border-b border-[#d1d5db] px-4 py-2 flex justify-between items-center z-20 shadow-sm">
+            <div className="mx-4 mb-2 bg-white px-4 py-2.5 rounded border border-[#d2d0ce] flex justify-between items-center z-20 shadow-xs">
                 <div>
                     <h1 className="text-[14px] font-normal text-[#1f1f1f] m-0">Historial de Conteos Cíclicos</h1>
                     <span className="text-[11px] font-normal text-[#5c5c5c]">Registro histórico y auditoría de grabaciones de inventario</span>
@@ -212,14 +212,14 @@ const CycleCountHistory = () => {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-auto px-4 pb-4 pt-2 relative">
+            <div className="flex-1 overflow-auto px-4 pb-4 pt-1 relative">
                 {loading && <div className="text-center p-8 text-[12px] font-normal text-[#5c5c5c]">Cargando datos...</div>}
                 {error && <div className="bg-[#fef2f2] border border-[#fecaca] text-[#991b1b] p-3 rounded text-[12px] font-normal mb-4">{error}</div>}
 
                 {!loading && !error && (
-                    <table className="min-w-max text-left border-collapse bg-white shadow-sm text-[11.5px]">
-                        <thead className="bg-[#354a5f] text-white sticky top-0 z-20">
-                            <tr className="border-b border-[#2a3c4e]">
+                    <table className="min-w-max text-left border-collapse bg-white rounded border border-[#d2d0ce] shadow-xs text-[11.5px]">
+                        <thead className="bg-[#f3f3f3] text-[#1f1f1f] border-b border-[#d2d0ce] sticky top-0 z-20 font-normal text-[11px]">
+                            <tr className="border-b border-[#d2d0ce]">
                                 <th className="px-3 py-2 text-[11px] font-normal whitespace-nowrap">SR</th>
                                 <th className="px-3 py-2 text-[11px] font-normal whitespace-nowrap">Código</th>
                                 <th className="px-3 py-2 text-[11px] font-normal whitespace-nowrap max-w-xs">Descripción</th>

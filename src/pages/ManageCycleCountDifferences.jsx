@@ -201,7 +201,7 @@ const ManageCycleCountDifferences = () => {
 
 
     return (
-        <div className="max-w-[1800px] mx-auto px-4 py-3 font-['Segoe_UI',Tahoma,sans-serif] bg-[#f8f9fa] min-h-screen text-[#1f1f1f]">
+        <div className="max-w-[1800px] mx-auto px-4 py-3 font-['Segoe_UI',Tahoma,sans-serif] bg-[#f3f3f3] min-h-screen text-[#1f1f1f]">
             {/* Header y Filtros */}
             <div className="bg-white p-3 border border-[#d1d5db] rounded mb-3 flex flex-wrap gap-4 items-end shadow-sm">
                 <div>

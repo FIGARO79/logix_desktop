@@ -131,7 +131,7 @@ const DashboardInventario = () => {
     };
 
     if (loading) return (
-        <div className="flex items-center justify-center min-h-[60vh] bg-[#f8f9fa] font-['Segoe_UI',Tahoma,sans-serif] text-[12px]">
+        <div className="flex items-center justify-center min-h-[60vh] bg-[#f3f3f3] font-['Segoe_UI',Tahoma,sans-serif] text-[12px]">
             <div className="flex flex-col items-center gap-2 bg-white p-6 rounded border border-[#d1d5db] shadow-xs">
                 <div className="w-6 h-6 border-2 border-[#0067c0] border-t-transparent rounded-full animate-spin"></div>
                 <div className="text-gray-700 font-normal">Cargando 18 Indicadores Ejecutivos...</div>
@@ -160,7 +160,7 @@ const DashboardInventario = () => {
     );
 
     return (
-        <div className="max-w-[1920px] mx-auto px-4 py-3 font-['Segoe_UI',Tahoma,sans-serif] bg-[#f8f9fa] min-h-screen text-[#1f1f1f] text-[12px] antialiased leading-normal">
+        <div className="max-w-[1920px] mx-auto px-4 py-3 font-['Segoe_UI',Tahoma,sans-serif] bg-[#f3f3f3] min-h-screen text-[#1f1f1f] text-[12px] antialiased leading-normal">
             {/* Top Navigation & Control Header */}
             <div className="bg-white p-3 rounded border border-[#d1d5db] shadow-xs mb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                 <div>

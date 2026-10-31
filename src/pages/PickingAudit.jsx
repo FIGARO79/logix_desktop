@@ -459,7 +459,7 @@ const PickingAudit = () => {
     // -- Render --
     if (auditActive) {
         return (
-            <div className="container-wrapper max-w-5xl mx-auto px-4 py-4 font-['Segoe_UI',Tahoma,sans-serif] font-normal tracking-normal text-[12px] text-[#1f1f1f]">
+            <div className="picking-audit-page container-wrapper max-w-5xl mx-auto px-4 py-4 font-['Segoe_UI',Tahoma,sans-serif] font-normal tracking-normal text-[12px] text-[#1f1f1f] bg-[#f3f3f3] min-h-screen">
                 <div className="bg-white p-5 rounded border border-[#e5e5e5] shadow-sm">
                     <div className="flex justify-between items-start mb-4 border-b border-[#e5e5e5] pb-3">
                         <div>
@@ -589,7 +589,7 @@ const PickingAudit = () => {
                     {/* Desktop Table View */}
                     <div className="hidden sm:block overflow-x-auto border border-[#e5e5e5] rounded mb-4">
                         <table className="w-full text-left text-[11.5px] border-collapse">
-                            <thead className="bg-[#354a5f] text-white font-normal text-[11px]">
+                            <thead className="bg-[#f3f3f3] text-[#1f1f1f] border-b border-[#d2d0ce] font-normal text-[11.5px]">
                                 <tr>
                                     <th className="px-2.5 py-1.5 text-center w-12 font-normal">Línea</th>
                                     <th className="px-2.5 py-1.5 font-normal">Item</th>
@@ -733,15 +733,15 @@ const PickingAudit = () => {
                             <div className="flex-1 overflow-y-auto pr-1">
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-[11.5px] border-collapse">
-                                        <thead className="bg-[#354a5f] text-white font-normal text-[11px]">
+                                        <thead className="bg-[#f3f3f3] text-[#1f1f1f] border-b border-[#d2d0ce] font-normal text-[11.5px]">
                                             <tr>
-                                                <th className="p-1.5 text-left border border-[#4a5f7f] w-16 font-normal">Línea</th>
-                                                <th className="p-1.5 text-left border border-[#4a5f7f] font-normal">Item</th>
-                                                <th className="p-1.5 text-center border border-[#4a5f7f] w-24 font-normal">Total Scan</th>
+                                                <th className="p-1.5 text-left border border-[#d2d0ce] w-16 font-normal">Línea</th>
+                                                <th className="p-1.5 text-left border border-[#d2d0ce] font-normal">Item</th>
+                                                <th className="p-1.5 text-center border border-[#d2d0ce] w-24 font-normal">Total Scan</th>
                                                 {Array.from({ length: parseInt(packagesCount) || 1 }).map((_, i) => (
-                                                    <th key={i} className="p-1.5 text-center border border-[#4a5f7f] w-20 font-normal">Bulto {i + 1}</th>
+                                                    <th key={i} className="p-1.5 text-center border border-[#d2d0ce] w-20 font-normal">Bulto {i + 1}</th>
                                                 ))}
-                                                <th className="p-1.5 text-center border border-[#4a5f7f] w-24 font-normal">Asignado</th>
+                                                <th className="p-1.5 text-center border border-[#d2d0ce] w-24 font-normal">Asignado</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-[#f1f1f1]">
@@ -831,7 +831,7 @@ const PickingAudit = () => {
     }
 
     return (
-        <div className="container-wrapper max-w-3xl mx-auto px-2 py-2 font-['Segoe_UI',Tahoma,sans-serif] font-normal tracking-normal text-[12px] text-[#1f1f1f]">
+        <div className="picking-audit-page container-wrapper max-w-3xl mx-auto px-2 py-2 font-['Segoe_UI',Tahoma,sans-serif] font-normal tracking-normal text-[12px] text-[#1f1f1f] bg-[#f3f3f3] min-h-screen">
 
             <div className="bg-white p-4 rounded border border-[#e5e5e5] shadow-sm">
                 <div className="flex justify-between items-center mb-4">
@@ -891,7 +891,7 @@ const PickingAudit = () => {
                     {/* Desktop View */}
                     <div className="hidden sm:block border border-[#e5e5e5] rounded overflow-hidden max-h-[500px] overflow-y-auto">
                         <table className="w-full text-left text-[11.5px] border-collapse">
-                            <thead className="sticky top-0 z-10 bg-[#354a5f] text-white text-[11px] font-normal">
+                            <thead className="sticky top-0 z-10 bg-[#f3f3f3] text-[#1f1f1f] border-b border-[#d2d0ce] text-[11.5px] font-normal">
                                 <tr>
                                     <th className="py-2 px-2.5 font-normal">Order</th>
                                     <th className="py-2 px-2.5 font-normal">Despatch</th>
@@ -1027,13 +1027,13 @@ const PickingAudit = () => {
                             <table className="w-full text-left text-[11.5px] border-collapse min-w-[750px]">
                                 <thead>
                                     <tr>
-                                        <th className="py-2 px-3 font-normal border-b border-r border-[#2a3c4d] text-white bg-[#354a5f] sticky top-0 z-12">
+                                        <th className="py-2 px-3 font-normal border-b border-r border-[#d2d0ce] text-[#1f1f1f] bg-[#f3f3f3] sticky top-0 z-12">
                                             Fecha
                                         </th>
                                         {matrixData.dates.map(date => (
                                             <th
                                                 key={date}
-                                                className="py-2 px-3 font-normal text-center border-b border-r border-[#2a3c4d] text-white bg-[#354a5f] sticky top-0 z-12"
+                                                className="py-2 px-3 font-normal text-center border-b border-r border-[#d2d0ce] text-[#1f1f1f] bg-[#f3f3f3] sticky top-0 z-12"
                                                 colSpan={2}
                                             >
                                                 {formatDateLabel(date)}
@@ -1041,31 +1041,31 @@ const PickingAudit = () => {
                                         ))}
                                         {/* Columna Total General en Cabecera */}
                                         <th
-                                            className="py-2 px-3 font-normal text-center border-b border-r border-[#2a3c4d] text-white bg-[#354a5f] sticky top-0 z-12"
+                                            className="py-2 px-3 font-normal text-center border-b border-r border-[#d2d0ce] text-[#1f1f1f] bg-[#f3f3f3] sticky top-0 z-12"
                                             colSpan={2}
                                         >
                                             Total General
                                         </th>
                                     </tr>
-                                    <tr className="bg-[#2a3c4d] text-white">
-                                        <th className="py-1.5 px-3 font-normal border-b border-r border-[#3d5068] text-[11px] uppercase text-white bg-[#2a3c4d] sticky top-[33px] z-12">
+                                    <tr className="bg-[#edebe9] text-[#1f1f1f]">
+                                        <th className="py-1.5 px-3 font-normal border-b border-r border-[#d2d0ce] text-[11px] uppercase text-[#1f1f1f] bg-[#edebe9] sticky top-[33px] z-12">
                                             Customer
                                         </th>
                                         {matrixData.dates.map(date => (
                                             <React.Fragment key={date}>
-                                                <th className="py-1.5 px-3 font-normal text-center border-b border-r border-[#3d5068] text-[11px] uppercase text-white w-24 bg-[#2a3c4d] sticky top-[33px] z-12">
+                                                <th className="py-1.5 px-3 font-normal text-center border-b border-r border-[#d2d0ce] text-[11px] uppercase text-[#1f1f1f] w-24 bg-[#edebe9] sticky top-[33px] z-12">
                                                     Ordenes
                                                 </th>
-                                                <th className="py-1.5 px-3 font-normal text-center border-b border-r border-[#3d5068] text-[11px] uppercase text-white w-24 bg-[#2a3c4d] sticky top-[33px] z-12">
+                                                <th className="py-1.5 px-3 font-normal text-center border-b border-r border-[#d2d0ce] text-[11px] uppercase text-[#1f1f1f] w-24 bg-[#edebe9] sticky top-[33px] z-12">
                                                     Lineas
                                                 </th>
                                             </React.Fragment>
                                         ))}
                                         {/* Subcolumnas de Total en Cabecera */}
-                                        <th className="py-1.5 px-3 font-normal text-center border-b border-r border-[#3d5068] text-[11px] uppercase text-white w-24 bg-[#2a3c4d] sticky top-[33px] z-12">
+                                        <th className="py-1.5 px-3 font-normal text-center border-b border-r border-[#d2d0ce] text-[11px] uppercase text-[#1f1f1f] w-24 bg-[#edebe9] sticky top-[33px] z-12">
                                             Ordenes
                                         </th>
-                                        <th className="py-1.5 px-3 font-normal text-center border-b border-r border-[#3d5068] text-[11px] uppercase text-white w-24 bg-[#2a3c4d] sticky top-[33px] z-12">
+                                        <th className="py-1.5 px-3 font-normal text-center border-b border-r border-[#d2d0ce] text-[11px] uppercase text-[#1f1f1f] w-24 bg-[#edebe9] sticky top-[33px] z-12">
                                             Lineas
                                         </th>
                                     </tr>

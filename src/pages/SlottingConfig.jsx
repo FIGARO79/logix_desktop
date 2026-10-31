@@ -192,7 +192,7 @@ const SlottingConfig = () => {
     };
 
     return (
-        <div className="max-w-[1920px] mx-auto px-4 py-3 font-['Segoe_UI',Tahoma,sans-serif] bg-[#f8f9fa] min-h-screen text-[#1f1f1f] text-[12px] antialiased">
+        <div className="max-w-[1920px] mx-auto px-4 py-3 font-['Segoe_UI',Tahoma,sans-serif] bg-[#f3f3f3] min-h-screen text-[#1f1f1f] text-[12px] antialiased">
             <div className="flex justify-between items-center mb-3 border-b border-[#e5e7eb] pb-2 text-[#1f1f1f]">
                 <h1 className="text-[14px] font-normal text-gray-800 tracking-normal">Configuración de Slotting y Reglas de Almacén</h1>
                 <div className="flex items-center gap-2">

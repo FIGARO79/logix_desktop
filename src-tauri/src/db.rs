@@ -21,6 +21,15 @@ pub fn get_app_data_dir() -> PathBuf {
                     p.pop();
                 }
                 p
+            } else if crate::network_sync::is_network_path(exe_dir) {
+                // Modo red compartida: guardar la base de datos en %LOCALAPPDATA%\LogixData para maximo rendimiento y evitar bloqueos SMB
+                if let Ok(local_app) = std::env::var("LOCALAPPDATA") {
+                    let p = PathBuf::from(local_app).join("LogixData");
+                    let _ = fs::create_dir_all(&p);
+                    p
+                } else {
+                    exe_dir.to_path_buf()
+                }
             } else {
                 // Modo portable real: el directorio donde reside el .exe
                 exe_dir.to_path_buf()
@@ -55,6 +64,10 @@ impl Database {
 
         eprintln!("[db] Ruta base de datos SQLite: {}", db_path.display());
         Self { db_path }
+    }
+
+    pub fn get_path(&self) -> PathBuf {
+        self.db_path.clone()
     }
 
     pub fn get_connection(&self) -> Result<Connection> {
@@ -463,6 +476,17 @@ impl Database {
             "CREATE TABLE IF NOT EXISTS sync_metadata (
                 key TEXT PRIMARY KEY,
                 timestamp INTEGER NOT NULL
+            );",
+            [],
+        )?;
+
+        // 19. Sync Processed Events (Replicación multi-terminal descentralizada)
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS sync_processed_events (
+                event_id TEXT PRIMARY KEY,
+                event_type TEXT NOT NULL,
+                machine_id TEXT NOT NULL,
+                processed_at TEXT NOT NULL
             );",
             [],
         )?;

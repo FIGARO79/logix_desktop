@@ -315,7 +315,7 @@ const PlannerExecution = () => {
     };
 
     return (
-        <div className="max-w-[1400px] mx-auto px-4 py-4 font-['Segoe_UI',Tahoma,sans-serif] bg-[#f8f9fa] min-h-screen text-[#1f1f1f]">
+        <div className="max-w-[1400px] mx-auto px-4 py-4 font-['Segoe_UI',Tahoma,sans-serif] bg-[#f3f3f3] min-h-screen text-[#1f1f1f]">
             <ToastContainer position="top-center" autoClose={3000} containerId="planner-execution" />
 
             {/* Selección de Fecha y Acciones */}

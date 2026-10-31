@@ -438,6 +438,21 @@ export const getPlannerStats = () =>
     tauriInvoke('get_planner_stats');
 
 // ─────────────────────────────────────────────────────
+// DECENTRALIZED NETWORK REPLICATION
+// ─────────────────────────────────────────────────────
+export const getNetworkEnvironment = () =>
+    tauriInvoke('get_network_environment');
+
+export const createDesktopShortcut = () =>
+    tauriInvoke('create_desktop_shortcut');
+
+export const publishSyncEvent = (eventType, payload) =>
+    tauriInvoke('publish_sync_event', { eventType, payload });
+
+export const saveAndReplicateWorkFile = (fileName, fileType, parsedData, uploader = null) =>
+    tauriInvoke('save_and_replicate_work_file', { fileName, fileType, parsedData, uploader });
+
+// ─────────────────────────────────────────────────────
 // HOST SERVER & MULTI-USER LOCAL NETWORK
 // ─────────────────────────────────────────────────────
 export const startHostServer = (port = 8088) =>

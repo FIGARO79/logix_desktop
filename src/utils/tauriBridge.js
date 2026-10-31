@@ -436,6 +436,16 @@ export const processLocalCSVUpload = async (file, selectedGrns = [], updateOptio
                     if (isTauri()) {
                         await invoke('set_sync_status', { key: 'master_items', timestamp: Math.floor(Date.now() / 1000) });
                         const resMsg = await invoke('add_inventory_items_bulk', { items: itemsToInsert });
+                        try {
+                            await invoke('save_and_replicate_work_file', {
+                                fileName: file.name,
+                                fileType: '250',
+                                parsedData: itemsToInsert,
+                                uploader: null
+                            });
+                        } catch (repErr) {
+                            console.warn("Replicación en red no disponible:", repErr);
+                        }
                         resolve(resMsg || `Se cargaron ${itemsToInsert.length} registros en el Maestro de Ítems (250).`);
                         return;
                     }
@@ -544,6 +554,16 @@ export const processLocalCSVUpload = async (file, selectedGrns = [], updateOptio
                 if (isTauri()) {
                     await invoke('set_sync_status', { key: 'picking', timestamp: Math.floor(Date.now() / 1000) });
                     const resMsg = await invoke('import_picking_orders_bulk', { orders: ordersToInsert });
+                    try {
+                        await invoke('save_and_replicate_work_file', {
+                            fileName: file.name,
+                            fileType: '240',
+                            parsedData: ordersToInsert,
+                            uploader: null
+                        });
+                    } catch (repErr) {
+                        console.warn("Replicación en red no disponible:", repErr);
+                    }
                     resolve(resMsg || `Se actualizaron ${keys.length} pedidos de picking en SQLite (240).`);
                     return;
                 }

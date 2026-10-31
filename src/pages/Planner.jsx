@@ -199,7 +199,7 @@ const Planner = () => {
     );
 
     return (
-        <div className="container-wrapper max-w-[1600px] mx-auto p-4 font-['Segoe_UI',Tahoma,sans-serif] text-[12px] text-[#1f1f1f] bg-[#f8f9fa] min-h-screen">
+        <div className="container-wrapper max-w-[1600px] mx-auto p-4 font-['Segoe_UI',Tahoma,sans-serif] text-[12px] text-[#1f1f1f] bg-[#f3f3f3] min-h-screen">
 
             {/* 1. Parámetros Generales */}
             <div className="bg-white p-4 rounded border border-[#d1d5db] shadow-sm mb-4">

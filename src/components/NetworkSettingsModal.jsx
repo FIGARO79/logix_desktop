@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { startHostServer, stopHostServer, getHostServerInfo } from '../utils/tauriApi';
+import { startHostServer, stopHostServer, getHostServerInfo, getNetworkEnvironment, createDesktopShortcut } from '../utils/tauriApi';
 import { getNetworkConfig, saveNetworkConfig, testHostConnection } from '../utils/networkHostClient';
 
 const NetworkSettingsModal = ({ isOpen, onClose }) => {
@@ -11,6 +11,8 @@ const NetworkSettingsModal = ({ isOpen, onClose }) => {
     const [testStatus, setTestStatus] = useState(null);
     const [copiedIp, setCopiedIp] = useState(null);
     const [hostError, setHostError] = useState(null);
+    const [networkEnv, setNetworkEnv] = useState(null);
+    const [shortcutStatus, setShortcutStatus] = useState(null);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -39,7 +41,32 @@ const NetworkSettingsModal = ({ isOpen, onClose }) => {
         };
 
         checkServer();
+
+        const loadNetEnv = async () => {
+            try {
+                const env = await getNetworkEnvironment();
+                if (env) {
+                    setNetworkEnv(env);
+                }
+            } catch (e) {
+                console.warn("No se pudo obtener entorno de red:", e);
+            }
+        };
+        loadNetEnv();
     }, [isOpen]);
+
+    const handleCreateShortcut = async () => {
+        try {
+            const created = await createDesktopShortcut();
+            if (created) {
+                setShortcutStatus("Acceso directo creado en tu Escritorio.");
+            } else {
+                setShortcutStatus("El acceso directo ya existe en tu Escritorio.");
+            }
+        } catch (err) {
+            setShortcutStatus("Error: " + (err?.message || err));
+        }
+    };
 
     const handleStartHost = async () => {
         setLoading(true);
@@ -136,6 +163,49 @@ const NetworkSettingsModal = ({ isOpen, onClose }) => {
 
                 {/* Dialog Content Area */}
                 <div className="p-3.5 space-y-3 text-[12px]">
+                    {/* Entorno Descentralizado Detectado */}
+                    {networkEnv && (
+                        <div className="bg-[#f9f9f9] border border-[#d2d0ce] rounded p-3 text-[11.5px] space-y-2">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5">
+                                    <span className={`w-2 h-2 rounded-full ${networkEnv.is_network ? "bg-[#107c41]" : "bg-[#5c5c5c]"}`} />
+                                    <span className="font-normal text-[#1f1f1f]">
+                                        {networkEnv.is_network ? "Red Compartida Multiterminal (Activa)" : "Modo Local (Standalone)"}
+                                    </span>
+                                </div>
+                                <span className="px-2 py-0.5 rounded text-[10.5px] bg-white border border-[#d2d0ce] text-[#1f1f1f] font-mono">
+                                    {networkEnv.machine_id}
+                                </span>
+                            </div>
+
+                            {networkEnv.is_network ? (
+                                <div className="space-y-1 text-[#5c5c5c] text-[11px] font-mono bg-white p-2 rounded border border-[#e5e5e5]">
+                                    <div className="truncate"><span className="font-sans text-[#1f1f1f]">Directorio de Red:</span> {networkEnv.network_root}</div>
+                                    <div className="truncate"><span className="font-sans text-[#1f1f1f]">Buzón Cargas:</span> {networkEnv.cargas_dir}</div>
+                                    <div className="truncate"><span className="font-sans text-[#1f1f1f]">Buzón Eventos:</span> {networkEnv.eventos_dir}</div>
+                                    <div className="truncate"><span className="font-sans text-[#1f1f1f]">Datos Locales:</span> {networkEnv.local_data_dir}</div>
+                                </div>
+                            ) : (
+                                <p className="text-[11px] text-[#5c5c5c] m-0">
+                                    Ejecutándose localmente. Si copia este ejecutable a una carpeta de red (ej. \\Servidor\logix_portable\), se activará automáticamente la replicación multiterminal.
+                                </p>
+                            )}
+
+                            <div className="pt-1 flex items-center justify-between border-t border-[#e5e5e5]">
+                                <button
+                                    type="button"
+                                    onClick={handleCreateShortcut}
+                                    className="h-6 px-2.5 bg-white hover:bg-[#f5f5f5] text-[#1f1f1f] border border-[#d2d0ce] rounded text-[11px] font-normal cursor-pointer transition-colors"
+                                >
+                                    Crear acceso directo en el Escritorio
+                                </button>
+                                {shortcutStatus && (
+                                    <span className="text-[11px] text-[#107c41] font-normal">{shortcutStatus}</span>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Tarjeta 1: Modo de Red */}
                     <div className="bg-white rounded border border-[#e5e5e5] p-3 space-y-2.5">
                         <div>

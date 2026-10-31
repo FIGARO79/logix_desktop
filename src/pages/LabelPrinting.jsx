@@ -176,7 +176,7 @@ const LabelPrinting = () => {
     const totalWeight = itemData ? (parseFloat(itemData.weight || 0) * parseInt(quantity || 1)).toFixed(2) : '0.00';
 
     return (
-        <div className="max-w-[1920px] mx-auto px-4 py-3 font-['Segoe_UI',Tahoma,sans-serif] bg-[#f8f9fa] min-h-screen text-[#1f1f1f] text-[12px]">
+        <div className="max-w-[1920px] mx-auto px-4 py-3 font-['Segoe_UI',Tahoma,sans-serif] bg-[#f3f3f3] min-h-screen text-[#1f1f1f] text-[12px]">
             <ToastContainer position="top-right" autoClose={3000} />
             {scannerOpen && <ScannerModal onClose={() => setScannerOpen(false)} onScan={handleScan} />}
             <PrinterSettingsModal isOpen={printerModalOpen} onClose={() => setPrinterModalOpen(false)} />

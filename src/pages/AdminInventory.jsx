@@ -290,7 +290,7 @@ const AdminInventory = () => {
     };
 
     return (
-        <div className="max-w-[1920px] mx-auto px-4 py-3 font-['Segoe_UI',Tahoma,sans-serif] text-[12px] text-[#1f1f1f] bg-[#f8f9fa] min-h-screen">
+        <div className="max-w-[1920px] mx-auto px-4 py-3 font-['Segoe_UI',Tahoma,sans-serif] text-[12px] text-[#1f1f1f] bg-[#f3f3f3] min-h-screen">
 
             {/* Header & Barra de Acciones */}
             <div className="mb-3 flex justify-between items-center bg-white px-4 py-2.5 rounded border border-[#d1d5db] shadow-sm">
@@ -325,19 +325,19 @@ const AdminInventory = () => {
             <div className="flex border-b border-[#d1d5db] mb-4 bg-white px-2 pt-1 rounded-t border-t border-l border-r">
                 <button
                     onClick={() => setActiveTab('cycle')}
-                    className={`px-4 py-2 text-[12px] font-normal border-b-2 transition-colors cursor-pointer ${activeTab === 'cycle' ? 'border-[#0067c0] text-[#0067c0] bg-[#f0f7ff]' : 'border-transparent text-[#5c5c5c] hover:text-[#1f1f1f] hover:border-[#d1d5db]'}`}
+                    className={`px-4 py-2 text-[12px] font-normal border-b-2 transition-colors cursor-pointer ${activeTab === 'cycle' ? 'border-[#0067c0] text-[#0067c0] bg-white' : 'border-transparent text-[#5c5c5c] hover:text-[#1f1f1f] hover:border-[#d1d5db]'}`}
                 >
                     Fases del Inventario
                 </button>
                 <button
                     onClick={() => setActiveTab('reconciliation')}
-                    className={`px-4 py-2 text-[12px] font-normal border-b-2 transition-colors cursor-pointer ${activeTab === 'reconciliation' ? 'border-[#0067c0] text-[#0067c0] bg-[#f0f7ff]' : 'border-transparent text-[#5c5c5c] hover:text-[#1f1f1f] hover:border-[#d1d5db]'}`}
+                    className={`px-4 py-2 text-[12px] font-normal border-b-2 transition-colors cursor-pointer ${activeTab === 'reconciliation' ? 'border-[#0067c0] text-[#0067c0] bg-white' : 'border-transparent text-[#5c5c5c] hover:text-[#1f1f1f] hover:border-[#d1d5db]'}`}
                 >
                     Estado de Inventario y Conciliación
                 </button>
                 <button
                     onClick={() => setActiveTab('zones')}
-                    className={`px-4 py-2 text-[12px] font-normal border-b-2 transition-colors cursor-pointer ${activeTab === 'zones' ? 'border-[#0067c0] text-[#0067c0] bg-[#f0f7ff]' : 'border-transparent text-[#5c5c5c] hover:text-[#1f1f1f] hover:border-[#d1d5db]'}`}
+                    className={`px-4 py-2 text-[12px] font-normal border-b-2 transition-colors cursor-pointer ${activeTab === 'zones' ? 'border-[#0067c0] text-[#0067c0] bg-white' : 'border-transparent text-[#5c5c5c] hover:text-[#1f1f1f] hover:border-[#d1d5db]'}`}
                 >
                     Asignación de Zonas por Auditor
                 </button>
@@ -444,7 +444,7 @@ const AdminInventory = () => {
                             ))}
                         </div>
 
-                        <div className={`p-4 rounded border border-dashed transition-all ${stage === 4 ? 'border-[#0067c0] bg-[#f0f7ff]' : 'border-[#d1d5db] bg-white opacity-60'}`}>
+                        <div className={`p-4 rounded border border-dashed transition-all ${stage === 4 ? 'border-[#0067c0] bg-white' : 'border-[#d1d5db] bg-white opacity-60'}`}>
                              <div className="flex flex-col items-center text-center">
                                 <h3 className="text-[13px] font-normal text-[#1f1f1f] mb-1">Finalización y Cierre del Ejercicio</h3>
                                 <p className="text-[11.5px] text-[#5c5c5c] font-normal mb-3">Cierre definitivo de registros y reinicio para un nuevo ciclo</p>
@@ -689,7 +689,7 @@ const AdminInventory = () => {
                             <p className="text-[11px] text-[#5c5c5c] font-normal mt-0.5 mb-2">
                                 Seleccione los pasillos autorizados para cada auditor en la matriz inferior.
                             </p>
-                            <div className="p-2 bg-[#f0f7ff] border border-[#bae0ff] rounded text-[11px] text-[#0067c0] font-normal">
+                            <div className="p-2 bg-white border border-[#bae0ff] rounded text-[11px] text-[#0067c0] font-normal">
                                 Nota: Si no se marca ningún pasillo, el auditor mantiene acceso a todos los pasillos.
                             </div>
                         </div>

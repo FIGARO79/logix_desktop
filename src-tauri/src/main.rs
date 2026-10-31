@@ -13,6 +13,7 @@ mod planner;
 mod stock;
 mod printer;
 mod server;
+mod network_sync;
 
 use db::{get_app_data_dir, Database};
 use rusqlite::params;
@@ -25,6 +26,7 @@ use tauri::State;
 pub struct AppState {
     pub db: Database,
     pub server: server::HostServerManager,
+    pub sync_watcher: network_sync::NetworkSyncWatcher,
 }
 
 fn get_data_file_path(filename: &str) -> PathBuf {
@@ -1902,13 +1904,80 @@ fn get_distinct_operators(state: State<'_, AppState>) -> Result<Vec<String>, Str
 }
 
 // -------------------------------------------------------------
+// 16. DESCENTRALIZED NETWORK REPLICATION
+// -------------------------------------------------------------
+
+#[tauri::command]
+fn get_network_environment() -> Result<network_sync::NetworkEnvironment, String> {
+    Ok(network_sync::detect_environment())
+}
+
+#[tauri::command]
+fn create_desktop_shortcut() -> Result<bool, String> {
+    network_sync::ensure_desktop_shortcut()
+}
+
+#[tauri::command]
+fn publish_sync_event(state: State<'_, AppState>, event_type: String, payload: Value) -> Result<String, String> {
+    let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    network_sync::publish_event(&conn, &event_type, payload)
+}
+
+#[tauri::command]
+fn save_and_replicate_work_file(
+    state: State<'_, AppState>,
+    file_name: String,
+    file_type: String,
+    parsed_data: Value,
+    uploader: Option<String>,
+) -> Result<String, String> {
+    let env = network_sync::detect_environment();
+    let cargas_dir_str = match env.cargas_dir {
+        Some(ref dir) => dir.clone(),
+        None => return Ok("Modo local: no se replicó a la red".to_string()),
+    };
+
+    let cargas_dir = PathBuf::from(&cargas_dir_str);
+    let _ = std::fs::create_dir_all(&cargas_dir);
+
+    let now_prefix = chrono::Local::now().format("%Y%m%d_%H%M%S").to_string();
+    let safe_base = file_name.replace(|c: char| !c.is_alphanumeric() && c != '.' && c != '_', "_");
+    let json_filename = format!("{}_{}_{}.json", now_prefix, file_type, safe_base);
+
+    let json_path = cargas_dir.join(&json_filename);
+    let json_bytes = serde_json::to_vec_pretty(&parsed_data).map_err(|e| e.to_string())?;
+    std::fs::write(&json_path, &json_bytes).map_err(|e| format!("Error guardando datos de carga en red: {}", e))?;
+
+    let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    let record_count = if let Some(arr) = parsed_data.as_array() { arr.len() } else { 0 };
+
+    let payload = serde_json::json!({
+        "file_name": safe_base,
+        "data_file": json_filename,
+        "file_type": file_type,
+        "uploader": uploader.unwrap_or_else(|| env.machine_id.clone()),
+        "record_count": record_count
+    });
+
+    network_sync::publish_event(&conn, "WORK_FILE_UPLOAD", payload)
+}
+
+// -------------------------------------------------------------
 // MAIN ENTRYPOINT
 // -------------------------------------------------------------
 
 fn main() {
     let db = Database::new();
     let server = server::HostServerManager::new();
+    let sync_watcher = network_sync::NetworkSyncWatcher::new();
     db.init().expect("Error al inicializar la base de datos local SQLite");
+
+    // Iniciar observador de eventos de red en segundo plano
+    let db_path = db.get_path();
+    sync_watcher.start(db_path);
+
+    // Si corre desde la red, asegurar que exista el acceso directo en el Escritorio
+    let _ = network_sync::ensure_desktop_shortcut();
 
     // Garantizar que slotting_parameters.json resida dentro de data/
     let slotting_path = get_data_file_path("slotting_parameters.json");
@@ -1923,7 +1992,7 @@ fn main() {
     }
 
     tauri::Builder::default()
-        .manage(AppState { db, server })
+        .manage(AppState { db, server, sync_watcher })
         .invoke_handler(tauri::generate_handler![
             // Auth & Users
             login,
@@ -2071,6 +2140,12 @@ fn main() {
             stop_host_server,
             get_host_server_info,
             get_distinct_operators,
+
+            // Network Sync & Multi-Terminal Replicación
+            get_network_environment,
+            create_desktop_shortcut,
+            publish_sync_event,
+            save_and_replicate_work_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

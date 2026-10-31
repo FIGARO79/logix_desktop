@@ -89,7 +89,7 @@ pub fn get_available_printers() -> Result<Vec<PrinterInfo>, String> {
     {
         let ps_cmd = "Get-CimInstance Win32_Printer | Select-Object -Property Name, Default | ConvertTo-Json";
         if let Ok(out) = Command::new("powershell")
-            .args(&["-NoProfile", "-Command", ps_cmd])
+            .args(["-NoProfile", "-Command", ps_cmd])
             .output()
         {
             let json_str = String::from_utf8_lossy(&out.stdout);
@@ -215,7 +215,7 @@ pub fn send_raw_to_printer(printer_name: Option<String>, raw_data: &str) -> Resu
         };
 
         let output = Command::new("powershell")
-            .args(&["-NoProfile", "-Command", &ps_cmd])
+            .args(["-NoProfile", "-Command", &ps_cmd])
             .output()
             .map_err(|e| format!("Error ejecutando impresión en Windows: {}", e))?;
 

@@ -628,9 +628,9 @@ const Reconciliation = () => {
     };
 
     return (
-        <div className="reconciliation-page flex flex-col h-full bg-[#f3f3f3] text-[#201f1e] font-['Segoe_UI',Tahoma,sans-serif] font-normal tracking-normal text-[12px]">
+        <div className="reconciliation-page flex flex-col h-full bg-[#f3f3f3] text-[#201f1e] font-['Segoe_UI',Tahoma,sans-serif] font-normal tracking-normal text-[12px] pt-3">
             {/* Barra de Filtros y Acciones */}
-            <div className="px-4 py-2 border-b border-[#e5e5e5] bg-white sticky top-0 z-30">
+            <div className="mx-4 mb-2 bg-white px-3 py-2 rounded border border-[#d2d0ce] shadow-xs z-30">
                 <div className="flex flex-wrap items-center gap-2 bg-[#f9f9f9] p-2 rounded border border-[#e5e5e5]">
                     
                     {/* Selector de I.R. */}
@@ -836,7 +836,7 @@ const Reconciliation = () => {
 
             {/* Tabla Principal de Conciliación */}
             <div className="flex-1 px-4 py-2 overflow-hidden flex flex-col">
-                <div className="bg-white border border-[#e5e7eb] shadow-xs overflow-hidden flex flex-col flex-1">
+                <div className="bg-white border border-[#d2d0ce] shadow-xs overflow-hidden flex flex-col flex-1 rounded">
                     {loading ? (
                         <div className="flex-1 flex flex-col items-center justify-center py-32 text-black text-[12px] font-normal">
                             Cargando datos de conciliación...
