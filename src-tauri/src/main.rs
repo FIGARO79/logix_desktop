@@ -1874,12 +1874,39 @@ fn set_sync_status(state: State<'_, AppState>, key: String, timestamp: Option<i6
 fn start_host_server(state: State<'_, AppState>, port: Option<u16>) -> Result<server::ServerInfo, String> {
     let p = port.unwrap_or(8088);
     let db_clone = Database::new();
-    state.server.start(db_clone, p)
+    let info = state.server.start(db_clone, p)?;
+
+    // Persistir configuración en SQLite para auto-arranque permanente al reiniciar la app
+    if let Ok(conn) = state.db.get_connection() {
+        let _ = conn.execute(
+            "INSERT INTO app_settings (key, value) VALUES ('host_server_autostart', '1')
+             ON CONFLICT(key) DO UPDATE SET value = '1'",
+            [],
+        );
+        let _ = conn.execute(
+            "INSERT INTO app_settings (key, value) VALUES ('host_server_port', ?1)
+             ON CONFLICT(key) DO UPDATE SET value = ?1",
+            [p.to_string()],
+        );
+    }
+
+    Ok(info)
 }
 
 #[tauri::command]
 fn stop_host_server(state: State<'_, AppState>) -> Result<server::ServerInfo, String> {
-    state.server.stop()
+    let info = state.server.stop()?;
+
+    // Desactivar auto-arranque en SQLite
+    if let Ok(conn) = state.db.get_connection() {
+        let _ = conn.execute(
+            "INSERT INTO app_settings (key, value) VALUES ('host_server_autostart', '0')
+             ON CONFLICT(key) DO UPDATE SET value = '0'",
+            [],
+        );
+    }
+
+    Ok(info)
 }
 
 #[tauri::command]
@@ -1971,6 +1998,32 @@ fn main() {
     let server = server::HostServerManager::new();
     let sync_watcher = network_sync::NetworkSyncWatcher::new();
     db.init().expect("Error al inicializar la base de datos local SQLite");
+
+    // Auto-arranque persistente de Servidor Host si fue previamente activado
+    if let Ok(conn) = db.get_connection() {
+        let should_autostart: bool = conn
+            .query_row(
+                "SELECT value FROM app_settings WHERE key = 'host_server_autostart'",
+                [],
+                |r| r.get::<_, String>(0),
+            )
+            .map(|v| v == "1")
+            .unwrap_or(false);
+
+        if should_autostart {
+            let port: u16 = conn
+                .query_row(
+                    "SELECT value FROM app_settings WHERE key = 'host_server_port'",
+                    [],
+                    |r| r.get::<_, String>(0),
+                )
+                .map(|v| v.parse::<u16>().unwrap_or(8088))
+                .unwrap_or(8088);
+
+            eprintln!("[main] Auto-iniciando Servidor Host guardado en puerto {}", port);
+            let _ = server.start(Database::new(), port);
+        }
+    }
 
     // Iniciar observador de eventos de red en segundo plano
     let db_path = db.get_path();
