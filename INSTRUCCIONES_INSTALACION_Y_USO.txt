@@ -1,0 +1,133 @@
+================================================================================
+          LOGIX DESKTOP WMS - GUIA DE DESPLIEGUE, INSTALACION Y USO
+                Solución Portable Multiterminal Descentralizada
+================================================================================
+
+DESCRIPCION GENERAL:
+Logix Desktop es una aplicación portátil de gestión de almacén (WMS) diseñada
+para operar en red local entre múltiples operarios sin necesidad de servidores
+complejos, sin servicios web dedicados y SIN REQUERIR PERMISOS DE ADMINISTRADOR
+en las computadoras de los operarios.
+
+--------------------------------------------------------------------------------
+1. DESPLIEGUE EN LA CARPETA DE RED (Solo el Administrador - 1 minuto)
+--------------------------------------------------------------------------------
+1. Copie el archivo ejecutable compilado:
+      LogixDesktop.exe
+   dentro de la carpeta compartida de red asignada para la bodega.
+   Ejemplo de ruta:
+      \\Servidor\logix_portable\LogixDesktop.exe
+   (o en una unidad de red mapeada, por ejemplo Z:\logix_portable\LogixDesktop.exe).
+
+2. Deje también este archivo de instrucciones en esa misma carpeta para referencia.
+
+3. ¡Listo! No necesita instalar ningún motor de base de datos ni configurar
+   permisos especiales en el servidor; el ejecutable gestionará el resto.
+
+--------------------------------------------------------------------------------
+2. PUESTA EN MARCHA PARA CADA OPERARIO (Cero Permisos de Administrador)
+--------------------------------------------------------------------------------
+Para cada una de las terminales de trabajo (computadores de los operarios):
+
+Paso 1: Abra el Explorador de Windows y vaya a la carpeta compartida:
+        \\Servidor\logix_portable\
+
+Paso 2: Haga doble clic sobre "LogixDesktop.exe".
+        * NOTA DE SEGURIDAD DE WINDOWS:
+          Si Windows muestra una ventana que dice:
+          "¿Desea ejecutar este archivo? El editor no se pudo comprobar..."
+          Haga clic en [ Ejecutar ].
+          ESTO NO PIDE CLAVE DE ADMINISTRADOR; es solo un aviso de confirmación.
+
+Paso 3: En el primer arranque, la aplicación hace todo automáticamente:
+        - Detecta que está corriendo desde la red compartida.
+        - Crea su propia base de datos SQLite local en el disco C:\ del operario.
+        - CREA AUTOMATICAMENTE UN ACCESO DIRECTO en el Escritorio del operario
+          con el nombre "Logix WMS".
+
+Paso 4: En los días siguientes, el operario NUNCA MÁS necesita entrar a la red;
+        simplemente enciende su PC y abre el icono "Logix WMS" desde su Escritorio.
+
+--------------------------------------------------------------------------------
+3. ARQUITECTURA: ¿DONDE SE GUARDAN LOS DATOS?
+--------------------------------------------------------------------------------
+Para garantizar máxima velocidad y evitar errores de "archivo en uso" o corrupción:
+
+A. EN EL SERVIDOR (Carpeta Compartida \\Servidor\logix_portable\):
+   - LogixDesktop.exe  : El programa universal.
+   - cargas\           : Subcarpeta donde se archivan automáticamente los reportes
+                         Excel/CSV de trabajo que sube el equipo.
+   - eventos\          : Subcarpeta donde las terminales depositan micro-avisos JSON
+                         (1 KB) para sincronizarse entre sí cada 3 segundos.
+
+B. EN LA MAQUINA LOCAL DE CADA OPERARIO (Disco C:\):
+   - Ruta: C:\Users\<Usuario>\AppData\Local\LogixData\data\
+   - Contenido:
+       * logix_local.db : Base de datos SQLite privada de la terminal.
+   - Beneficio: Las consultas de stock, conteos y escaneos responden en 5 ms
+     a velocidad de disco SSD local, sin depender de la congestión del cable de red.
+
+--------------------------------------------------------------------------------
+4. FLUJO DE TRABAJO CON ARCHIVOS (Maestro 250, Pedidos 240, GRN 280)
+--------------------------------------------------------------------------------
+¿Cómo trabajan sincronizados los operarios?
+
+1. Una sola persona (por ejemplo el Supervisor o Despachador) carga el archivo
+   Excel/CSV del día en la pantalla de Logix Desktop (por ejemplo, los pedidos
+   de picking del Reporte 240).
+
+2. La aplicación del supervisor:
+   - Ingresa los pedidos en su base de datos local al instante.
+   - Guarda una copia de respaldo en la carpeta de red "\\Servidor\logix_portable\cargas\".
+   - Emite un aviso en la carpeta "eventos\".
+
+3. Las aplicaciones de los demás operarios:
+   - Detectan el aviso en segundo plano en menos de 3 segundos.
+   - Leen el archivo desde la carpeta "cargas\" e incorporan los pedidos en
+     sus respectivas computadoras automáticamente.
+   - Nadie tiene que pasar archivos por correo ni memorias USB.
+
+--------------------------------------------------------------------------------
+5. COMO ACTUALIZAR EL PROGRAMA (Nuevas Versiones)
+--------------------------------------------------------------------------------
+Actualizar el sistema en toda la empresa toma 10 segundos:
+
+1. Cuando compile una nueva versión de Logix Desktop, solo obtendrá un archivo:
+      LogixDesktop.exe
+2. Copie ese nuevo archivo y sobreescríbalo en la red:
+      \\Servidor\logix_portable\LogixDesktop.exe
+   (Se recomienda hacerlo al final del turno cuando los operarios hayan cerrado la app).
+3. Al día siguiente, cuando los operarios abran su acceso directo del Escritorio,
+   estarán usando la nueva versión de inmediato. CERO reinstalaciones en las PCs.
+
+--------------------------------------------------------------------------------
+6. MODO ALTERNATIVO: SERVIDOR CENTRAL HTTP (Puerto 8088)
+--------------------------------------------------------------------------------
+Si en el futuro su departamento de TI autoriza la apertura del puerto TCP 8088:
+
+1. En la PC designada como Servidor:
+   - Abra Logix Desktop, vaya a Menú -> Configuración de Red.
+   - Seleccione Modo: "Host (Servidor Central)" y pulse [ Iniciar Servidor ].
+   - Esta configuración ES PERMANENTE: la app recordará el encendido incluso
+     si reinicia la computadora.
+2. En las computadoras de los clientes:
+   - En Configuración de Red, seleccione Modo: "Cliente" e ingrese la IP del Host
+     (ejemplo: http://192.168.1.50:8088).
+
+--------------------------------------------------------------------------------
+7. PREGUNTAS FRECUENTES Y SOLUCION DE PROBLEMAS
+--------------------------------------------------------------------------------
+P: ¿Qué pasa si un operario pierde la conexión de red momentáneamente?
+R: La aplicación no se congela ni se cierra. Puede seguir consultando stock y
+   registrando operaciones en su base de datos local. En cuanto regrese la
+   conexión, transmitirá los eventos acumulados a la red.
+
+P: ¿Se borró el acceso directo del Escritorio por error?
+R: Solo entre a la aplicación, abra el menú "Configuración de Red" y haga clic en
+   el botón "Crear acceso directo en el Escritorio".
+
+P: ¿Los operarios necesitan permisos de Administrador?
+R: ROTUNDAMENTE NO. Tanto el acceso directo como la base de datos local residen
+   en las carpetas personales del usuario de Windows (Escritorio y %LOCALAPPDATA%),
+   las cuales tienen permisos totales nativos de usuario estándar.
+================================================================================
