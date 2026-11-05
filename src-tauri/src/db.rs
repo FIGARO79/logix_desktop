@@ -13,11 +13,18 @@ pub fn get_app_data_dir() -> PathBuf {
     let base_dir = if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
             let exe_str = exe_dir.to_string_lossy();
-            if exe_str.contains("target\\debug") || exe_str.contains("target/debug") 
-                || exe_str.contains("target\\release") || exe_str.contains("target/release") {
+            if exe_str.contains("target\\debug")
+                || exe_str.contains("target/debug")
+                || exe_str.contains("target\\release")
+                || exe_str.contains("target/release")
+            {
                 // Modo compilación/desarrollo cargo: navegar a la raíz del repositorio
                 let mut p = exe_dir.to_path_buf();
-                while p.ends_with("target") || p.ends_with("debug") || p.ends_with("release") || p.ends_with("src-tauri") {
+                while p.ends_with("target")
+                    || p.ends_with("debug")
+                    || p.ends_with("release")
+                    || p.ends_with("src-tauri")
+                {
                     p.pop();
                 }
                 p
@@ -58,7 +65,10 @@ impl Database {
             let old_portable_db = parent.join("Logix_portable").join("logix_local.db");
             if !db_path.exists() && old_portable_db.exists() {
                 let _ = fs::copy(&old_portable_db, &db_path);
-                eprintln!("[db] Migrada base de datos de Logix_portable/ a data/: {}", db_path.display());
+                eprintln!(
+                    "[db] Migrada base de datos de Logix_portable/ a data/: {}",
+                    db_path.display()
+                );
             }
         }
 
@@ -78,7 +88,9 @@ impl Database {
         let conn = self.get_connection()?;
 
         // Optimización de SQLite (WAL Mode y Busy Timeout)
-        conn.execute_batch("PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL; PRAGMA busy_timeout = 5000;")?;
+        conn.execute_batch(
+            "PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL; PRAGMA busy_timeout = 5000;",
+        )?;
 
         // 1. Tabla de usuarios local
         conn.execute(
@@ -96,10 +108,20 @@ impl Database {
         )?;
 
         // Migración automática de columnas para usuarios
-        Self::add_column_if_not_exists(&conn, "users", "permissions", "TEXT DEFAULT 'stock,inbound,picking,inventory,planner,counts,admin'")?;
+        Self::add_column_if_not_exists(
+            &conn,
+            "users",
+            "permissions",
+            "TEXT DEFAULT 'stock,inbound,picking,inventory,planner,counts,admin'",
+        )?;
         Self::add_column_if_not_exists(&conn, "users", "assigned_zones", "TEXT DEFAULT ''")?;
         Self::add_column_if_not_exists(&conn, "users", "is_approved", "INTEGER DEFAULT 1")?;
-        Self::add_column_if_not_exists(&conn, "users", "created_at", "DATETIME DEFAULT CURRENT_TIMESTAMP")?;
+        Self::add_column_if_not_exists(
+            &conn,
+            "users",
+            "created_at",
+            "DATETIME DEFAULT CURRENT_TIMESTAMP",
+        )?;
 
         // Insertar usuario admin predeterminado si no existe
         conn.execute(
@@ -492,14 +514,24 @@ impl Database {
         )?;
 
         // Migración automática de columnas para compatibilidad y actualizaciones de esquema
-        Self::add_column_if_not_exists(&conn, "inventory_items", "additional_bins", "TEXT DEFAULT ''")?;
+        Self::add_column_if_not_exists(
+            &conn,
+            "inventory_items",
+            "additional_bins",
+            "TEXT DEFAULT ''",
+        )?;
         Self::add_column_if_not_exists(&conn, "inventory_items", "length_cm", "REAL DEFAULT 0.0")?;
         Self::add_column_if_not_exists(&conn, "inventory_items", "width_cm", "REAL DEFAULT 0.0")?;
         Self::add_column_if_not_exists(&conn, "inventory_items", "height_cm", "REAL DEFAULT 0.0")?;
         Self::add_column_if_not_exists(&conn, "inventory_items", "volume_cm3", "REAL DEFAULT 0.0")?;
         Self::add_column_if_not_exists(&conn, "inventory_items", "abc_code", "TEXT DEFAULT ''")?;
         Self::add_column_if_not_exists(&conn, "inventory_items", "sic_code", "TEXT DEFAULT '0'")?;
-        Self::add_column_if_not_exists(&conn, "inventory_items", "updated_at", "DATETIME DEFAULT CURRENT_TIMESTAMP")?;
+        Self::add_column_if_not_exists(
+            &conn,
+            "inventory_items",
+            "updated_at",
+            "DATETIME DEFAULT CURRENT_TIMESTAMP",
+        )?;
 
         Self::add_column_if_not_exists(&conn, "inbound_logs", "client_id", "TEXT")?;
         Self::add_column_if_not_exists(&conn, "inbound_logs", "archived_at", "TEXT")?;
@@ -509,9 +541,19 @@ impl Database {
         Self::add_column_if_not_exists(&conn, "inbound_logs", "relocated_bin", "TEXT")?;
 
         Self::add_column_if_not_exists(&conn, "inbound_alerts", "resolved", "INTEGER DEFAULT 0")?;
-        Self::add_column_if_not_exists(&conn, "inbound_alerts", "severity", "TEXT DEFAULT 'warning'")?;
+        Self::add_column_if_not_exists(
+            &conn,
+            "inbound_alerts",
+            "severity",
+            "TEXT DEFAULT 'warning'",
+        )?;
 
-        Self::add_column_if_not_exists(&conn, "session_locations", "count_stage", "INTEGER DEFAULT 1")?;
+        Self::add_column_if_not_exists(
+            &conn,
+            "session_locations",
+            "count_stage",
+            "INTEGER DEFAULT 1",
+        )?;
         Self::add_column_if_not_exists(&conn, "session_locations", "closed_at", "TEXT")?;
 
         Self::add_column_if_not_exists(&conn, "counts", "notes", "TEXT")?;
@@ -520,13 +562,28 @@ impl Database {
         Self::add_column_if_not_exists(&conn, "counts", "status", "TEXT DEFAULT 'completed'")?;
         Self::add_column_if_not_exists(&conn, "counts", "description", "TEXT DEFAULT ''")?;
 
-        Self::add_column_if_not_exists(&conn, "recount_list", "stage_to_count", "INTEGER DEFAULT 2")?;
+        Self::add_column_if_not_exists(
+            &conn,
+            "recount_list",
+            "stage_to_count",
+            "INTEGER DEFAULT 2",
+        )?;
         Self::add_column_if_not_exists(&conn, "recount_list", "status", "TEXT DEFAULT 'pending'")?;
         Self::add_column_if_not_exists(&conn, "recount_list", "approved", "INTEGER DEFAULT 0")?;
         Self::add_column_if_not_exists(&conn, "recount_list", "created_at", "TEXT DEFAULT ''")?;
 
-        Self::add_column_if_not_exists(&conn, "picking_orders", "order_number", "TEXT NOT NULL DEFAULT ''")?;
-        Self::add_column_if_not_exists(&conn, "picking_orders", "despatch_number", "TEXT DEFAULT '00'")?;
+        Self::add_column_if_not_exists(
+            &conn,
+            "picking_orders",
+            "order_number",
+            "TEXT NOT NULL DEFAULT ''",
+        )?;
+        Self::add_column_if_not_exists(
+            &conn,
+            "picking_orders",
+            "despatch_number",
+            "TEXT DEFAULT '00'",
+        )?;
         Self::add_column_if_not_exists(&conn, "picking_orders", "customer_code", "TEXT")?;
         Self::add_column_if_not_exists(&conn, "picking_orders", "customer_name", "TEXT")?;
         Self::add_column_if_not_exists(&conn, "picking_orders", "carrier", "TEXT")?;
@@ -537,13 +594,28 @@ impl Database {
         Self::add_column_if_not_exists(&conn, "picking_orders", "time_zone_hours", "TEXT")?;
         Self::add_column_if_not_exists(&conn, "picking_orders", "status", "TEXT DEFAULT 'PP'")?;
 
-        Self::add_column_if_not_exists(&conn, "picking_audits", "despatch_number", "TEXT DEFAULT '00'")?;
+        Self::add_column_if_not_exists(
+            &conn,
+            "picking_audits",
+            "despatch_number",
+            "TEXT DEFAULT '00'",
+        )?;
         Self::add_column_if_not_exists(&conn, "picking_audits", "customer_code", "TEXT")?;
         Self::add_column_if_not_exists(&conn, "picking_audits", "customer_name", "TEXT")?;
-        Self::add_column_if_not_exists(&conn, "picking_audits", "username", "TEXT DEFAULT 'admin'")?;
+        Self::add_column_if_not_exists(
+            &conn,
+            "picking_audits",
+            "username",
+            "TEXT DEFAULT 'admin'",
+        )?;
         Self::add_column_if_not_exists(&conn, "picking_audits", "packages", "INTEGER DEFAULT 1")?;
         Self::add_column_if_not_exists(&conn, "picking_audits", "difference", "REAL DEFAULT 0.0")?;
-        Self::add_column_if_not_exists(&conn, "picking_audits", "status", "TEXT DEFAULT 'Completo'")?;
+        Self::add_column_if_not_exists(
+            &conn,
+            "picking_audits",
+            "status",
+            "TEXT DEFAULT 'Completo'",
+        )?;
 
         // Migración: la tabla picking_audits legacy tenía item_code y shipment_id como NOT NULL.
         // El nuevo INSERT no los envía, causando "NOT NULL constraint failed: picking_audits.item_code".
@@ -558,7 +630,8 @@ impl Database {
                 .unwrap_or(0);
 
             if col_notnull == 1 {
-                conn.execute_batch("
+                conn.execute_batch(
+                    "
                     PRAGMA foreign_keys=OFF;
                     BEGIN;
                     CREATE TABLE IF NOT EXISTS picking_audits_migration_tmp (
@@ -591,7 +664,8 @@ impl Database {
                     ALTER TABLE picking_audits_migration_tmp RENAME TO picking_audits;
                     COMMIT;
                     PRAGMA foreign_keys=ON;
-                ")?;
+                ",
+                )?;
             }
         }
 
@@ -615,7 +689,12 @@ impl Database {
         Ok(())
     }
 
-    pub fn add_column_if_not_exists(conn: &Connection, table: &str, column: &str, col_type_def: &str) -> Result<()> {
+    pub fn add_column_if_not_exists(
+        conn: &Connection,
+        table: &str,
+        column: &str,
+        col_type_def: &str,
+    ) -> Result<()> {
         let query = format!("PRAGMA table_info({})", table);
         let mut stmt = conn.prepare(&query)?;
         let mut exists = false;
@@ -628,10 +707,12 @@ impl Database {
             }
         }
         if !exists {
-            let alter = format!("ALTER TABLE {} ADD COLUMN {} {}", table, column, col_type_def);
+            let alter = format!(
+                "ALTER TABLE {} ADD COLUMN {} {}",
+                table, column, col_type_def
+            );
             let _ = conn.execute(&alter, []);
         }
         Ok(())
     }
 }
-

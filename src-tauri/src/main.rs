@@ -1,19 +1,19 @@
 // Prevents additional console window on Windows in release
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod db;
-mod slotting;
 mod counts;
+mod db;
 mod general_inventory;
-mod master_maps;
 mod inbound;
+mod master_maps;
+mod network_sync;
 mod picking;
-mod spot_check;
 mod planner;
-mod stock;
 mod printer;
 mod server;
-mod network_sync;
+mod slotting;
+mod spot_check;
+mod stock;
 
 use db::{get_app_data_dir, Database};
 use rusqlite::params;
@@ -75,7 +75,11 @@ pub struct UserAdminView {
 }
 
 #[tauri::command]
-fn login(state: State<'_, AppState>, username: String, password_hash: String) -> Result<User, String> {
+fn login(
+    state: State<'_, AppState>,
+    username: String,
+    password_hash: String,
+) -> Result<User, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     let mut stmt = conn
         .prepare("SELECT id, username, role, permissions, is_approved FROM users WHERE username = ?1 AND password_hash = ?2")
@@ -88,7 +92,9 @@ fn login(state: State<'_, AppState>, username: String, password_hash: String) ->
                 id: row.get(0)?,
                 username: row.get(1)?,
                 role: row.get(2)?,
-                permissions: row.get::<_, Option<String>>(3)?.unwrap_or_else(|| "stock,inbound,picking,inventory,planner,counts,admin".to_string()),
+                permissions: row.get::<_, Option<String>>(3)?.unwrap_or_else(|| {
+                    "stock,inbound,picking,inventory,planner,counts,admin".to_string()
+                }),
                 is_approved: is_appr != 0,
             })
         })
@@ -98,7 +104,11 @@ fn login(state: State<'_, AppState>, username: String, password_hash: String) ->
 }
 
 #[tauri::command]
-fn register_user(state: State<'_, AppState>, username: String, password_hash: String) -> Result<String, String> {
+fn register_user(
+    state: State<'_, AppState>,
+    username: String,
+    password_hash: String,
+) -> Result<String, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     conn.execute(
         "INSERT INTO users (username, password_hash, role, permissions, is_approved) VALUES (?1, ?2, 'operator', 'stock,inbound,picking,counts', 1);",
@@ -123,7 +133,9 @@ fn get_all_users_admin(state: State<'_, AppState>) -> Result<Vec<UserAdminView>,
                 id: row.get(0)?,
                 username: row.get(1)?,
                 role: row.get(2)?,
-                permissions: row.get::<_, Option<String>>(3)?.unwrap_or_else(|| "stock,inbound,picking,inventory,planner,counts,admin".to_string()),
+                permissions: row.get::<_, Option<String>>(3)?.unwrap_or_else(|| {
+                    "stock,inbound,picking,inventory,planner,counts,admin".to_string()
+                }),
                 is_approved: is_appr != 0,
                 assigned_zones: row.get::<_, Option<String>>(5)?.unwrap_or_default(),
                 created_at: row.get::<_, Option<String>>(6)?.unwrap_or_default(),
@@ -147,7 +159,11 @@ fn delete_user_admin(state: State<'_, AppState>, user_id: i64) -> Result<String,
 }
 
 #[tauri::command]
-fn reset_user_password_admin(state: State<'_, AppState>, user_id: i64, new_password: String) -> Result<String, String> {
+fn reset_user_password_admin(
+    state: State<'_, AppState>,
+    user_id: i64,
+    new_password: String,
+) -> Result<String, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     conn.execute(
         "UPDATE users SET password_hash = ?1 WHERE id = ?2",
@@ -158,7 +174,11 @@ fn reset_user_password_admin(state: State<'_, AppState>, user_id: i64, new_passw
 }
 
 #[tauri::command]
-fn update_user_permissions_admin(state: State<'_, AppState>, user_id: i64, permissions: String) -> Result<String, String> {
+fn update_user_permissions_admin(
+    state: State<'_, AppState>,
+    user_id: i64,
+    permissions: String,
+) -> Result<String, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     conn.execute(
         "UPDATE users SET permissions = ?1 WHERE id = ?2",
@@ -171,8 +191,11 @@ fn update_user_permissions_admin(state: State<'_, AppState>, user_id: i64, permi
 #[tauri::command]
 fn approve_user_admin(state: State<'_, AppState>, user_id: i64) -> Result<String, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
-    conn.execute("UPDATE users SET is_approved = 1 WHERE id = ?1", params![user_id])
-        .map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE users SET is_approved = 1 WHERE id = ?1",
+        params![user_id],
+    )
+    .map_err(|e| e.to_string())?;
     Ok("Usuario aprobado exitosamente".to_string())
 }
 
@@ -189,7 +212,11 @@ fn get_auditor_zones(state: State<'_, AppState>) -> Result<Vec<stock::AuditorZon
 }
 
 #[tauri::command]
-fn assign_auditor_zones(state: State<'_, AppState>, user_id: i64, assigned_zones: String) -> Result<String, String> {
+fn assign_auditor_zones(
+    state: State<'_, AppState>,
+    user_id: i64,
+    assigned_zones: String,
+) -> Result<String, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     stock::assign_auditor_zones_db(&conn, user_id, &assigned_zones).map_err(|e| e.to_string())
 }
@@ -241,12 +268,16 @@ fn get_inventory_items(state: State<'_, AppState>) -> Result<Vec<InventoryItem>,
             Ok(InventoryItem {
                 item_code: row.get(0)?,
                 description: row.get::<_, Option<String>>(1)?.unwrap_or_default(),
-                bin_location: row.get::<_, Option<String>>(2)?.unwrap_or_else(|| "N/A".to_string()),
+                bin_location: row
+                    .get::<_, Option<String>>(2)?
+                    .unwrap_or_else(|| "N/A".to_string()),
                 additional_bins: row.get(3)?,
                 system_qty: row.get::<_, Option<f64>>(4)?.unwrap_or(0.0),
                 unit_cost: row.get::<_, Option<f64>>(5)?.unwrap_or(0.0),
                 weight_per_unit: row.get::<_, Option<f64>>(6)?.unwrap_or(0.0),
-                sic_code: row.get::<_, Option<String>>(7)?.unwrap_or_else(|| "0".to_string()),
+                sic_code: row
+                    .get::<_, Option<String>>(7)?
+                    .unwrap_or_else(|| "0".to_string()),
                 abc_code: row.get(8)?,
             })
         })
@@ -292,7 +323,10 @@ fn add_inventory_item(state: State<'_, AppState>, item: InventoryItem) -> Result
 }
 
 #[tauri::command]
-fn add_inventory_items_bulk(state: State<'_, AppState>, items: Vec<InventoryItem>) -> Result<String, String> {
+fn add_inventory_items_bulk(
+    state: State<'_, AppState>,
+    items: Vec<InventoryItem>,
+) -> Result<String, String> {
     let mut conn = state.db.get_connection().map_err(|e| e.to_string())?;
     let tx = conn.transaction().map_err(|e| e.to_string())?;
     {
@@ -348,51 +382,67 @@ fn get_item_details(state: State<'_, AppState>, item_code: String) -> Result<Ite
         .prepare("SELECT item_code, description, bin_location, additional_bins, weight_per_unit, system_qty, unit_cost, sic_code, abc_code, length_cm, width_cm, height_cm, volume_cm3, updated_at FROM inventory_items WHERE UPPER(item_code) = ?1")
         .map_err(|e| e.to_string())?;
 
-    let mut result = stmt.query_row(params![code_clean], |row| {
-        Ok(ItemDetails {
-            item_code: row.get(0)?,
-            description: row.get::<_, Option<String>>(1)?.unwrap_or_default(),
-            bin_location: row.get::<_, Option<String>>(2)?.unwrap_or_else(|| "N/A".to_string()),
-            additional_bins: row.get::<_, Option<String>>(3)?.unwrap_or_default(),
-            weight_kg: row.get::<_, Option<f64>>(4)?.unwrap_or(0.0),
-            system_qty: row.get::<_, Option<f64>>(5)?.unwrap_or(0.0),
-            unit_cost: row.get::<_, Option<f64>>(6)?.unwrap_or(0.0),
-            sic_code: row.get::<_, Option<String>>(7)?.unwrap_or_else(|| "0".to_string()),
-            abc_code: row.get::<_, Option<String>>(8)?.unwrap_or_default(),
-            length_cm: row.get::<_, Option<f64>>(9)?.unwrap_or(0.0),
-            width_cm: row.get::<_, Option<f64>>(10)?.unwrap_or(0.0),
-            height_cm: row.get::<_, Option<f64>>(11)?.unwrap_or(0.0),
-            volume_cm3: row.get::<_, Option<f64>>(12)?.unwrap_or(0.0),
-            updated_at: row.get::<_, Option<String>>(13)?.unwrap_or_default(),
+    let mut result = stmt
+        .query_row(params![code_clean], |row| {
+            Ok(ItemDetails {
+                item_code: row.get(0)?,
+                description: row.get::<_, Option<String>>(1)?.unwrap_or_default(),
+                bin_location: row
+                    .get::<_, Option<String>>(2)?
+                    .unwrap_or_else(|| "N/A".to_string()),
+                additional_bins: row.get::<_, Option<String>>(3)?.unwrap_or_default(),
+                weight_kg: row.get::<_, Option<f64>>(4)?.unwrap_or(0.0),
+                system_qty: row.get::<_, Option<f64>>(5)?.unwrap_or(0.0),
+                unit_cost: row.get::<_, Option<f64>>(6)?.unwrap_or(0.0),
+                sic_code: row
+                    .get::<_, Option<String>>(7)?
+                    .unwrap_or_else(|| "0".to_string()),
+                abc_code: row.get::<_, Option<String>>(8)?.unwrap_or_default(),
+                length_cm: row.get::<_, Option<f64>>(9)?.unwrap_or(0.0),
+                width_cm: row.get::<_, Option<f64>>(10)?.unwrap_or(0.0),
+                height_cm: row.get::<_, Option<f64>>(11)?.unwrap_or(0.0),
+                volume_cm3: row.get::<_, Option<f64>>(12)?.unwrap_or(0.0),
+                updated_at: row.get::<_, Option<String>>(13)?.unwrap_or_default(),
+            })
         })
-    }).ok();
+        .ok();
 
     // Fallback: si no se encontró exacto, buscar ignorando caracteres especiales / símbolos (ej. .>RU18278, BG-0086)
     if result.is_none() {
         let alpha_code: String = code_clean.chars().filter(|c| c.is_alphanumeric()).collect();
         if !alpha_code.is_empty() {
             let mut stmt_all = conn.prepare("SELECT item_code, description, bin_location, additional_bins, weight_per_unit, system_qty, unit_cost, sic_code, abc_code, length_cm, width_cm, height_cm, volume_cm3, updated_at FROM inventory_items").map_err(|e| e.to_string())?;
-            let iter = stmt_all.query_map([], |row| {
-                Ok(ItemDetails {
-                    item_code: row.get(0)?,
-                    description: row.get::<_, Option<String>>(1)?.unwrap_or_default(),
-                    bin_location: row.get::<_, Option<String>>(2)?.unwrap_or_else(|| "N/A".to_string()),
-                    additional_bins: row.get::<_, Option<String>>(3)?.unwrap_or_default(),
-                    weight_kg: row.get::<_, Option<f64>>(4)?.unwrap_or(0.0),
-                    system_qty: row.get::<_, Option<f64>>(5)?.unwrap_or(0.0),
-                    unit_cost: row.get::<_, Option<f64>>(6)?.unwrap_or(0.0),
-                    sic_code: row.get::<_, Option<String>>(7)?.unwrap_or_else(|| "0".to_string()),
-                    abc_code: row.get::<_, Option<String>>(8)?.unwrap_or_default(),
-                    length_cm: row.get::<_, Option<f64>>(9)?.unwrap_or(0.0),
-                    width_cm: row.get::<_, Option<f64>>(10)?.unwrap_or(0.0),
-                    height_cm: row.get::<_, Option<f64>>(11)?.unwrap_or(0.0),
-                    volume_cm3: row.get::<_, Option<f64>>(12)?.unwrap_or(0.0),
-                    updated_at: row.get::<_, Option<String>>(13)?.unwrap_or_default(),
+            let iter = stmt_all
+                .query_map([], |row| {
+                    Ok(ItemDetails {
+                        item_code: row.get(0)?,
+                        description: row.get::<_, Option<String>>(1)?.unwrap_or_default(),
+                        bin_location: row
+                            .get::<_, Option<String>>(2)?
+                            .unwrap_or_else(|| "N/A".to_string()),
+                        additional_bins: row.get::<_, Option<String>>(3)?.unwrap_or_default(),
+                        weight_kg: row.get::<_, Option<f64>>(4)?.unwrap_or(0.0),
+                        system_qty: row.get::<_, Option<f64>>(5)?.unwrap_or(0.0),
+                        unit_cost: row.get::<_, Option<f64>>(6)?.unwrap_or(0.0),
+                        sic_code: row
+                            .get::<_, Option<String>>(7)?
+                            .unwrap_or_else(|| "0".to_string()),
+                        abc_code: row.get::<_, Option<String>>(8)?.unwrap_or_default(),
+                        length_cm: row.get::<_, Option<f64>>(9)?.unwrap_or(0.0),
+                        width_cm: row.get::<_, Option<f64>>(10)?.unwrap_or(0.0),
+                        height_cm: row.get::<_, Option<f64>>(11)?.unwrap_or(0.0),
+                        volume_cm3: row.get::<_, Option<f64>>(12)?.unwrap_or(0.0),
+                        updated_at: row.get::<_, Option<String>>(13)?.unwrap_or_default(),
+                    })
                 })
-            }).map_err(|e| e.to_string())?;
+                .map_err(|e| e.to_string())?;
 
             for cand in iter.flatten() {
-                let cand_alpha: String = cand.item_code.chars().filter(|c| c.is_alphanumeric()).collect();
+                let cand_alpha: String = cand
+                    .item_code
+                    .chars()
+                    .filter(|c| c.is_alphanumeric())
+                    .collect();
                 if cand_alpha.to_uppercase() == alpha_code {
                     result = Some(cand);
                     break;
@@ -403,18 +453,27 @@ fn get_item_details(state: State<'_, AppState>, item_code: String) -> Result<Ite
 
     match result {
         Some(details) => Ok(details),
-        None => Err(format!("Item '{}' no encontrado en el inventario local", code_clean)),
+        None => Err(format!(
+            "Item '{}' no encontrado en el inventario local",
+            code_clean
+        )),
     }
 }
 
 #[tauri::command]
-fn search_stock_items(state: State<'_, AppState>, query: String) -> Result<Vec<stock::StockItemResult>, String> {
+fn search_stock_items(
+    state: State<'_, AppState>,
+    query: String,
+) -> Result<Vec<stock::StockItemResult>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     stock::search_stock_items(&conn, &query).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn search_stock_by_location(state: State<'_, AppState>, location: String) -> Result<Vec<stock::StockItemResult>, String> {
+fn search_stock_by_location(
+    state: State<'_, AppState>,
+    location: String,
+) -> Result<Vec<stock::StockItemResult>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     stock::search_stock_by_location(&conn, &location).map_err(|e| e.to_string())
 }
@@ -432,7 +491,10 @@ fn get_occupancy_stats(state: State<'_, AppState>) -> Result<stock::OccupancySta
 }
 
 #[tauri::command]
-fn save_item_measurement(state: State<'_, AppState>, measurement: stock::ItemMeasurementInput) -> Result<stock::MeasurementResponse, String> {
+fn save_item_measurement(
+    state: State<'_, AppState>,
+    measurement: stock::ItemMeasurementInput,
+) -> Result<stock::MeasurementResponse, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     stock::save_item_measurement(&conn, measurement).map_err(|e| e.to_string())
 }
@@ -453,8 +515,9 @@ fn clear_all_database(state: State<'_, AppState>) -> Result<String, String> {
          DELETE FROM picking_audits;
          DELETE FROM spot_checks;
          DELETE FROM express_audits;
-         DELETE FROM planner_executions;"
-    ).map_err(|e| e.to_string())?;
+         DELETE FROM planner_executions;",
+    )
+    .map_err(|e| e.to_string())?;
 
     Ok("Base de datos local restablecida correctamente".to_string())
 }
@@ -471,13 +534,19 @@ pub struct InboundLookup {
 }
 
 #[tauri::command]
-fn get_inbound_logs(state: State<'_, AppState>, version_date: Option<String>) -> Result<Vec<inbound::LogInbound>, String> {
+fn get_inbound_logs(
+    state: State<'_, AppState>,
+    version_date: Option<String>,
+) -> Result<Vec<inbound::LogInbound>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     inbound::get_logs_from_db(&conn, version_date).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn save_inbound_log(state: State<'_, AppState>, entry: inbound::LogInbound) -> Result<inbound::LogInbound, String> {
+fn save_inbound_log(
+    state: State<'_, AppState>,
+    entry: inbound::LogInbound,
+) -> Result<inbound::LogInbound, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     let po_path = get_data_file_path("po_lookup.json");
     let grn_path = get_data_file_path("grn_master_data.json");
@@ -486,7 +555,8 @@ fn save_inbound_log(state: State<'_, AppState>, entry: inbound::LogInbound) -> R
         entry,
         po_path.to_str().unwrap_or("./data/po_lookup.json"),
         grn_path.to_str().unwrap_or("./data/grn_master_data.json"),
-    ).map_err(|e| e.to_string())
+    )
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -524,7 +594,8 @@ fn find_item_inbound(
         import_ref.as_deref(),
         po_path.to_str().unwrap_or("./data/po_lookup.json"),
         grn_path.to_str().unwrap_or("./data/grn_master_data.json"),
-    ).map_err(|e| e.to_string())
+    )
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -548,7 +619,10 @@ fn resolve_inbound_alert(state: State<'_, AppState>, id: i64) -> Result<String, 
 }
 
 #[tauri::command]
-fn resolve_inbound_alerts_bulk(state: State<'_, AppState>, alert_ids: Vec<i64>) -> Result<usize, String> {
+fn resolve_inbound_alerts_bulk(
+    state: State<'_, AppState>,
+    alert_ids: Vec<i64>,
+) -> Result<usize, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     inbound::resolve_alerts_bulk_in_db(&conn, &alert_ids).map_err(|e| e.to_string())
 }
@@ -562,17 +636,23 @@ fn run_inbound_auditor(state: State<'_, AppState>) -> Result<usize, String> {
         &conn,
         po_path.to_str().unwrap_or("./data/po_lookup.json"),
         grn_path.to_str().unwrap_or("./data/grn_master_data.json"),
-    ).map_err(|e| e.to_string())
+    )
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn get_ir_reconciliations(state: State<'_, AppState>) -> Result<Vec<inbound::IrReconciliation>, String> {
+fn get_ir_reconciliations(
+    state: State<'_, AppState>,
+) -> Result<Vec<inbound::IrReconciliation>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     inbound::get_ir_reconciliations_from_db(&conn).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn save_ir_reconciliation(state: State<'_, AppState>, rec: inbound::IrReconciliation) -> Result<inbound::IrReconciliation, String> {
+fn save_ir_reconciliation(
+    state: State<'_, AppState>,
+    rec: inbound::IrReconciliation,
+) -> Result<inbound::IrReconciliation, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     inbound::save_ir_reconciliation_to_db(&conn, rec).map_err(|e| e.to_string())
 }
@@ -607,13 +687,18 @@ fn get_inbound_reconciliation(
         filter_waybill,
         filter_import_ref,
         is_history.unwrap_or(false),
-    ).map_err(|e| e.to_string())
+    )
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn unarchive_inbound_logs_version(state: State<'_, AppState>, version_date: String) -> Result<String, String> {
+fn unarchive_inbound_logs_version(
+    state: State<'_, AppState>,
+    version_date: String,
+) -> Result<String, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
-    let count = inbound::unarchive_logs_version_db(&conn, &version_date).map_err(|e| e.to_string())?;
+    let count =
+        inbound::unarchive_logs_version_db(&conn, &version_date).map_err(|e| e.to_string())?;
     Ok(format!("{} registros desarchivados con éxito", count))
 }
 
@@ -683,7 +768,8 @@ fn get_saved_grn_reconciliations(
     ir_filter: Option<String>,
 ) -> Result<Vec<inbound::SavedGRNReconciliationHeader>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
-    inbound::get_saved_grn_reconciliations_list_from_db(&conn, grn_filter, ir_filter).map_err(|e| e.to_string())
+    inbound::get_saved_grn_reconciliations_list_from_db(&conn, grn_filter, ir_filter)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -696,10 +782,7 @@ fn get_saved_grn_reconciliation_detail(
 }
 
 #[tauri::command]
-fn delete_saved_grn_reconciliation(
-    state: State<'_, AppState>,
-    id: i64,
-) -> Result<String, String> {
+fn delete_saved_grn_reconciliation(state: State<'_, AppState>, id: i64) -> Result<String, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     inbound::delete_saved_grn_reconciliation_from_db(&conn, id).map_err(|e| e.to_string())?;
     Ok("Conciliación eliminada con éxito".to_string())
@@ -724,7 +807,9 @@ fn get_inbound_master_maps(
 ) -> Result<Vec<master_maps::MasterMapEntry>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
 
-    let stmt = conn.prepare("SELECT po_number, item_code, status FROM inbound_records").ok();
+    let stmt = conn
+        .prepare("SELECT po_number, item_code, status FROM inbound_records")
+        .ok();
     let db_grns = if let Some(mut s) = stmt {
         s.query_map([], |row| {
             let ir: Option<String> = row.get(0).ok();
@@ -769,7 +854,10 @@ fn save_po_lookup_json(state: State<'_, AppState>, json_content: String) -> Resu
 }
 
 #[tauri::command]
-fn save_grn_master_json(state: State<'_, AppState>, json_content: String) -> Result<String, String> {
+fn save_grn_master_json(
+    state: State<'_, AppState>,
+    json_content: String,
+) -> Result<String, String> {
     let path = get_data_file_path("grn_master_data.json");
     if let Some(parent) = path.parent() {
         let _ = std::fs::create_dir_all(parent);
@@ -787,7 +875,10 @@ fn save_grn_master_json(state: State<'_, AppState>, json_content: String) -> Res
 }
 
 #[tauri::command]
-fn save_xdock_reservations_json(state: State<'_, AppState>, json_content: String) -> Result<String, String> {
+fn save_xdock_reservations_json(
+    state: State<'_, AppState>,
+    json_content: String,
+) -> Result<String, String> {
     let path = get_data_file_path("xdock_reservations.json");
     if let Some(parent) = path.parent() {
         let _ = std::fs::create_dir_all(parent);
@@ -847,7 +938,10 @@ fn lookup_inbound_reference(
                     let mut found_wb_str = None;
                     for (k, e) in ir_map {
                         if inbound::match_ref_rust(k, &ir) {
-                            found_wb_str = e.get("waybill").and_then(|v| v.as_str()).map(|s| s.to_string());
+                            found_wb_str = e
+                                .get("waybill")
+                                .and_then(|v| v.as_str())
+                                .map(|s| s.to_string());
                             if let Some(items) = e.get("items").and_then(|v| v.as_array()) {
                                 res_items = items.clone();
                             }
@@ -856,7 +950,9 @@ fn lookup_inbound_reference(
                         }
                     }
                     if let Some(wb_found) = found_wb_str {
-                        if !wb_found.is_empty() { res_wb = wb_found; }
+                        if !wb_found.is_empty() {
+                            res_wb = wb_found;
+                        }
                     }
                 }
                 // Si no se encontró en ir_to_data, buscar en wb_to_data
@@ -880,7 +976,10 @@ fn lookup_inbound_reference(
                     let mut found_ir_str = None;
                     for (k, e) in wb_map {
                         if inbound::match_ref_rust(k, &wb) {
-                            found_ir_str = e.get("import_ref").and_then(|v| v.as_str()).map(|s| s.to_string());
+                            found_ir_str = e
+                                .get("import_ref")
+                                .and_then(|v| v.as_str())
+                                .map(|s| s.to_string());
                             if let Some(items) = e.get("items").and_then(|v| v.as_array()) {
                                 res_items = items.clone();
                             }
@@ -889,7 +988,9 @@ fn lookup_inbound_reference(
                         }
                     }
                     if let Some(ir_found) = found_ir_str {
-                        if !ir_found.is_empty() { res_ir = ir_found; }
+                        if !ir_found.is_empty() {
+                            res_ir = ir_found;
+                        }
                     }
                 }
                 // Si no se encontró en wb_to_data, buscar en ir_to_data
@@ -916,11 +1017,15 @@ fn lookup_inbound_reference(
     if (res_wb == wb && !ir.is_empty()) || (res_ir == ir && !wb.is_empty()) {
         let conn = state.db.get_connection().ok();
         let db_grns = if let Some(c) = conn {
-            if let Ok(mut stmt) = c.prepare("SELECT po_number, item_code, status FROM inbound_records") {
-                stmt.query_map([], |row| Ok((row.get(0).ok(), row.get(1).ok(), row.get(2).ok())))
-                    .ok()
-                    .map(|iter| iter.filter_map(|r| r.ok()).collect())
-                    .unwrap_or_default()
+            if let Ok(mut stmt) =
+                c.prepare("SELECT po_number, item_code, status FROM inbound_records")
+            {
+                stmt.query_map([], |row| {
+                    Ok((row.get(0).ok(), row.get(1).ok(), row.get(2).ok()))
+                })
+                .ok()
+                .map(|iter| iter.filter_map(|r| r.ok()).collect())
+                .unwrap_or_default()
             } else {
                 Vec::new()
             }
@@ -945,20 +1050,31 @@ fn lookup_inbound_reference(
 
             if !clean_ir.is_empty() {
                 if clean_m_ir == clean_ir || m_ir == ir || clean_m_grn == clean_ir {
-                    if !m_wb.is_empty() { res_wb = m_wb; }
-                    if !m_ir.is_empty() { res_ir = m_ir; }
+                    if !m_wb.is_empty() {
+                        res_wb = m_wb;
+                    }
+                    if !m_ir.is_empty() {
+                        res_ir = m_ir;
+                    }
                     break;
                 }
-            } else if !clean_wb.is_empty()
-                && (clean_m_wb == clean_wb || m_wb == wb) {
-                    if !m_wb.is_empty() { res_wb = m_wb; }
-                    if !m_ir.is_empty() { res_ir = m_ir; }
-                    break;
+            } else if !clean_wb.is_empty() && (clean_m_wb == clean_wb || m_wb == wb) {
+                if !m_wb.is_empty() {
+                    res_wb = m_wb;
                 }
+                if !m_ir.is_empty() {
+                    res_ir = m_ir;
+                }
+                break;
+            }
         }
     }
 
-    Ok(InboundLookup { waybill: res_wb, import_ref: res_ir, items: res_items })
+    Ok(InboundLookup {
+        waybill: res_wb,
+        import_ref: res_ir,
+        items: res_items,
+    })
 }
 
 // -------------------------------------------------------------
@@ -972,7 +1088,11 @@ fn get_active_count_session(state: State<'_, AppState>) -> Result<counts::CountS
 }
 
 #[tauri::command]
-fn start_count_session(state: State<'_, AppState>, name: String, username: String) -> Result<counts::CountSession, String> {
+fn start_count_session(
+    state: State<'_, AppState>,
+    name: String,
+    username: String,
+) -> Result<counts::CountSession, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     counts::start_session(&conn, &name, &username).map_err(|e| e.to_string())
 }
@@ -985,45 +1105,69 @@ fn close_count_session(state: State<'_, AppState>, session_id: i64) -> Result<St
 }
 
 #[tauri::command]
-fn get_session_locations(state: State<'_, AppState>, session_id: i64) -> Result<Vec<String>, String> {
+fn get_session_locations(
+    state: State<'_, AppState>,
+    session_id: i64,
+) -> Result<Vec<String>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     counts::get_session_locations(&conn, session_id).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn get_session_counts_by_location(state: State<'_, AppState>, session_id: i64, location: String) -> Result<Vec<counts::CountRecord>, String> {
+fn get_session_counts_by_location(
+    state: State<'_, AppState>,
+    session_id: i64,
+    location: String,
+) -> Result<Vec<counts::CountRecord>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     counts::get_session_counts_by_location(&conn, session_id, &location).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn close_location(state: State<'_, AppState>, session_id: i64, location: String) -> Result<String, String> {
+fn close_location(
+    state: State<'_, AppState>,
+    session_id: i64,
+    location: String,
+) -> Result<String, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     counts::close_location(&conn, session_id, &location).map_err(|e| e.to_string())?;
     Ok("Ubicación cerrada".to_string())
 }
 
 #[tauri::command]
-fn reopen_location(state: State<'_, AppState>, session_id: i64, location: String) -> Result<String, String> {
+fn reopen_location(
+    state: State<'_, AppState>,
+    session_id: i64,
+    location: String,
+) -> Result<String, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     counts::reopen_location(&conn, session_id, &location).map_err(|e| e.to_string())?;
     Ok("Ubicación reabierta".to_string())
 }
 
 #[tauri::command]
-fn get_item_for_counting(state: State<'_, AppState>, item_code: String) -> Result<counts::ItemCountingDetails, String> {
+fn get_item_for_counting(
+    state: State<'_, AppState>,
+    item_code: String,
+) -> Result<counts::ItemCountingDetails, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     counts::get_item_for_counting(&conn, &item_code).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn add_count_record(state: State<'_, AppState>, record: counts::CountRecord) -> Result<counts::CountRecord, String> {
+fn add_count_record(
+    state: State<'_, AppState>,
+    record: counts::CountRecord,
+) -> Result<counts::CountRecord, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     counts::add_count(&conn, record).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn get_all_counts(state: State<'_, AppState>, count_type: Option<String>) -> Result<Vec<counts::CountRecord>, String> {
+fn get_all_counts(
+    state: State<'_, AppState>,
+    count_type: Option<String>,
+) -> Result<Vec<counts::CountRecord>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     counts::get_all_counts(&conn, count_type).map_err(|e| e.to_string())
 }
@@ -1036,7 +1180,11 @@ fn delete_count_record(state: State<'_, AppState>, id: i64) -> Result<String, St
 }
 
 #[tauri::command]
-fn update_count_record(state: State<'_, AppState>, id: i64, record: counts::CountRecord) -> Result<String, String> {
+fn update_count_record(
+    state: State<'_, AppState>,
+    id: i64,
+    record: counts::CountRecord,
+) -> Result<String, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     counts::update_count(&conn, id, record).map_err(|e| e.to_string())?;
     Ok("Conteo actualizado".to_string())
@@ -1076,8 +1224,13 @@ fn get_planner_cycle_count_differences(
     only_differences: Option<bool>,
 ) -> Result<Vec<counts::PlannerCycleCountDiff>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
-    counts::get_planner_cycle_count_differences(&conn, year, month, only_differences.unwrap_or(true))
-        .map_err(|e| e.to_string())
+    counts::get_planner_cycle_count_differences(
+        &conn,
+        year,
+        month,
+        only_differences.unwrap_or(true),
+    )
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -1103,7 +1256,8 @@ fn get_reconciliation_data(
     val_tolerance: Option<f64>,
 ) -> Result<Vec<general_inventory::ReconciliationRow>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
-    general_inventory::get_reconciliation_from_db(&conn, qty_tolerance, val_tolerance).map_err(|e| e.to_string())
+    general_inventory::get_reconciliation_from_db(&conn, qty_tolerance, val_tolerance)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -1115,21 +1269,29 @@ fn get_reconciliation_stats(
 }
 
 #[tauri::command]
-fn get_inventory_summary(state: State<'_, AppState>) -> Result<general_inventory::InventorySummary, String> {
+fn get_inventory_summary(
+    state: State<'_, AppState>,
+) -> Result<general_inventory::InventorySummary, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     general_inventory::get_inventory_summary_from_db(&conn).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn get_inventory_settings(state: State<'_, AppState>) -> Result<general_inventory::InventorySettings, String> {
+fn get_inventory_settings(
+    state: State<'_, AppState>,
+) -> Result<general_inventory::InventorySettings, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     general_inventory::get_inventory_settings_from_db(&conn).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn save_inventory_settings(state: State<'_, AppState>, settings: general_inventory::InventorySettings) -> Result<String, String> {
+fn save_inventory_settings(
+    state: State<'_, AppState>,
+    settings: general_inventory::InventorySettings,
+) -> Result<String, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
-    general_inventory::save_inventory_settings_to_db(&conn, &settings).map_err(|e| e.to_string())?;
+    general_inventory::save_inventory_settings_to_db(&conn, &settings)
+        .map_err(|e| e.to_string())?;
     Ok("Configuración guardada".to_string())
 }
 
@@ -1147,7 +1309,8 @@ fn advance_inventory_stage(
     val_tolerance: Option<f64>,
 ) -> Result<usize, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
-    general_inventory::advance_inventory_stage_db(&conn, stage, qty_tolerance, val_tolerance).map_err(|e| e.to_string())
+    general_inventory::advance_inventory_stage_db(&conn, stage, qty_tolerance, val_tolerance)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -1163,7 +1326,10 @@ fn approve_w2w_item(state: State<'_, AppState>, item_code: String) -> Result<Str
 }
 
 #[tauri::command]
-fn archive_w2w_reconciliation(state: State<'_, AppState>, archive_name: Option<String>) -> Result<String, String> {
+fn archive_w2w_reconciliation(
+    state: State<'_, AppState>,
+    archive_name: Option<String>,
+) -> Result<String, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     general_inventory::archive_w2w_reconciliation_db(&conn, archive_name).map_err(|e| e.to_string())
 }
@@ -1173,39 +1339,61 @@ fn archive_w2w_reconciliation(state: State<'_, AppState>, archive_name: Option<S
 // -------------------------------------------------------------
 
 #[tauri::command]
-fn get_picking_tracking(state: State<'_, AppState>) -> Result<Vec<picking::PickingTrackingItem>, String> {
+fn get_picking_tracking(
+    state: State<'_, AppState>,
+) -> Result<Vec<picking::PickingTrackingItem>, String> {
     let mut conn = state.db.get_connection().map_err(|e| e.to_string())?;
     let csv_path = get_data_file_path("AURRSGLBD0240.csv");
-    let _ = picking::seed_picking_orders_from_csv_if_empty(&mut conn, csv_path.to_str().unwrap_or("./data/AURRSGLBD0240.csv"));
+    let _ = picking::seed_picking_orders_from_csv_if_empty(
+        &mut conn,
+        csv_path.to_str().unwrap_or("./data/AURRSGLBD0240.csv"),
+    );
     picking::get_picking_tracking_from_db(&conn).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn get_picking_order_details(state: State<'_, AppState>, order_number: String, despatch_number: String) -> Result<Vec<picking::PickingOrderRow>, String> {
+fn get_picking_order_details(
+    state: State<'_, AppState>,
+    order_number: String,
+    despatch_number: String,
+) -> Result<Vec<picking::PickingOrderRow>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
-    picking::get_picking_order_details_from_db(&conn, &order_number, &despatch_number).map_err(|e| e.to_string())
+    picking::get_picking_order_details_from_db(&conn, &order_number, &despatch_number)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn save_picking_audit_full(state: State<'_, AppState>, payload: picking::PickingAuditFullInput) -> Result<i64, String> {
+fn save_picking_audit_full(
+    state: State<'_, AppState>,
+    payload: picking::PickingAuditFullInput,
+) -> Result<i64, String> {
     let mut conn = state.db.get_connection().map_err(|e| e.to_string())?;
     picking::save_picking_audit_full_to_db(&mut conn, payload).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn get_picking_audits_full(state: State<'_, AppState>) -> Result<Vec<picking::PickingAuditSummaryFull>, String> {
+fn get_picking_audits_full(
+    state: State<'_, AppState>,
+) -> Result<Vec<picking::PickingAuditSummaryFull>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     picking::get_picking_audits_full_from_db(&conn).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn get_picking_audit_by_id_full(state: State<'_, AppState>, audit_id: i64) -> Result<Option<picking::PickingAuditSummaryFull>, String> {
+fn get_picking_audit_by_id_full(
+    state: State<'_, AppState>,
+    audit_id: i64,
+) -> Result<Option<picking::PickingAuditSummaryFull>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     picking::get_picking_audit_by_id_full_db(&conn, audit_id).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn update_picking_audit_full(state: State<'_, AppState>, id: i64, payload: picking::PickingAuditFullInput) -> Result<bool, String> {
+fn update_picking_audit_full(
+    state: State<'_, AppState>,
+    id: i64,
+    payload: picking::PickingAuditFullInput,
+) -> Result<bool, String> {
     let mut conn = state.db.get_connection().map_err(|e| e.to_string())?;
     picking::update_picking_audit_full_in_db(&mut conn, id, payload).map_err(|e| e.to_string())
 }
@@ -1218,15 +1406,25 @@ fn delete_picking_audits(state: State<'_, AppState>, ids: Vec<i64>) -> Result<St
 }
 
 #[tauri::command]
-fn get_picking_packing_list(state: State<'_, AppState>, audit_id: i64) -> Result<Option<picking::PickingAuditPackingListDto>, String> {
+fn get_picking_packing_list(
+    state: State<'_, AppState>,
+    audit_id: i64,
+) -> Result<Option<picking::PickingAuditPackingListDto>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     picking::get_picking_packing_list_from_db(&conn, audit_id).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn create_shipment(state: State<'_, AppState>, audit_ids: Vec<i64>, note: Option<String>, carrier: Option<String>, username: Option<String>) -> Result<i64, String> {
+fn create_shipment(
+    state: State<'_, AppState>,
+    audit_ids: Vec<i64>,
+    note: Option<String>,
+    carrier: Option<String>,
+    username: Option<String>,
+) -> Result<i64, String> {
     let mut conn = state.db.get_connection().map_err(|e| e.to_string())?;
-    picking::create_shipment_in_db(&mut conn, &audit_ids, note, carrier, username).map_err(|e| e.to_string())
+    picking::create_shipment_in_db(&mut conn, &audit_ids, note, carrier, username)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -1236,7 +1434,10 @@ fn list_shipments(state: State<'_, AppState>) -> Result<Vec<picking::ShipmentDto
 }
 
 #[tauri::command]
-fn get_consolidated_packing_list(state: State<'_, AppState>, shipment_id: i64) -> Result<Option<picking::ConsolidatedPackingListDto>, String> {
+fn get_consolidated_packing_list(
+    state: State<'_, AppState>,
+    shipment_id: i64,
+) -> Result<Option<picking::ConsolidatedPackingListDto>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     picking::get_consolidated_packing_list_from_db(&conn, shipment_id).map_err(|e| e.to_string())
 }
@@ -1249,16 +1450,23 @@ fn delete_shipment(state: State<'_, AppState>, shipment_id: i64) -> Result<Strin
 }
 
 #[tauri::command]
-fn import_picking_orders_bulk(state: State<'_, AppState>, orders: Vec<picking::PickingOrderImportRow>) -> Result<String, String> {
+fn import_picking_orders_bulk(
+    state: State<'_, AppState>,
+    orders: Vec<picking::PickingOrderImportRow>,
+) -> Result<String, String> {
     let mut conn = state.db.get_connection().map_err(|e| e.to_string())?;
-    let count = picking::import_picking_orders_bulk_db(&mut conn, &orders).map_err(|e| e.to_string())?;
+    let count =
+        picking::import_picking_orders_bulk_db(&mut conn, &orders).map_err(|e| e.to_string())?;
     let now_ts = chrono::Utc::now().timestamp();
     let _ = conn.execute(
         "INSERT INTO sync_metadata (key, timestamp) VALUES ('picking', ?1)
          ON CONFLICT(key) DO UPDATE SET timestamp = excluded.timestamp",
         params![now_ts],
     );
-    Ok(format!("Se importaron {} registros de picking en SQLite", count))
+    Ok(format!(
+        "Se importaron {} registros de picking en SQLite",
+        count
+    ))
 }
 
 // -------------------------------------------------------------
@@ -1272,13 +1480,19 @@ fn get_spot_checks(state: State<'_, AppState>) -> Result<Vec<spot_check::SpotChe
 }
 
 #[tauri::command]
-fn find_item_spot_check(state: State<'_, AppState>, item_code: String) -> Result<Option<spot_check::ItemQuickFind>, String> {
+fn find_item_spot_check(
+    state: State<'_, AppState>,
+    item_code: String,
+) -> Result<Option<spot_check::ItemQuickFind>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     spot_check::find_item_quick(&conn, &item_code).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn save_spot_check(state: State<'_, AppState>, record: spot_check::SpotCheckItem) -> Result<spot_check::SpotCheckItem, String> {
+fn save_spot_check(
+    state: State<'_, AppState>,
+    record: spot_check::SpotCheckItem,
+) -> Result<spot_check::SpotCheckItem, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     spot_check::save_spot_check_to_db(&conn, record).map_err(|e| e.to_string())
 }
@@ -1298,19 +1512,27 @@ fn delete_spot_check(state: State<'_, AppState>, id: i64) -> Result<String, Stri
 }
 
 #[tauri::command]
-fn get_express_audits(state: State<'_, AppState>) -> Result<Vec<spot_check::ExpressAuditItem>, String> {
+fn get_express_audits(
+    state: State<'_, AppState>,
+) -> Result<Vec<spot_check::ExpressAuditItem>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     spot_check::get_express_audits_from_db(&conn).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn find_item_express_audit(state: State<'_, AppState>, item_code: String) -> Result<Option<spot_check::ItemQuickFind>, String> {
+fn find_item_express_audit(
+    state: State<'_, AppState>,
+    item_code: String,
+) -> Result<Option<spot_check::ItemQuickFind>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     spot_check::find_item_quick(&conn, &item_code).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn save_express_audit(state: State<'_, AppState>, record: spot_check::ExpressAuditItem) -> Result<spot_check::ExpressAuditItem, String> {
+fn save_express_audit(
+    state: State<'_, AppState>,
+    record: spot_check::ExpressAuditItem,
+) -> Result<spot_check::ExpressAuditItem, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     spot_check::save_express_audit_to_db(&conn, record).map_err(|e| e.to_string())
 }
@@ -1349,16 +1571,22 @@ fn suggest_slotting_bin(
     let item_res = stmt.query_row(params![code_upper], |row| {
         let code: String = row.get(0)?;
         let desc: String = row.get::<_, Option<String>>(1)?.unwrap_or_default();
-        let bin: String = row.get::<_, Option<String>>(2)?.unwrap_or_else(|| "N/A".to_string());
+        let bin: String = row
+            .get::<_, Option<String>>(2)?
+            .unwrap_or_else(|| "N/A".to_string());
         let weight: f64 = row.get::<_, Option<f64>>(3)?.unwrap_or(0.0);
-        let sic: String = row.get::<_, Option<String>>(4)?.unwrap_or_else(|| "0".to_string());
+        let sic: String = row
+            .get::<_, Option<String>>(4)?
+            .unwrap_or_else(|| "0".to_string());
         Ok((code, desc, bin, weight, sic))
     });
 
     if let Ok((code, desc, bin, weight, sic)) = item_res {
         let result = slotting::calculate_suggested_bin(
             &conn,
-            slotting_path.to_str().unwrap_or("./data/slotting_parameters.json"),
+            slotting_path
+                .to_str()
+                .unwrap_or("./data/slotting_parameters.json"),
             &code,
             &desc,
             &bin,
@@ -1375,8 +1603,12 @@ fn suggest_slotting_bin(
 fn get_slotting_summary(state: State<'_, AppState>) -> Result<SlottingSummary, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     let slotting_path = get_data_file_path("slotting_parameters.json");
-    let (storage, _, _, _) = slotting::load_slotting_config(slotting_path.to_str().unwrap_or("./data/slotting_parameters.json"));
-    
+    let (storage, _, _, _) = slotting::load_slotting_config(
+        slotting_path
+            .to_str()
+            .unwrap_or("./data/slotting_parameters.json"),
+    );
+
     let total_locations = storage.len();
     let occupancy = slotting::get_occupancy_from_db(&conn);
     let occupied = occupancy.len();
@@ -1403,11 +1635,17 @@ pub struct OccupancyDetailRow {
 fn get_occupancy_report(state: State<'_, AppState>) -> Result<Value, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     let slotting_path = get_data_file_path("slotting_parameters.json");
-    let (mut storage, _, _, _) = slotting::load_slotting_config(slotting_path.to_str().unwrap_or("./data/slotting_parameters.json"));
+    let (mut storage, _, _, _) = slotting::load_slotting_config(
+        slotting_path
+            .to_str()
+            .unwrap_or("./data/slotting_parameters.json"),
+    );
     let occupancy = slotting::get_occupancy_from_db(&conn);
 
     if storage.is_empty() {
-        if let Ok(mut stmt) = conn.prepare("SELECT bin_code, zone, aisle, level, spot, score FROM storage_locations") {
+        if let Ok(mut stmt) =
+            conn.prepare("SELECT bin_code, zone, aisle, level, spot, score FROM storage_locations")
+        {
             if let Ok(iter) = stmt.query_map([], |r| {
                 Ok((
                     r.get::<_, String>(0)?,
@@ -1417,7 +1655,7 @@ fn get_occupancy_report(state: State<'_, AppState>) -> Result<Value, String> {
                         level: r.get(3)?,
                         spot: r.get(4)?,
                         score: r.get(5)?,
-                    }
+                    },
                 ))
             }) {
                 for item in iter.flatten() {
@@ -1440,25 +1678,38 @@ fn get_occupancy_report(state: State<'_, AppState>) -> Result<Value, String> {
         let aisle = info.aisle.clone().unwrap_or_else(|| "N/A".to_string());
 
         let current_skus = *occupancy.get(bin_code).unwrap_or(&0);
-        let limit = if zone.trim().eq_ignore_ascii_case("minuteria") { 3 } else { 4 };
-        let bin_pct = std::cmp::min(100, ((current_skus as f64 / limit as f64) * 100.0).round() as i32);
+        let limit = if zone.trim().eq_ignore_ascii_case("minuteria") {
+            3
+        } else {
+            4
+        };
+        let bin_pct = std::cmp::min(
+            100,
+            ((current_skus as f64 / limit as f64) * 100.0).round() as i32,
+        );
 
         if !zones_map.contains_key(&zone) {
             let mut levels_map = serde_json::Map::new();
             for l in 0..=8 {
-                levels_map.insert(l.to_string(), serde_json::json!({
-                    "total": 0,
-                    "occupied_skus": 0,
-                    "full_bins": 0,
-                    "total_occupancy_pct": 0,
-                    "occupied_bins": 0
-                }));
+                levels_map.insert(
+                    l.to_string(),
+                    serde_json::json!({
+                        "total": 0,
+                        "occupied_skus": 0,
+                        "full_bins": 0,
+                        "total_occupancy_pct": 0,
+                        "occupied_bins": 0
+                    }),
+                );
             }
-            zones_map.insert(zone.clone(), serde_json::json!({
-                "total": 0,
-                "occupied": 0,
-                "levels": levels_map
-            }));
+            zones_map.insert(
+                zone.clone(),
+                serde_json::json!({
+                    "total": 0,
+                    "occupied": 0,
+                    "levels": levels_map
+                }),
+            );
         }
 
         if let Some(z_val) = zones_map.get_mut(&zone) {
@@ -1472,21 +1723,46 @@ fn get_occupancy_report(state: State<'_, AppState>) -> Result<Value, String> {
                     }
                 }
                 if let Some(lvl_map) = z_obj.get_mut("levels").and_then(|v| v.as_object_mut()) {
-                    if let Some(lvl_entry) = lvl_map.get_mut(&level.to_string()).and_then(|v| v.as_object_mut()) {
+                    if let Some(lvl_entry) = lvl_map
+                        .get_mut(&level.to_string())
+                        .and_then(|v| v.as_object_mut())
+                    {
                         let l_tot = lvl_entry.get("total").and_then(|v| v.as_i64()).unwrap_or(0);
-                        let l_occ_bins = lvl_entry.get("occupied_bins").and_then(|v| v.as_i64()).unwrap_or(0);
-                        let l_full = lvl_entry.get("full_bins").and_then(|v| v.as_i64()).unwrap_or(0);
-                        let l_skus = lvl_entry.get("occupied_skus").and_then(|v| v.as_i64()).unwrap_or(0);
-                        let l_pct = lvl_entry.get("total_occupancy_pct").and_then(|v| v.as_i64()).unwrap_or(0);
+                        let l_occ_bins = lvl_entry
+                            .get("occupied_bins")
+                            .and_then(|v| v.as_i64())
+                            .unwrap_or(0);
+                        let l_full = lvl_entry
+                            .get("full_bins")
+                            .and_then(|v| v.as_i64())
+                            .unwrap_or(0);
+                        let l_skus = lvl_entry
+                            .get("occupied_skus")
+                            .and_then(|v| v.as_i64())
+                            .unwrap_or(0);
+                        let l_pct = lvl_entry
+                            .get("total_occupancy_pct")
+                            .and_then(|v| v.as_i64())
+                            .unwrap_or(0);
 
                         lvl_entry.insert("total".to_string(), serde_json::json!(l_tot + 1));
-                        lvl_entry.insert("total_occupancy_pct".to_string(), serde_json::json!(l_pct + bin_pct as i64));
+                        lvl_entry.insert(
+                            "total_occupancy_pct".to_string(),
+                            serde_json::json!(l_pct + bin_pct as i64),
+                        );
 
                         if current_skus > 0 {
-                            lvl_entry.insert("occupied_bins".to_string(), serde_json::json!(l_occ_bins + 1));
-                            lvl_entry.insert("occupied_skus".to_string(), serde_json::json!(l_skus + current_skus as i64));
+                            lvl_entry.insert(
+                                "occupied_bins".to_string(),
+                                serde_json::json!(l_occ_bins + 1),
+                            );
+                            lvl_entry.insert(
+                                "occupied_skus".to_string(),
+                                serde_json::json!(l_skus + current_skus as i64),
+                            );
                             if current_skus >= limit {
-                                lvl_entry.insert("full_bins".to_string(), serde_json::json!(l_full + 1));
+                                lvl_entry
+                                    .insert("full_bins".to_string(), serde_json::json!(l_full + 1));
                             }
                         }
                     }
@@ -1526,10 +1802,13 @@ fn get_occupancy_report(state: State<'_, AppState>) -> Result<Value, String> {
     sorted_aisles_items.sort_by_key(|b| std::cmp::Reverse(b.1));
     let top_aisles: HashMap<String, i32> = sorted_aisles_items.into_iter().take(5).collect();
 
-    let bins_by_zone: HashMap<String, i32> = zones_map.iter().map(|(z, val)| {
-        let count = val.get("total").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
-        (z.clone(), count)
-    }).collect();
+    let bins_by_zone: HashMap<String, i32> = zones_map
+        .iter()
+        .map(|(z, val)| {
+            let count = val.get("total").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+            (z.clone(), count)
+        })
+        .collect();
 
     Ok(serde_json::json!({
         "summary": {
@@ -1553,15 +1832,21 @@ fn get_occupancy_report(state: State<'_, AppState>) -> Result<Value, String> {
 fn get_occupancy_detail(
     state: State<'_, AppState>,
     zone: String,
-    level: Option<i64>
+    level: Option<i64>,
 ) -> Result<Vec<OccupancyDetailRow>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     let slotting_path = get_data_file_path("slotting_parameters.json");
-    let (mut storage, _, _, _) = slotting::load_slotting_config(slotting_path.to_str().unwrap_or("./data/slotting_parameters.json"));
+    let (mut storage, _, _, _) = slotting::load_slotting_config(
+        slotting_path
+            .to_str()
+            .unwrap_or("./data/slotting_parameters.json"),
+    );
     let occupancy = slotting::get_occupancy_from_db(&conn);
 
     if storage.is_empty() {
-        if let Ok(mut stmt) = conn.prepare("SELECT bin_code, zone, aisle, level, spot, score FROM storage_locations") {
+        if let Ok(mut stmt) =
+            conn.prepare("SELECT bin_code, zone, aisle, level, spot, score FROM storage_locations")
+        {
             if let Ok(iter) = stmt.query_map([], |r| {
                 Ok((
                     r.get::<_, String>(0)?,
@@ -1571,7 +1856,7 @@ fn get_occupancy_detail(
                         level: r.get(3)?,
                         spot: r.get(4)?,
                         score: r.get(5)?,
-                    }
+                    },
                 ))
             }) {
                 for item in iter.flatten() {
@@ -1592,7 +1877,10 @@ fn get_occupancy_detail(
         if current_zone == target_zone && (level.is_none() || level == Some(b_level)) {
             let sku_count = *occupancy.get(&bin_code).unwrap_or(&0);
             let limit = if target_zone == "MINUTERIA" { 3 } else { 4 };
-            let occupancy_pct = std::cmp::min(100, ((sku_count as f64 / limit as f64) * 100.0).round() as i32);
+            let occupancy_pct = std::cmp::min(
+                100,
+                ((sku_count as f64 / limit as f64) * 100.0).round() as i32,
+            );
 
             list.push(OccupancyDetailRow {
                 bin_code,
@@ -1653,7 +1941,10 @@ fn save_slotting_config(state: State<'_, AppState>, config: Value) -> Result<Str
                         score = excluded.score;",
                 ) {
                     for (bin_code, info) in storage {
-                        let zone = info.get("zone").and_then(|v| v.as_str()).unwrap_or("General");
+                        let zone = info
+                            .get("zone")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("General");
                         let aisle = info.get("aisle").and_then(|v| v.as_str()).unwrap_or("");
                         let level = info.get("level").and_then(|v| v.as_i64()).unwrap_or(0);
                         let spot = info.get("spot").and_then(|v| v.as_str()).unwrap_or("cold");
@@ -1684,41 +1975,60 @@ fn get_planner_config(state: State<'_, AppState>) -> Result<planner::PlannerConf
 }
 
 #[tauri::command]
-fn save_planner_config(state: State<'_, AppState>, config: planner::PlannerConfig) -> Result<String, String> {
+fn save_planner_config(
+    state: State<'_, AppState>,
+    config: planner::PlannerConfig,
+) -> Result<String, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     planner::save_planner_config_to_db(&conn, &config).map_err(|e| e.to_string())?;
     Ok("Configuración de planificador guardada".to_string())
 }
 
 #[tauri::command]
-fn get_planner_daily_items(state: State<'_, AppState>) -> Result<Vec<planner::PlannerDailyItem>, String> {
+fn get_planner_daily_items(
+    state: State<'_, AppState>,
+) -> Result<Vec<planner::PlannerDailyItem>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     planner::get_planner_daily_items_from_db(&conn).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn save_planner_execution(state: State<'_, AppState>, record: planner::PlannerExecutionRecord) -> Result<planner::PlannerExecutionRecord, String> {
+fn save_planner_execution(
+    state: State<'_, AppState>,
+    record: planner::PlannerExecutionRecord,
+) -> Result<planner::PlannerExecutionRecord, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     planner::save_planner_execution_to_db(&conn, record).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn update_count_root_cause(state: State<'_, AppState>, count_id: i64, root_cause: String) -> Result<String, String> {
+fn update_count_root_cause(
+    state: State<'_, AppState>,
+    count_id: i64,
+    root_cause: String,
+) -> Result<String, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     counts::update_count_root_cause_db(&conn, count_id, root_cause).map_err(|e| e.to_string())?;
     Ok("Causa raíz actualizada".to_string())
 }
 
 #[tauri::command]
-fn get_items_with_differences_planner(state: State<'_, AppState>) -> Result<Vec<planner::PlannerExecutionRecord>, String> {
+fn get_items_with_differences_planner(
+    state: State<'_, AppState>,
+) -> Result<Vec<planner::PlannerExecutionRecord>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     planner::get_items_with_differences_db(&conn).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn update_planner_difference_cause(state: State<'_, AppState>, exec_id: i64, status: String) -> Result<String, String> {
+fn update_planner_difference_cause(
+    state: State<'_, AppState>,
+    exec_id: i64,
+    status: String,
+) -> Result<String, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
-    planner::update_planner_difference_cause_db(&conn, exec_id, &status).map_err(|e| e.to_string())?;
+    planner::update_planner_difference_cause_db(&conn, exec_id, &status)
+        .map_err(|e| e.to_string())?;
     Ok("Estado de diferencia actualizado".to_string())
 }
 
@@ -1773,7 +2083,9 @@ fn get_sync_status(state: State<'_, AppState>) -> Result<HashMap<String, i64>, S
 
     // 1. Read from sync_metadata
     if let Ok(mut stmt) = conn.prepare("SELECT key, timestamp FROM sync_metadata") {
-        if let Ok(iter) = stmt.query_map([], |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))) {
+        if let Ok(iter) = stmt.query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+        }) {
             for item in iter.flatten() {
                 map.insert(item.0, item.1);
             }
@@ -1782,7 +2094,9 @@ fn get_sync_status(state: State<'_, AppState>) -> Result<HashMap<String, i64>, S
 
     // 2. Fallbacks from table timestamps if key is missing or 0
     if !map.contains_key("master_items") || map["master_items"] == 0 {
-        if let Ok(mut stmt) = conn.prepare("SELECT MAX(strftime('%s', updated_at)) FROM inventory_items") {
+        if let Ok(mut stmt) =
+            conn.prepare("SELECT MAX(strftime('%s', updated_at)) FROM inventory_items")
+        {
             if let Ok(Some(ts)) = stmt.query_row([], |r| r.get::<_, Option<i64>>(0)) {
                 map.insert("master_items".to_string(), ts);
             }
@@ -1790,7 +2104,9 @@ fn get_sync_status(state: State<'_, AppState>) -> Result<HashMap<String, i64>, S
     }
 
     if !map.contains_key("grn_pending") || map["grn_pending"] == 0 {
-        if let Ok(mut stmt) = conn.prepare("SELECT MAX(strftime('%s', timestamp)) FROM inbound_logs") {
+        if let Ok(mut stmt) =
+            conn.prepare("SELECT MAX(strftime('%s', timestamp)) FROM inbound_logs")
+        {
             if let Ok(Some(ts)) = stmt.query_row([], |r| r.get::<_, Option<i64>>(0)) {
                 map.insert("grn_pending".to_string(), ts);
             }
@@ -1808,7 +2124,9 @@ fn get_sync_status(state: State<'_, AppState>) -> Result<HashMap<String, i64>, S
     }
 
     if !map.contains_key("picking") || map["picking"] == 0 {
-        if let Ok(mut stmt) = conn.prepare("SELECT MAX(strftime('%s', timestamp)) FROM picking_orders") {
+        if let Ok(mut stmt) =
+            conn.prepare("SELECT MAX(strftime('%s', timestamp)) FROM picking_orders")
+        {
             if let Ok(Some(ts)) = stmt.query_row([], |r| r.get::<_, Option<i64>>(0)) {
                 map.insert("picking".to_string(), ts);
             }
@@ -1816,7 +2134,9 @@ fn get_sync_status(state: State<'_, AppState>) -> Result<HashMap<String, i64>, S
     }
 
     if !map.contains_key("xdock_reservations") || map["xdock_reservations"] == 0 {
-        if let Ok(mut stmt) = conn.prepare("SELECT MAX(strftime('%s', timestamp)) FROM xdock_reservations") {
+        if let Ok(mut stmt) =
+            conn.prepare("SELECT MAX(strftime('%s', timestamp)) FROM xdock_reservations")
+        {
             if let Ok(Some(ts)) = stmt.query_row([], |r| r.get::<_, Option<i64>>(0)) {
                 map.insert("xdock_reservations".to_string(), ts);
             }
@@ -1855,14 +2175,19 @@ fn get_sync_status(state: State<'_, AppState>) -> Result<HashMap<String, i64>, S
 }
 
 #[tauri::command]
-fn set_sync_status(state: State<'_, AppState>, key: String, timestamp: Option<i64>) -> Result<(), String> {
+fn set_sync_status(
+    state: State<'_, AppState>,
+    key: String,
+    timestamp: Option<i64>,
+) -> Result<(), String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     let ts = timestamp.unwrap_or_else(|| chrono::Utc::now().timestamp());
     conn.execute(
         "INSERT INTO sync_metadata (key, timestamp) VALUES (?1, ?2)
          ON CONFLICT(key) DO UPDATE SET timestamp = excluded.timestamp",
         params![key, ts],
-    ).map_err(|e| e.to_string())?;
+    )
+    .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -1871,7 +2196,10 @@ fn set_sync_status(state: State<'_, AppState>, key: String, timestamp: Option<i6
 // -------------------------------------------------------------
 
 #[tauri::command]
-fn start_host_server(state: State<'_, AppState>, port: Option<u16>) -> Result<server::ServerInfo, String> {
+fn start_host_server(
+    state: State<'_, AppState>,
+    port: Option<u16>,
+) -> Result<server::ServerInfo, String> {
     let p = port.unwrap_or(8088);
     let db_clone = Database::new();
     let info = state.server.start(db_clone, p)?;
@@ -1917,13 +2245,16 @@ fn get_host_server_info(state: State<'_, AppState>) -> Result<server::ServerInfo
 #[tauri::command]
 fn get_distinct_operators(state: State<'_, AppState>) -> Result<Vec<String>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
-    let mut stmt = conn.prepare(
-        "SELECT DISTINCT user_id FROM counts WHERE user_id IS NOT NULL AND user_id != '' 
+    let mut stmt = conn
+        .prepare(
+            "SELECT DISTINCT user_id FROM counts WHERE user_id IS NOT NULL AND user_id != '' 
          UNION 
-         SELECT username FROM users WHERE is_approved = 1"
-    ).map_err(|e| e.to_string())?;
+         SELECT username FROM users WHERE is_approved = 1",
+        )
+        .map_err(|e| e.to_string())?;
 
-    let ops: Vec<String> = stmt.query_map([], |row| row.get(0))
+    let ops: Vec<String> = stmt
+        .query_map([], |row| row.get(0))
         .map_err(|e| e.to_string())?
         .flatten()
         .collect();
@@ -1945,7 +2276,11 @@ fn create_desktop_shortcut() -> Result<bool, String> {
 }
 
 #[tauri::command]
-fn publish_sync_event(state: State<'_, AppState>, event_type: String, payload: Value) -> Result<String, String> {
+fn publish_sync_event(
+    state: State<'_, AppState>,
+    event_type: String,
+    payload: Value,
+) -> Result<String, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     network_sync::publish_event(&conn, &event_type, payload)
 }
@@ -1973,10 +2308,17 @@ fn save_and_replicate_work_file(
 
     let json_path = cargas_dir.join(&json_filename);
     let json_bytes = serde_json::to_vec_pretty(&parsed_data).map_err(|e| e.to_string())?;
-    std::fs::write(&json_path, &json_bytes).map_err(|e| format!("Error guardando datos de carga en red: {}", e))?;
+    std::fs::write(&json_path, &json_bytes)
+        .map_err(|e| format!("Error guardando datos de carga en red: {}", e))?;
 
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
-    let record_count = if let Some(arr) = parsed_data.as_array() { arr.len() } else { 0 };
+    let record_count = if let Some(arr) = parsed_data.as_array() {
+        arr.len()
+    } else if let Some(obj) = parsed_data.as_object() {
+        obj.len()
+    } else {
+        0
+    };
 
     let payload = serde_json::json!({
         "file_name": safe_base,
@@ -1997,7 +2339,8 @@ fn main() {
     let db = Database::new();
     let server = server::HostServerManager::new();
     let sync_watcher = network_sync::NetworkSyncWatcher::new();
-    db.init().expect("Error al inicializar la base de datos local SQLite");
+    db.init()
+        .expect("Error al inicializar la base de datos local SQLite");
 
     // Auto-arranque persistente de Servidor Host si fue previamente activado
     if let Ok(conn) = db.get_connection() {
@@ -2020,7 +2363,10 @@ fn main() {
                 .map(|v| v.parse::<u16>().unwrap_or(8088))
                 .unwrap_or(8088);
 
-            eprintln!("[main] Auto-iniciando Servidor Host guardado en puerto {}", port);
+            eprintln!(
+                "[main] Auto-iniciando Servidor Host guardado en puerto {}",
+                port
+            );
             let _ = server.start(Database::new(), port);
         }
     }
@@ -2044,8 +2390,18 @@ fn main() {
         slotting::seed_storage_locations_if_empty(&conn);
     }
 
+    let sync_watcher_clone = sync_watcher.clone();
+
     tauri::Builder::default()
-        .manage(AppState { db, server, sync_watcher })
+        .setup(move |app| {
+            sync_watcher_clone.set_app_handle(app.handle());
+            Ok(())
+        })
+        .manage(AppState {
+            db,
+            server,
+            sync_watcher,
+        })
         .invoke_handler(tauri::generate_handler![
             // Auth & Users
             login,
@@ -2058,7 +2414,6 @@ fn main() {
             get_available_aisles,
             get_auditor_zones,
             assign_auditor_zones,
-
             // Inventory & Master Items
             get_inventory_items,
             add_inventory_item,
@@ -2070,7 +2425,6 @@ fn main() {
             get_occupancy_stats,
             save_item_measurement,
             clear_all_database,
-
             // Inbound & Receiving
             get_inbound_logs,
             save_inbound_log,
@@ -2103,7 +2457,6 @@ fn main() {
             lookup_inbound_reference,
             get_inbound_ir_stats_data,
             get_inbound_expected_bulk,
-
             // Counts & Sessions
             get_active_count_session,
             start_count_session,
@@ -2124,7 +2477,6 @@ fn main() {
             get_active_recount_list,
             get_planner_cycle_count_differences,
             update_planner_cycle_count_diff,
-
             // Reconciliation & General Inventory
             get_reconciliation_data,
             get_reconciliation_stats,
@@ -2136,7 +2488,6 @@ fn main() {
             finalize_inventory,
             approve_w2w_item,
             archive_w2w_reconciliation,
-
             // Picking & Shipments
             get_picking_tracking,
             get_picking_order_details,
@@ -2151,7 +2502,6 @@ fn main() {
             get_consolidated_packing_list,
             delete_shipment,
             import_picking_orders_bulk,
-
             // Spot Check & Express Audit
             get_spot_checks,
             find_item_spot_check,
@@ -2162,7 +2512,6 @@ fn main() {
             find_item_express_audit,
             save_express_audit,
             clear_express_audits,
-
             // Slotting & Planner
             suggest_slotting_bin,
             get_slotting_summary,
@@ -2177,23 +2526,19 @@ fn main() {
             update_planner_difference_cause,
             save_planner_execution,
             get_planner_stats,
-
             // Printer & Silent Printing
             get_system_printers,
             print_sandvik_label_silent,
             print_raw_zpl,
             test_print_label,
-
             // Sync Status
             get_sync_status,
             set_sync_status,
-
             // Host Server & Multi-User
             start_host_server,
             stop_host_server,
             get_host_server_info,
             get_distinct_operators,
-
             // Network Sync & Multi-Terminal Replicación
             get_network_environment,
             create_desktop_shortcut,

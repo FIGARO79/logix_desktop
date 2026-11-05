@@ -21,17 +21,22 @@ pub fn build_master_maps_rust(
         if let Ok(json) = serde_json::from_str::<Value>(&data) {
             if let Some(arr) = json.as_array() {
                 for row in arr {
-                    let ir = row.get("Import_Reference")
+                    let ir = row
+                        .get("Import_Reference")
                         .or_else(|| row.get("import_reference"))
                         .and_then(|v| v.as_str())
                         .unwrap_or("")
-                        .trim().to_uppercase();
-                    let grn = row.get("GRN_Number")
+                        .trim()
+                        .to_uppercase();
+                    let grn = row
+                        .get("GRN_Number")
                         .or_else(|| row.get("grn_number"))
                         .and_then(|v| v.as_str())
                         .unwrap_or("")
-                        .trim().to_uppercase();
-                    let wb = row.get("Waybill")
+                        .trim()
+                        .to_uppercase();
+                    let wb = row
+                        .get("Waybill")
                         .and_then(|v| v.as_str())
                         .unwrap_or("")
                         .to_string();
@@ -71,10 +76,12 @@ pub fn build_master_maps_rust(
         if let Ok(json) = serde_json::from_str::<Value>(&data) {
             if let Some(wb_to_data) = json.get("wb_to_data").and_then(|v| v.as_object()) {
                 for (wb_raw, data_obj) in wb_to_data {
-                    let ir = data_obj.get("import_ref")
+                    let ir = data_obj
+                        .get("import_ref")
                         .and_then(|v| v.as_str())
                         .unwrap_or("")
-                        .trim().to_uppercase();
+                        .trim()
+                        .to_uppercase();
                     let wb = wb_raw.trim().to_uppercase();
                     if !ir.is_empty() && !wb.is_empty() {
                         master_maps.push(MasterMapEntry {

@@ -181,7 +181,11 @@ pub fn strip_ir_prefix(s: &str) -> &str {
         &t[3..]
     } else if t.starts_with("IR") || t.starts_with("ir") {
         &t[2..]
-    } else if t.starts_with("REF-") || t.starts_with("PO-") || t.starts_with("ref-") || t.starts_with("po-") {
+    } else if t.starts_with("REF-")
+        || t.starts_with("PO-")
+        || t.starts_with("ref-")
+        || t.starts_with("po-")
+    {
         &t[4..]
     } else {
         t
@@ -217,7 +221,10 @@ pub fn match_ref_rust(val1: &str, val2: &str) -> bool {
 }
 
 /// Obtiene todos los logs no archivados (o filtrados por fecha de versión)
-pub fn get_logs_from_db(conn: &Connection, version_date: Option<String>) -> Result<Vec<LogInbound>> {
+pub fn get_logs_from_db(
+    conn: &Connection,
+    version_date: Option<String>,
+) -> Result<Vec<LogInbound>> {
     let sql = if let Some(vd) = version_date {
         format!(
             "SELECT id, timestamp, import_reference, waybill, item_code, item_description,
@@ -235,7 +242,8 @@ pub fn get_logs_from_db(conn: &Connection, version_date: Option<String>) -> Resu
                 client_id, archived_at, version_date
          FROM inbound_logs
          WHERE (archived_at IS NULL OR archived_at = '')
-         ORDER BY id DESC".to_string()
+         ORDER BY id DESC"
+            .to_string()
     };
 
     let mut stmt = conn.prepare(&sql)?;
@@ -298,7 +306,9 @@ pub fn save_log_to_db(
             .ok();
 
         if let Some((d, b)) = master_info {
-            if entry.item_description.is_none() || entry.item_description.as_ref().unwrap().is_empty() {
+            if entry.item_description.is_none()
+                || entry.item_description.as_ref().unwrap().is_empty()
+            {
                 entry.item_description = d;
             }
             if entry.bin_location.is_none() || entry.bin_location.as_ref().unwrap().is_empty() {
@@ -315,7 +325,8 @@ pub fn save_log_to_db(
             Some(&entry.import_reference),
             po_json_path,
             grn_json_path,
-        ).ok();
+        )
+        .ok();
         if let Some(f) = finder {
             entry.qty_grn = f.default_qty_grn;
         }
@@ -327,10 +338,9 @@ pub fn save_log_to_db(
     // 4. Si viene client_id, comprobar idempotencia
     if let Some(ref cid) = entry.client_id {
         if !cid.trim().is_empty() {
-            let mut check_stmt = conn.prepare("SELECT id FROM inbound_logs WHERE client_id = ?1")?;
-            let existing_id: Option<i64> = check_stmt
-                .query_row(params![cid], |r| r.get(0))
-                .ok();
+            let mut check_stmt =
+                conn.prepare("SELECT id FROM inbound_logs WHERE client_id = ?1")?;
+            let existing_id: Option<i64> = check_stmt.query_row(params![cid], |r| r.get(0)).ok();
             if let Some(eid) = existing_id {
                 entry.id = Some(eid);
                 return Ok(entry);
@@ -466,10 +476,12 @@ pub fn find_item_inbound(
             Ok((
                 row.get::<_, String>(0)?,
                 row.get::<_, Option<String>>(1)?.unwrap_or_default(),
-                row.get::<_, Option<String>>(2)?.unwrap_or_else(|| "N/A".to_string()),
+                row.get::<_, Option<String>>(2)?
+                    .unwrap_or_else(|| "N/A".to_string()),
                 row.get::<_, Option<String>>(3)?.unwrap_or_default(),
                 row.get::<_, Option<f64>>(4)?.unwrap_or(0.0),
-                row.get::<_, Option<String>>(5)?.unwrap_or_else(|| "0".to_string()),
+                row.get::<_, Option<String>>(5)?
+                    .unwrap_or_else(|| "0".to_string()),
                 row.get::<_, Option<String>>(6)?.unwrap_or_default(),
             ))
         })
@@ -477,17 +489,20 @@ pub fn find_item_inbound(
 
     // Fallback: búsqueda sin caracteres especiales
     if master_item.is_none() {
-        let alphanumeric_code: String = code_clean.chars().filter(|c| c.is_alphanumeric()).collect();
+        let alphanumeric_code: String =
+            code_clean.chars().filter(|c| c.is_alphanumeric()).collect();
         if !alphanumeric_code.is_empty() {
             let mut stmt_all = conn.prepare("SELECT item_code, description, bin_location, additional_bins, weight_per_unit, sic_code, abc_code FROM inventory_items")?;
             let iter = stmt_all.query_map([], |row| {
                 Ok((
                     row.get::<_, String>(0)?,
                     row.get::<_, Option<String>>(1)?.unwrap_or_default(),
-                    row.get::<_, Option<String>>(2)?.unwrap_or_else(|| "N/A".to_string()),
+                    row.get::<_, Option<String>>(2)?
+                        .unwrap_or_else(|| "N/A".to_string()),
                     row.get::<_, Option<String>>(3)?.unwrap_or_default(),
                     row.get::<_, Option<f64>>(4)?.unwrap_or(0.0),
-                    row.get::<_, Option<String>>(5)?.unwrap_or_else(|| "0".to_string()),
+                    row.get::<_, Option<String>>(5)?
+                        .unwrap_or_else(|| "0".to_string()),
                     row.get::<_, Option<String>>(6)?.unwrap_or_default(),
                 ))
             })?;
@@ -501,8 +516,18 @@ pub fn find_item_inbound(
         }
     }
 
-    let (found_code, description, bin_location, additional_bins, weight, sic_code, item_type) = master_item
-        .unwrap_or_else(|| (code_clean.clone(), "Ítem no catalogado".to_string(), "N/A".to_string(), "".to_string(), 0.0, "0".to_string(), "".to_string()));
+    let (found_code, description, bin_location, additional_bins, weight, sic_code, item_type) =
+        master_item.unwrap_or_else(|| {
+            (
+                code_clean.clone(),
+                "Ítem no catalogado".to_string(),
+                "N/A".to_string(),
+                "".to_string(),
+                0.0,
+                "0".to_string(),
+                "".to_string(),
+            )
+        });
 
     // 2. Extraer Expected Breakdown y Default GRN Qty desde JSONs
     // 2. Extraer Expected Breakdown y Default GRN Qty
@@ -520,7 +545,10 @@ pub fn find_item_inbound(
         .trim_start_matches("IR")
         .trim();
     let clean_ir_alphanumeric: String = ir_clean.chars().filter(|c| c.is_alphanumeric()).collect();
-    let clean_ir_stripped_alphanumeric: String = ir_stripped.chars().filter(|c| c.is_alphanumeric()).collect();
+    let clean_ir_stripped_alphanumeric: String = ir_stripped
+        .chars()
+        .filter(|c| c.is_alphanumeric())
+        .collect();
 
     let mut associated_grns: HashSet<String> = HashSet::new();
     let mut po_fallback_qty = 0.0;
@@ -543,13 +571,17 @@ pub fn find_item_inbound(
                             .trim_start_matches("IR ")
                             .trim_start_matches("IR")
                             .trim();
-                        let k_clean: String = k_upper.chars().filter(|c| c.is_alphanumeric()).collect();
-                        let k_stripped_clean: String = k_stripped.chars().filter(|c| c.is_alphanumeric()).collect();
+                        let k_clean: String =
+                            k_upper.chars().filter(|c| c.is_alphanumeric()).collect();
+                        let k_stripped_clean: String =
+                            k_stripped.chars().filter(|c| c.is_alphanumeric()).collect();
 
                         let is_match = k_upper == ir_clean
                             || (!ir_stripped.is_empty() && k_stripped == ir_stripped)
-                            || (!clean_ir_alphanumeric.is_empty() && k_clean == clean_ir_alphanumeric)
-                            || (!clean_ir_stripped_alphanumeric.is_empty() && k_stripped_clean == clean_ir_stripped_alphanumeric);
+                            || (!clean_ir_alphanumeric.is_empty()
+                                && k_clean == clean_ir_alphanumeric)
+                            || (!clean_ir_stripped_alphanumeric.is_empty()
+                                && k_stripped_clean == clean_ir_stripped_alphanumeric);
 
                         if is_match {
                             if let Some(items) = ir_obj.get("items").and_then(|v| v.as_array()) {
@@ -557,16 +589,36 @@ pub fn find_item_inbound(
                                     if let Some(grn_val) = it.get("grn").and_then(|v| v.as_str()) {
                                         for g in grn_val.split(',') {
                                             let g_clean = g.trim().to_uppercase();
-                                            if !g_clean.is_empty() && g_clean != "N/A" && g_clean != "SIN GRN" {
+                                            if !g_clean.is_empty()
+                                                && g_clean != "N/A"
+                                                && g_clean != "SIN GRN"
+                                            {
                                                 associated_grns.insert(g_clean);
                                             }
                                         }
                                     }
 
-                                    let c = it.get("item_code").and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+                                    let c = it
+                                        .get("item_code")
+                                        .and_then(|v| v.as_str())
+                                        .unwrap_or("")
+                                        .trim()
+                                        .to_uppercase();
                                     if c == code_clean || c == found_code {
-                                        let q = it.get("qty").and_then(|v| v.as_f64()).or_else(|| it.get("qty").and_then(|v| v.as_str()).and_then(|s| s.parse().ok())).unwrap_or(0.0);
-                                        let grn = it.get("grn").and_then(|v| v.as_str()).unwrap_or("N/A").to_string();
+                                        let q = it
+                                            .get("qty")
+                                            .and_then(|v| v.as_f64())
+                                            .or_else(|| {
+                                                it.get("qty")
+                                                    .and_then(|v| v.as_str())
+                                                    .and_then(|s| s.parse().ok())
+                                            })
+                                            .unwrap_or(0.0);
+                                        let grn = it
+                                            .get("grn")
+                                            .and_then(|v| v.as_str())
+                                            .unwrap_or("N/A")
+                                            .to_string();
                                         po_fallback_qty += q;
                                         po_fallback_breakdown.push(ExpectedBreakdown {
                                             ir: ir_key.clone(),
@@ -583,18 +635,25 @@ pub fn find_item_inbound(
                 // Revisar también en wb_to_data por si la IR coincide
                 if let Some(wb_map) = po_json.get("wb_to_data").and_then(|v| v.as_object()) {
                     for (_wb_key, wb_obj) in wb_map {
-                        let obj_ir = wb_obj.get("import_ref").and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+                        let obj_ir = wb_obj
+                            .get("import_ref")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .trim()
+                            .to_uppercase();
                         let obj_ir_stripped = obj_ir
                             .trim_start_matches("IR-")
                             .trim_start_matches("IR_")
                             .trim_start_matches("IR ")
                             .trim_start_matches("IR")
                             .trim();
-                        let obj_ir_clean: String = obj_ir.chars().filter(|c| c.is_alphanumeric()).collect();
+                        let obj_ir_clean: String =
+                            obj_ir.chars().filter(|c| c.is_alphanumeric()).collect();
 
                         let is_match = obj_ir == ir_clean
                             || (!ir_stripped.is_empty() && obj_ir_stripped == ir_stripped)
-                            || (!clean_ir_alphanumeric.is_empty() && obj_ir_clean == clean_ir_alphanumeric);
+                            || (!clean_ir_alphanumeric.is_empty()
+                                && obj_ir_clean == clean_ir_alphanumeric);
 
                         if is_match {
                             if let Some(items) = wb_obj.get("items").and_then(|v| v.as_array()) {
@@ -602,7 +661,10 @@ pub fn find_item_inbound(
                                     if let Some(grn_val) = it.get("grn").and_then(|v| v.as_str()) {
                                         for g in grn_val.split(',') {
                                             let g_clean = g.trim().to_uppercase();
-                                            if !g_clean.is_empty() && g_clean != "N/A" && g_clean != "SIN GRN" {
+                                            if !g_clean.is_empty()
+                                                && g_clean != "N/A"
+                                                && g_clean != "SIN GRN"
+                                            {
                                                 associated_grns.insert(g_clean);
                                             }
                                         }
@@ -615,9 +677,19 @@ pub fn find_item_inbound(
             }
 
             // Revisar XDock Reservations en po_lookup.json
-            if let Some(xdock_map) = po_json.get("xdock_reservations").and_then(|v| v.as_object()) {
-                if let Some(x_obj) = xdock_map.get(&found_code).or_else(|| xdock_map.get(&code_clean)) {
-                    if let Some(t) = x_obj.get("total").and_then(|v| v.as_f64()).or_else(|| x_obj.get("reserved_qty").and_then(|v| v.as_f64())) {
+            if let Some(xdock_map) = po_json
+                .get("xdock_reservations")
+                .and_then(|v| v.as_object())
+            {
+                if let Some(x_obj) = xdock_map
+                    .get(&found_code)
+                    .or_else(|| xdock_map.get(&code_clean))
+                {
+                    if let Some(t) = x_obj
+                        .get("total")
+                        .and_then(|v| v.as_f64())
+                        .or_else(|| x_obj.get("reserved_qty").and_then(|v| v.as_f64()))
+                    {
                         xdock_total = t;
                     }
                     if let Some(custs) = x_obj.get("customers").and_then(|v| v.as_array()) {
@@ -633,12 +705,22 @@ pub fn find_item_inbound(
     }
 
     // Revisar xdock_reservations.json dedicado
-    let xdock_path = std::path::Path::new(po_json_path).parent().map(|p| p.join("xdock_reservations.json")).unwrap_or_else(|| std::path::PathBuf::from("./data/xdock_reservations.json"));
+    let xdock_path = std::path::Path::new(po_json_path)
+        .parent()
+        .map(|p| p.join("xdock_reservations.json"))
+        .unwrap_or_else(|| std::path::PathBuf::from("./data/xdock_reservations.json"));
     if let Ok(xdock_data) = std::fs::read_to_string(&xdock_path) {
         if let Ok(xdock_json) = serde_json::from_str::<Value>(&xdock_data) {
             if let Some(xdock_map) = xdock_json.as_object() {
-                if let Some(x_obj) = xdock_map.get(&found_code).or_else(|| xdock_map.get(&code_clean)) {
-                    if let Some(t) = x_obj.get("total").and_then(|v| v.as_f64()).or_else(|| x_obj.get("reserved_qty").and_then(|v| v.as_f64())) {
+                if let Some(x_obj) = xdock_map
+                    .get(&found_code)
+                    .or_else(|| xdock_map.get(&code_clean))
+                {
+                    if let Some(t) = x_obj
+                        .get("total")
+                        .and_then(|v| v.as_f64())
+                        .or_else(|| x_obj.get("reserved_qty").and_then(|v| v.as_f64()))
+                    {
                         xdock_total = t;
                     }
                     if let Some(custs) = x_obj.get("customers").and_then(|v| v.as_array()) {
@@ -663,10 +745,28 @@ pub fn find_item_inbound(
             if let Ok(grn_json) = serde_json::from_str::<Value>(&grn_data) {
                 if let Some(arr) = grn_json.as_array() {
                     for row in arr {
-                        let r_item = row.get("Item_Code").or_else(|| row.get("item_code")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+                        let r_item = row
+                            .get("Item_Code")
+                            .or_else(|| row.get("item_code"))
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .trim()
+                            .to_uppercase();
                         if r_item == code_clean || r_item == found_code {
-                            let grn = row.get("GRN_Number").or_else(|| row.get("grn_number")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
-                            let r_ir = row.get("Import_Reference").or_else(|| row.get("import_reference")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+                            let grn = row
+                                .get("GRN_Number")
+                                .or_else(|| row.get("grn_number"))
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .trim()
+                                .to_uppercase();
+                            let r_ir = row
+                                .get("Import_Reference")
+                                .or_else(|| row.get("import_reference"))
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .trim()
+                                .to_uppercase();
 
                             let mut matches_grn = false;
                             if !grn.is_empty() && associated_grns.contains(&grn) {
@@ -678,17 +778,31 @@ pub fn find_item_inbound(
                                     .trim_start_matches("IR ")
                                     .trim_start_matches("IR")
                                     .trim();
-                                if r_ir == ir_clean || (!ir_stripped.is_empty() && r_ir_stripped == ir_stripped) {
+                                if r_ir == ir_clean
+                                    || (!ir_stripped.is_empty() && r_ir_stripped == ir_stripped)
+                                {
                                     matches_grn = true;
                                 }
                             }
 
                             if matches_grn {
-                                let q = row.get("Quantity").or_else(|| row.get("quantity")).and_then(|v| v.as_f64()).unwrap_or(0.0);
+                                let q = row
+                                    .get("Quantity")
+                                    .or_else(|| row.get("quantity"))
+                                    .and_then(|v| v.as_f64())
+                                    .unwrap_or(0.0);
                                 default_qty_grn += q;
                                 expected_breakdown.push(ExpectedBreakdown {
-                                    ir: if !r_ir.is_empty() { r_ir } else { ir_clean.clone() },
-                                    grn: if !grn.is_empty() { grn } else { "N/A".to_string() },
+                                    ir: if !r_ir.is_empty() {
+                                        r_ir
+                                    } else {
+                                        ir_clean.clone()
+                                    },
+                                    grn: if !grn.is_empty() {
+                                        grn
+                                    } else {
+                                        "N/A".to_string()
+                                    },
                                     qty: q,
                                 });
                             }
@@ -734,7 +848,9 @@ pub fn find_item_inbound(
 
         suggested_bin = crate::slotting::calculate_suggested_bin(
             conn,
-            slotting_path.to_str().unwrap_or("./data/slotting_parameters.json"),
+            slotting_path
+                .to_str()
+                .unwrap_or("./data/slotting_parameters.json"),
             &found_code,
             &description,
             &bin_location,
@@ -795,7 +911,10 @@ pub fn clear_alerts_in_db(conn: &Connection) -> Result<usize> {
 
 /// Resuelve una alerta específica
 pub fn resolve_alert_in_db(conn: &Connection, id: i64) -> Result<()> {
-    conn.execute("UPDATE inbound_alerts SET resolved = 1 WHERE id = ?1", params![id])?;
+    conn.execute(
+        "UPDATE inbound_alerts SET resolved = 1 WHERE id = ?1",
+        params![id],
+    )?;
     Ok(())
 }
 
@@ -831,7 +950,10 @@ pub fn get_ir_reconciliations_from_db(conn: &Connection) -> Result<Vec<IrReconci
 }
 
 /// Guarda o actualiza un registro de reconciliación IR
-pub fn save_ir_reconciliation_to_db(conn: &Connection, rec: IrReconciliation) -> Result<IrReconciliation> {
+pub fn save_ir_reconciliation_to_db(
+    conn: &Connection,
+    rec: IrReconciliation,
+) -> Result<IrReconciliation> {
     conn.execute(
         "INSERT INTO ir_reconciliations (id, import_reference, waybill, item_code, item_description, expected_qty, received_qty, diff_qty, status, user_id, timestamp)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
@@ -906,7 +1028,12 @@ pub fn save_grn_reconciliation_snapshot_in_db(
         params![
             payload.grn_number.trim().to_uppercase(),
             payload.import_reference.trim().to_uppercase(),
-            payload.waybill.as_deref().unwrap_or("").trim().to_uppercase(),
+            payload
+                .waybill
+                .as_deref()
+                .unwrap_or("")
+                .trim()
+                .to_uppercase(),
             total_lines,
             total_expected,
             total_received,
@@ -960,23 +1087,45 @@ pub fn upsert_draft_comment_in_db(
     let now_ts = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
     let ir = payload.import_reference.trim().to_uppercase();
     let grn = payload.grn_number.trim().to_uppercase();
-    let wb = payload.waybill.as_deref().unwrap_or("").trim().to_uppercase();
-    let oline = payload.order_line.as_deref().unwrap_or("").trim().to_string();
+    let wb = payload
+        .waybill
+        .as_deref()
+        .unwrap_or("")
+        .trim()
+        .to_uppercase();
+    let oline = payload
+        .order_line
+        .as_deref()
+        .unwrap_or("")
+        .trim()
+        .to_string();
     let code = payload.item_code.trim().to_uppercase();
-    let reason = payload.difference_reason.as_deref().unwrap_or("").trim().to_string();
-    let comment = payload.operator_comment.as_deref().unwrap_or("").trim().to_string();
+    let reason = payload
+        .difference_reason
+        .as_deref()
+        .unwrap_or("")
+        .trim()
+        .to_string();
+    let comment = payload
+        .operator_comment
+        .as_deref()
+        .unwrap_or("")
+        .trim()
+        .to_string();
     let qty_rec = payload.qty_received.unwrap_or(0.0);
 
     // Buscar si existe un borrador (reconciliation_id IS NULL OR reconciliation_id = 0)
-    let existing_id: Option<i64> = conn.query_row(
-        "SELECT id FROM saved_grn_reconciliation_items
+    let existing_id: Option<i64> = conn
+        .query_row(
+            "SELECT id FROM saved_grn_reconciliation_items
          WHERE (reconciliation_id IS NULL OR reconciliation_id = 0)
            AND import_reference = ?1 AND grn_number = ?2 AND item_code = ?3 AND order_line = ?4
            AND (waybill = ?5 OR ?5 = '' OR waybill = '')
          LIMIT 1",
-        params![ir, grn, code, oline, wb],
-        |row| row.get(0),
-    ).ok();
+            params![ir, grn, code, oline, wb],
+            |row| row.get(0),
+        )
+        .ok();
 
     if let Some(id) = existing_id {
         conn.execute(
@@ -1012,37 +1161,47 @@ pub fn get_saved_grn_reconciliations_list_from_db(
     let mut sql = "SELECT id, grn_number, import_reference, waybill, total_lines,
                           total_expected, total_received, total_difference, status,
                           reconciled_by, reconciled_at, notes
-                   FROM saved_grn_reconciliations WHERE 1=1".to_string();
+                   FROM saved_grn_reconciliations WHERE 1=1"
+        .to_string();
 
     if let Some(ref g) = grn_filter {
         if !g.trim().is_empty() {
-            sql.push_str(&format!(" AND grn_number LIKE '%{}%'", g.trim().to_uppercase()));
+            sql.push_str(&format!(
+                " AND grn_number LIKE '%{}%'",
+                g.trim().to_uppercase()
+            ));
         }
     }
     if let Some(ref ir) = ir_filter {
         if !ir.trim().is_empty() {
-            sql.push_str(&format!(" AND import_reference LIKE '%{}%'", ir.trim().to_uppercase()));
+            sql.push_str(&format!(
+                " AND import_reference LIKE '%{}%'",
+                ir.trim().to_uppercase()
+            ));
         }
     }
     sql.push_str(" ORDER BY id DESC");
 
     let mut stmt = conn.prepare(&sql)?;
-    let rows = stmt.query_map([], |row| {
-        Ok(SavedGRNReconciliationHeader {
-            id: row.get(0)?,
-            grn_number: row.get(1)?,
-            import_reference: row.get(2)?,
-            waybill: row.get(3)?,
-            total_lines: row.get(4)?,
-            total_expected: row.get(5)?,
-            total_received: row.get(6)?,
-            total_difference: row.get(7)?,
-            status: row.get(8)?,
-            reconciled_by: row.get(9)?,
-            reconciled_at: row.get(10)?,
-            notes: row.get(11)?,
-        })
-    })?.filter_map(|r| r.ok()).collect();
+    let rows = stmt
+        .query_map([], |row| {
+            Ok(SavedGRNReconciliationHeader {
+                id: row.get(0)?,
+                grn_number: row.get(1)?,
+                import_reference: row.get(2)?,
+                waybill: row.get(3)?,
+                total_lines: row.get(4)?,
+                total_expected: row.get(5)?,
+                total_received: row.get(6)?,
+                total_difference: row.get(7)?,
+                status: row.get(8)?,
+                reconciled_by: row.get(9)?,
+                reconciled_at: row.get(10)?,
+                notes: row.get(11)?,
+            })
+        })?
+        .filter_map(|r| r.ok())
+        .collect();
 
     Ok(rows)
 }
@@ -1056,25 +1215,27 @@ pub fn get_saved_grn_reconciliation_detail_from_db(
         "SELECT id, grn_number, import_reference, waybill, total_lines,
                 total_expected, total_received, total_difference, status,
                 reconciled_by, reconciled_at, notes
-         FROM saved_grn_reconciliations WHERE id = ?1"
+         FROM saved_grn_reconciliations WHERE id = ?1",
     )?;
 
-    let header = stmt_h.query_row(params![id], |row| {
-        Ok(SavedGRNReconciliationHeader {
-            id: row.get(0)?,
-            grn_number: row.get(1)?,
-            import_reference: row.get(2)?,
-            waybill: row.get(3)?,
-            total_lines: row.get(4)?,
-            total_expected: row.get(5)?,
-            total_received: row.get(6)?,
-            total_difference: row.get(7)?,
-            status: row.get(8)?,
-            reconciled_by: row.get(9)?,
-            reconciled_at: row.get(10)?,
-            notes: row.get(11)?,
+    let header = stmt_h
+        .query_row(params![id], |row| {
+            Ok(SavedGRNReconciliationHeader {
+                id: row.get(0)?,
+                grn_number: row.get(1)?,
+                import_reference: row.get(2)?,
+                waybill: row.get(3)?,
+                total_lines: row.get(4)?,
+                total_expected: row.get(5)?,
+                total_received: row.get(6)?,
+                total_difference: row.get(7)?,
+                status: row.get(8)?,
+                reconciled_by: row.get(9)?,
+                reconciled_at: row.get(10)?,
+                notes: row.get(11)?,
+            })
         })
-    }).ok();
+        .ok();
 
     if let Some(h) = header {
         let mut stmt_items = conn.prepare(
@@ -1084,29 +1245,32 @@ pub fn get_saved_grn_reconciliation_detail_from_db(
                     operator_comment, reconciled_at
              FROM saved_grn_reconciliation_items
              WHERE reconciliation_id = ?1
-             ORDER BY id ASC"
+             ORDER BY id ASC",
         )?;
 
-        let items = stmt_items.query_map(params![id], |row| {
-            Ok(SavedGRNReconciliationItemRow {
-                id: row.get(0)?,
-                reconciliation_id: row.get(1)?,
-                grn_number: row.get(2)?,
-                import_reference: row.get(3)?,
-                waybill: row.get(4)?,
-                order_line: row.get(5)?,
-                item_code: row.get(6)?,
-                description: row.get(7)?,
-                location: row.get(8)?,
-                relocated_bin: row.get(9)?,
-                qty_expected: row.get(10)?,
-                qty_received: row.get(11)?,
-                difference: row.get(12)?,
-                difference_reason: row.get(13)?,
-                operator_comment: row.get(14)?,
-                reconciled_at: row.get(15)?,
-            })
-        })?.filter_map(|r| r.ok()).collect();
+        let items = stmt_items
+            .query_map(params![id], |row| {
+                Ok(SavedGRNReconciliationItemRow {
+                    id: row.get(0)?,
+                    reconciliation_id: row.get(1)?,
+                    grn_number: row.get(2)?,
+                    import_reference: row.get(3)?,
+                    waybill: row.get(4)?,
+                    order_line: row.get(5)?,
+                    item_code: row.get(6)?,
+                    description: row.get(7)?,
+                    location: row.get(8)?,
+                    relocated_bin: row.get(9)?,
+                    qty_expected: row.get(10)?,
+                    qty_received: row.get(11)?,
+                    difference: row.get(12)?,
+                    difference_reason: row.get(13)?,
+                    operator_comment: row.get(14)?,
+                    reconciled_at: row.get(15)?,
+                })
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
 
         Ok(Some(SavedGRNReconciliationDetail { header: h, items }))
     } else {
@@ -1116,7 +1280,10 @@ pub fn get_saved_grn_reconciliation_detail_from_db(
 
 /// Elimina una conciliación guardada
 pub fn delete_saved_grn_reconciliation_from_db(conn: &Connection, id: i64) -> Result<()> {
-    conn.execute("DELETE FROM saved_grn_reconciliations WHERE id = ?1", params![id])?;
+    conn.execute(
+        "DELETE FROM saved_grn_reconciliations WHERE id = ?1",
+        params![id],
+    )?;
     Ok(())
 }
 
@@ -1159,7 +1326,11 @@ pub fn get_unique_grn_references(
         if let Ok(json) = serde_json::from_str::<Value>(&data) {
             if let Some(arr) = json.as_array() {
                 for row in arr {
-                    if let Some(ir) = row.get("Import_Reference").or_else(|| row.get("import_reference")).and_then(|v| v.as_str()) {
+                    if let Some(ir) = row
+                        .get("Import_Reference")
+                        .or_else(|| row.get("import_reference"))
+                        .and_then(|v| v.as_str())
+                    {
                         let clean = ir.trim().to_uppercase();
                         if !clean.is_empty() {
                             refs.insert(clean);
@@ -1179,7 +1350,10 @@ pub fn get_unique_grn_references(
 pub fn resolve_alerts_bulk_in_db(conn: &Connection, alert_ids: &[i64]) -> Result<usize> {
     let mut resolved_count = 0;
     for id in alert_ids {
-        let count = conn.execute("UPDATE inbound_alerts SET resolved = 1 WHERE id = ?1", params![id])?;
+        let count = conn.execute(
+            "UPDATE inbound_alerts SET resolved = 1 WHERE id = ?1",
+            params![id],
+        )?;
         resolved_count += count;
     }
     Ok(resolved_count)
@@ -1310,7 +1484,8 @@ struct JsonFileCache {
 
 static PO_CACHE: RwLock<Option<JsonFileCache>> = RwLock::new(None);
 static GRN_CACHE: RwLock<Option<JsonFileCache>> = RwLock::new(None);
-static ACTIVE_RECONCILIATION_CACHE: RwLock<Option<(Instant, InboundReconciliationResponse)>> = RwLock::new(None);
+static ACTIVE_RECONCILIATION_CACHE: RwLock<Option<(Instant, InboundReconciliationResponse)>> =
+    RwLock::new(None);
 
 pub fn invalidate_inbound_reconciliation_cache() {
     if let Ok(mut cache) = ACTIVE_RECONCILIATION_CACHE.write() {
@@ -1333,7 +1508,10 @@ fn read_json_file_fallback(path_str: &str) -> Option<Value> {
     None
 }
 
-fn read_cached_json_file(path_str: &str, cache_lock: &'static RwLock<Option<JsonFileCache>>) -> Option<Value> {
+fn read_cached_json_file(
+    path_str: &str,
+    cache_lock: &'static RwLock<Option<JsonFileCache>>,
+) -> Option<Value> {
     let actual_path = if std::path::Path::new(path_str).exists() {
         path_str.to_string()
     } else {
@@ -1345,11 +1523,14 @@ fn read_cached_json_file(path_str: &str, cache_lock: &'static RwLock<Option<Json
         }
     };
 
-    let current_mtime = std::fs::metadata(&actual_path).ok().and_then(|m| m.modified().ok());
+    let current_mtime = std::fs::metadata(&actual_path)
+        .ok()
+        .and_then(|m| m.modified().ok());
 
     if let Ok(guard) = cache_lock.read() {
         if let Some(ref cache) = *guard {
-            if cache.path == actual_path && cache.mtime == current_mtime && current_mtime.is_some() {
+            if cache.path == actual_path && cache.mtime == current_mtime && current_mtime.is_some()
+            {
                 return cache.data.clone();
             }
         }
@@ -1422,7 +1603,8 @@ pub fn get_inbound_reconciliation_view(
     // 3. Consultar logs de SQLite y agrupar por (importReference, itemCode)
     let mut sql = "SELECT id, timestamp, import_reference, waybill, item_code, item_description,
                           bin_location, relocated_bin, qty_received, username, archived_at
-                   FROM inbound_logs WHERE 1=1".to_string();
+                   FROM inbound_logs WHERE 1=1"
+        .to_string();
 
     let mut conditions = Vec::new();
 
@@ -1462,14 +1644,28 @@ pub fn get_inbound_reconciliation_view(
         if let Ok(iter) = stmt.query_map([], |row| {
             let id: i64 = row.get(0)?;
             let ts: String = row.get::<_, Option<String>>(1)?.unwrap_or_default();
-            let ir: String = row.get::<_, Option<String>>(2)?.unwrap_or_default().trim().to_uppercase();
-            let wb: String = row.get::<_, Option<String>>(3)?.unwrap_or_default().trim().to_uppercase();
-            let code: String = row.get::<_, Option<String>>(4)?.unwrap_or_default().trim().to_uppercase();
+            let ir: String = row
+                .get::<_, Option<String>>(2)?
+                .unwrap_or_default()
+                .trim()
+                .to_uppercase();
+            let wb: String = row
+                .get::<_, Option<String>>(3)?
+                .unwrap_or_default()
+                .trim()
+                .to_uppercase();
+            let code: String = row
+                .get::<_, Option<String>>(4)?
+                .unwrap_or_default()
+                .trim()
+                .to_uppercase();
             let desc: String = row.get::<_, Option<String>>(5)?.unwrap_or_default();
             let bin: String = row.get::<_, Option<String>>(6)?.unwrap_or_default();
             let reloc: String = row.get::<_, Option<String>>(7)?.unwrap_or_default();
             let qty: f64 = row.get::<_, Option<f64>>(8)?.unwrap_or(0.0);
-            let user: String = row.get::<_, Option<String>>(9)?.unwrap_or_else(|| "admin".to_string());
+            let user: String = row
+                .get::<_, Option<String>>(9)?
+                .unwrap_or_else(|| "admin".to_string());
             let snap: Option<String> = row.get(10)?;
             Ok((id, ts, ir, wb, code, desc, bin, reloc, qty, user, snap))
         }) {
@@ -1536,15 +1732,29 @@ pub fn get_inbound_reconciliation_view(
     let mut wb_item_to_order_line: HashMap<(String, String), String> = HashMap::new();
 
     // 4.1 Cargar GRNs confirmadas/guardadas desde la DB SQLite para NUNCA desasociarlas (replicando logix_react)
-    if let Ok(mut stmt_saved) = conn.prepare("
+    if let Ok(mut stmt_saved) = conn.prepare(
+        "
         SELECT import_reference, grn_number, waybill
         FROM saved_grn_reconciliations
         WHERE grn_number IS NOT NULL AND grn_number != ''
-    ") {
+    ",
+    ) {
         if let Ok(iter) = stmt_saved.query_map([], |row| {
-            let ir: String = row.get::<_, Option<String>>(0)?.unwrap_or_default().trim().to_uppercase();
-            let grn: String = row.get::<_, Option<String>>(1)?.unwrap_or_default().trim().to_uppercase();
-            let wb: String = row.get::<_, Option<String>>(2)?.unwrap_or_default().trim().to_uppercase();
+            let ir: String = row
+                .get::<_, Option<String>>(0)?
+                .unwrap_or_default()
+                .trim()
+                .to_uppercase();
+            let grn: String = row
+                .get::<_, Option<String>>(1)?
+                .unwrap_or_default()
+                .trim()
+                .to_uppercase();
+            let wb: String = row
+                .get::<_, Option<String>>(2)?
+                .unwrap_or_default()
+                .trim()
+                .to_uppercase();
             Ok((ir, grn, wb))
         }) {
             for res in iter.flatten() {
@@ -1561,15 +1771,29 @@ pub fn get_inbound_reconciliation_view(
         }
     }
 
-    if let Ok(mut stmt_saved_items) = conn.prepare("
+    if let Ok(mut stmt_saved_items) = conn.prepare(
+        "
         SELECT DISTINCT import_reference, grn_number, waybill
         FROM saved_grn_reconciliation_items
         WHERE grn_number IS NOT NULL AND grn_number != ''
-    ") {
+    ",
+    ) {
         if let Ok(iter) = stmt_saved_items.query_map([], |row| {
-            let ir: String = row.get::<_, Option<String>>(0)?.unwrap_or_default().trim().to_uppercase();
-            let grn: String = row.get::<_, Option<String>>(1)?.unwrap_or_default().trim().to_uppercase();
-            let wb: String = row.get::<_, Option<String>>(2)?.unwrap_or_default().trim().to_uppercase();
+            let ir: String = row
+                .get::<_, Option<String>>(0)?
+                .unwrap_or_default()
+                .trim()
+                .to_uppercase();
+            let grn: String = row
+                .get::<_, Option<String>>(1)?
+                .unwrap_or_default()
+                .trim()
+                .to_uppercase();
+            let wb: String = row
+                .get::<_, Option<String>>(2)?
+                .unwrap_or_default()
+                .trim()
+                .to_uppercase();
             Ok((ir, grn, wb))
         }) {
             for res in iter.flatten() {
@@ -1589,45 +1813,83 @@ pub fn get_inbound_reconciliation_view(
     if let Some(ref po) = po_json {
         if let Some(wb_map) = po.get("wb_to_data").and_then(|v| v.as_object()) {
             for (wb_raw, data_obj) in wb_map {
-                let ir = data_obj.get("import_ref").and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+                let ir = data_obj
+                    .get("import_ref")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .trim()
+                    .to_uppercase();
                 let wb = wb_raw.trim().to_uppercase();
                 if !ir.is_empty() {
                     if let Some(items) = data_obj.get("items").and_then(|v| v.as_array()) {
                         for item in items {
-                            let item_code = item.get("item_code").and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
-                            let cust_ref = item.get("customer_ref").or_else(|| item.get("order_number")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+                            let item_code = item
+                                .get("item_code")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .trim()
+                                .to_uppercase();
+                            let cust_ref = item
+                                .get("customer_ref")
+                                .or_else(|| item.get("order_number"))
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .trim()
+                                .to_uppercase();
                             if !cust_ref.is_empty() {
                                 if !item_code.is_empty() {
-                                    item_custref_to_ir_wb.insert((item_code.clone(), cust_ref.clone()), (ir.clone(), wb.clone()));
-                                    wb_item_to_custref.insert((wb.clone(), item_code.clone()), cust_ref.clone());
+                                    item_custref_to_ir_wb.insert(
+                                        (item_code.clone(), cust_ref.clone()),
+                                        (ir.clone(), wb.clone()),
+                                    );
+                                    wb_item_to_custref
+                                        .insert((wb.clone(), item_code.clone()), cust_ref.clone());
                                 }
                                 custref_to_ir_wb.insert(cust_ref.clone(), (ir.clone(), wb.clone()));
                             }
-                            let order_line_val = item.get("order_line")
+                            let order_line_val = item
+                                .get("order_line")
                                 .or_else(|| item.get("line"))
                                 .or_else(|| item.get("Order_Line"))
                                 .and_then(|v| {
                                     if let Some(s) = v.as_str() {
                                         let st = s.trim();
-                                        if !st.is_empty() && st != "-" { Some(st.to_string()) } else { None }
+                                        if !st.is_empty() && st != "-" {
+                                            Some(st.to_string())
+                                        } else {
+                                            None
+                                        }
                                     } else if let Some(n) = v.as_i64() {
                                         Some(n.to_string())
-                                    } else { v.as_f64().map(|f| (f as i64).to_string()) }
+                                    } else {
+                                        v.as_f64().map(|f| (f as i64).to_string())
+                                    }
                                 })
                                 .unwrap_or_default();
                             if !order_line_val.is_empty() && !item_code.is_empty() {
-                                wb_item_to_order_line.insert((wb.clone(), item_code.clone()), order_line_val.clone());
-                                ir_item_to_order_line.insert((ir.clone(), item_code.clone()), order_line_val.clone());
+                                wb_item_to_order_line.insert(
+                                    (wb.clone(), item_code.clone()),
+                                    order_line_val.clone(),
+                                );
+                                ir_item_to_order_line.insert(
+                                    (ir.clone(), item_code.clone()),
+                                    order_line_val.clone(),
+                                );
                             }
                             if let Some(grn_val) = item.get("grn").and_then(|v| v.as_str()) {
                                 for g in grn_val.split(&[',', '/'][..]) {
                                     let g_clean = g.trim().to_uppercase();
                                     if !g_clean.is_empty() {
-                                        grn_to_ir_wb.insert(g_clean.clone(), (ir.clone(), wb.clone()));
+                                        grn_to_ir_wb
+                                            .insert(g_clean.clone(), (ir.clone(), wb.clone()));
                                         if !cust_ref.is_empty() {
-                                            grn_to_custref.insert(g_clean.clone(), cust_ref.clone());
+                                            grn_to_custref
+                                                .insert(g_clean.clone(), cust_ref.clone());
                                             if !item_code.is_empty() {
-                                                grn_item_to_custref.insert((g_clean, item_code.clone()), cust_ref.clone());
+                                                grn_item_to_custref.insert(
+                                                    (g_clean, item_code.clone()),
+                                                    cust_ref.clone(),
+                                                );
                                             }
                                         }
                                     }
@@ -1642,46 +1904,84 @@ pub fn get_inbound_reconciliation_view(
         if let Some(ir_map) = po.get("ir_to_data").and_then(|v| v.as_object()) {
             for (ir_raw, data_obj) in ir_map {
                 let ir = ir_raw.trim().to_uppercase();
-                let wb = data_obj.get("waybill").and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+                let wb = data_obj
+                    .get("waybill")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .trim()
+                    .to_uppercase();
                 if !ir.is_empty() {
                     if let Some(items) = data_obj.get("items").and_then(|v| v.as_array()) {
                         for item in items {
-                            let item_code = item.get("item_code").and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
-                            let cust_ref = item.get("customer_ref").or_else(|| item.get("order_number")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+                            let item_code = item
+                                .get("item_code")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .trim()
+                                .to_uppercase();
+                            let cust_ref = item
+                                .get("customer_ref")
+                                .or_else(|| item.get("order_number"))
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .trim()
+                                .to_uppercase();
                             if !cust_ref.is_empty() {
                                 if !item_code.is_empty() {
-                                    item_custref_to_ir_wb.insert((item_code.clone(), cust_ref.clone()), (ir.clone(), wb.clone()));
-                                    ir_item_to_custref.insert((ir.clone(), item_code.clone()), cust_ref.clone());
+                                    item_custref_to_ir_wb.insert(
+                                        (item_code.clone(), cust_ref.clone()),
+                                        (ir.clone(), wb.clone()),
+                                    );
+                                    ir_item_to_custref
+                                        .insert((ir.clone(), item_code.clone()), cust_ref.clone());
                                 }
                                 custref_to_ir_wb.insert(cust_ref.clone(), (ir.clone(), wb.clone()));
                             }
-                            let order_line_val = item.get("order_line")
+                            let order_line_val = item
+                                .get("order_line")
                                 .or_else(|| item.get("line"))
                                 .or_else(|| item.get("Order_Line"))
                                 .and_then(|v| {
                                     if let Some(s) = v.as_str() {
                                         let st = s.trim();
-                                        if !st.is_empty() && st != "-" { Some(st.to_string()) } else { None }
+                                        if !st.is_empty() && st != "-" {
+                                            Some(st.to_string())
+                                        } else {
+                                            None
+                                        }
                                     } else if let Some(n) = v.as_i64() {
                                         Some(n.to_string())
-                                    } else { v.as_f64().map(|f| (f as i64).to_string()) }
+                                    } else {
+                                        v.as_f64().map(|f| (f as i64).to_string())
+                                    }
                                 })
                                 .unwrap_or_default();
                             if !order_line_val.is_empty() && !item_code.is_empty() {
-                                ir_item_to_order_line.insert((ir.clone(), item_code.clone()), order_line_val.clone());
+                                ir_item_to_order_line.insert(
+                                    (ir.clone(), item_code.clone()),
+                                    order_line_val.clone(),
+                                );
                                 if !wb.is_empty() {
-                                    wb_item_to_order_line.insert((wb.clone(), item_code.clone()), order_line_val.clone());
+                                    wb_item_to_order_line.insert(
+                                        (wb.clone(), item_code.clone()),
+                                        order_line_val.clone(),
+                                    );
                                 }
                             }
                             if let Some(grn_val) = item.get("grn").and_then(|v| v.as_str()) {
                                 for g in grn_val.split(&[',', '/'][..]) {
                                     let g_clean = g.trim().to_uppercase();
                                     if !g_clean.is_empty() {
-                                        grn_to_ir_wb.insert(g_clean.clone(), (ir.clone(), wb.clone()));
+                                        grn_to_ir_wb
+                                            .insert(g_clean.clone(), (ir.clone(), wb.clone()));
                                         if !cust_ref.is_empty() {
-                                            grn_to_custref.insert(g_clean.clone(), cust_ref.clone());
+                                            grn_to_custref
+                                                .insert(g_clean.clone(), cust_ref.clone());
                                             if !item_code.is_empty() {
-                                                grn_item_to_custref.insert((g_clean, item_code.clone()), cust_ref.clone());
+                                                grn_item_to_custref.insert(
+                                                    (g_clean, item_code.clone()),
+                                                    cust_ref.clone(),
+                                                );
                                             }
                                         }
                                     }
@@ -1696,8 +1996,18 @@ pub fn get_inbound_reconciliation_view(
         if let Some(cr_map) = po.get("customer_ref_to_data").and_then(|v| v.as_object()) {
             for (cr_raw, data_obj) in cr_map {
                 let cr_clean = cr_raw.trim().to_uppercase();
-                let ir = data_obj.get("import_ref").and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
-                let wb = data_obj.get("waybill").and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+                let ir = data_obj
+                    .get("import_ref")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .trim()
+                    .to_uppercase();
+                let wb = data_obj
+                    .get("waybill")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .trim()
+                    .to_uppercase();
                 if !cr_clean.is_empty() && !ir.is_empty() {
                     custref_to_ir_wb.insert(cr_clean.clone(), (ir.clone(), wb.clone()));
                 }
@@ -1724,40 +2034,93 @@ pub fn get_inbound_reconciliation_view(
 
     if let Some(arr) = grn_json.as_ref().and_then(|v| v.as_array()) {
         for row in arr {
-            let grn_raw = row.get("GRN_Number").or_else(|| row.get("grn_number")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
-            let item_code = row.get("Item_Code").or_else(|| row.get("item_code")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
-            let desc = row.get("Item_Description").or_else(|| row.get("description")).and_then(|v| v.as_str()).unwrap_or("No en sistema 280").trim().to_string();
-            let qty = row.get("Quantity").or_else(|| row.get("quantity")).and_then(|v| v.as_f64()).unwrap_or(0.0);
-            let order_num = row.get("Order_Number").or_else(|| row.get("order_number")).or_else(|| row.get("customer_ref")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
-            let order_line = row.get("Order_Line")
+            let grn_raw = row
+                .get("GRN_Number")
+                .or_else(|| row.get("grn_number"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .trim()
+                .to_uppercase();
+            let item_code = row
+                .get("Item_Code")
+                .or_else(|| row.get("item_code"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .trim()
+                .to_uppercase();
+            let desc = row
+                .get("Item_Description")
+                .or_else(|| row.get("description"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("No en sistema 280")
+                .trim()
+                .to_string();
+            let qty = row
+                .get("Quantity")
+                .or_else(|| row.get("quantity"))
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0);
+            let order_num = row
+                .get("Order_Number")
+                .or_else(|| row.get("order_number"))
+                .or_else(|| row.get("customer_ref"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .trim()
+                .to_uppercase();
+            let order_line = row
+                .get("Order_Line")
                 .or_else(|| row.get("order_line"))
                 .or_else(|| row.get("Line"))
                 .or_else(|| row.get("line"))
                 .and_then(|v| {
                     if let Some(s) = v.as_str() {
                         let st = s.trim();
-                        if !st.is_empty() { Some(st.to_string()) } else { None }
+                        if !st.is_empty() {
+                            Some(st.to_string())
+                        } else {
+                            None
+                        }
                     } else if let Some(n) = v.as_i64() {
                         Some(n.to_string())
-                    } else { v.as_f64().map(|f| (f as i64).to_string()) }
+                    } else {
+                        v.as_f64().map(|f| (f as i64).to_string())
+                    }
                 })
                 .unwrap_or_default();
-            let explicit_ir = row.get("Import_Reference").or_else(|| row.get("import_reference")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
-            let explicit_wb = row.get("Waybill").or_else(|| row.get("waybill")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+            let explicit_ir = row
+                .get("Import_Reference")
+                .or_else(|| row.get("import_reference"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .trim()
+                .to_uppercase();
+            let explicit_wb = row
+                .get("Waybill")
+                .or_else(|| row.get("waybill"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .trim()
+                .to_uppercase();
 
             if item_code.is_empty() && grn_raw.is_empty() {
                 continue;
             }
 
             let grn_parts: Vec<String> = if grn_raw.contains(',') || grn_raw.contains('/') {
-                grn_raw.split(&[',', '/'][..])
+                grn_raw
+                    .split(&[',', '/'][..])
                     .map(|s| s.trim().to_uppercase())
                     .filter(|s| !s.is_empty() && s != "N/A" && s != "SIN GRN")
                     .collect()
             } else if !grn_raw.is_empty() && grn_raw != "N/A" && grn_raw != "SIN GRN" {
                 vec![grn_raw.clone()]
             } else {
-                vec![if grn_raw.is_empty() { "SIN GRN".to_string() } else { grn_raw.clone() }]
+                vec![if grn_raw.is_empty() {
+                    "SIN GRN".to_string()
+                } else {
+                    grn_raw.clone()
+                }]
             };
 
             for grn in grn_parts {
@@ -1778,8 +2141,13 @@ pub fn get_inbound_reconciliation_view(
                 } else if let Some((ir, wb)) = grn_to_ir_wb.get(&grn) {
                     (ir.clone(), wb.clone())
                 } else if grn == "SIN GRN" || grn.is_empty() {
-                    if !order_num.is_empty() && item_custref_to_ir_wb.contains_key(&(item_code.clone(), order_num.clone())) {
-                        let (ir, wb) = item_custref_to_ir_wb.get(&(item_code.clone(), order_num.clone())).unwrap();
+                    if !order_num.is_empty()
+                        && item_custref_to_ir_wb
+                            .contains_key(&(item_code.clone(), order_num.clone()))
+                    {
+                        let (ir, wb) = item_custref_to_ir_wb
+                            .get(&(item_code.clone(), order_num.clone()))
+                            .unwrap();
                         (ir.clone(), wb.clone())
                     } else if !order_num.is_empty() && custref_to_ir_wb.contains_key(&order_num) {
                         let (ir, wb) = custref_to_ir_wb.get(&order_num).unwrap();
@@ -1812,7 +2180,10 @@ pub fn get_inbound_reconciliation_view(
     for line in &df_280 {
         if line.ir_map != "SIN I.R. MAESTRA" && !line.ir_map.is_empty() {
             irs_with_280.insert(line.ir_map.clone());
-            let stripped: String = strip_ir_prefix(&line.ir_map).chars().filter(|c| c.is_alphanumeric()).collect();
+            let stripped: String = strip_ir_prefix(&line.ir_map)
+                .chars()
+                .filter(|c| c.is_alphanumeric())
+                .collect();
             if !stripped.is_empty() {
                 irs_with_280_clean.insert(stripped);
             }
@@ -1827,7 +2198,10 @@ pub fn get_inbound_reconciliation_view(
                 return;
             }
             // Si ya existen registros del 280 para esta IR, prevalece el 280 (Prioridad 1)
-            let ir_stripped: String = strip_ir_prefix(&ir_clean).chars().filter(|c| c.is_alphanumeric()).collect();
+            let ir_stripped: String = strip_ir_prefix(&ir_clean)
+                .chars()
+                .filter(|c| c.is_alphanumeric())
+                .collect();
             let has_280 = irs_with_280.contains(&ir_clean)
                 || (!ir_stripped.is_empty() && irs_with_280_clean.contains(&ir_stripped));
             if has_280 {
@@ -1835,38 +2209,74 @@ pub fn get_inbound_reconciliation_view(
             }
 
             for item in items {
-                let code = item.get("item_code").and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+                let code = item
+                    .get("item_code")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .trim()
+                    .to_uppercase();
                 if code.is_empty() {
                     continue;
                 }
 
-                let order_line_val = item.get("order_line")
+                let order_line_val = item
+                    .get("order_line")
                     .or_else(|| item.get("line"))
                     .or_else(|| item.get("Order_Line"))
                     .and_then(|v| {
                         if let Some(s) = v.as_str() {
                             let st = s.trim();
-                            if !st.is_empty() { Some(st.to_string()) } else { None }
+                            if !st.is_empty() {
+                                Some(st.to_string())
+                            } else {
+                                None
+                            }
                         } else if let Some(n) = v.as_i64() {
                             Some(n.to_string())
-                        } else { v.as_f64().map(|f| (f as i64).to_string()) }
+                        } else {
+                            v.as_f64().map(|f| (f as i64).to_string())
+                        }
                     })
                     .unwrap_or_default();
-                let grn_raw = item.get("grn").and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
-                let cust_ref = item.get("customer_ref").or_else(|| item.get("order_number")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+                let grn_raw = item
+                    .get("grn")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .trim()
+                    .to_uppercase();
+                let cust_ref = item
+                    .get("customer_ref")
+                    .or_else(|| item.get("order_number"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .trim()
+                    .to_uppercase();
 
-                let key = (ir_clean.clone(), code.clone(), order_line_val.clone(), grn_raw.clone(), cust_ref.clone());
+                let key = (
+                    ir_clean.clone(),
+                    code.clone(),
+                    order_line_val.clone(),
+                    grn_raw.clone(),
+                    cust_ref.clone(),
+                );
                 if added_po_keys.contains(&key) {
                     continue;
                 }
                 added_po_keys.insert(key);
 
-                let qty = item.get("qty").and_then(|v| v.as_f64())
-                    .or_else(|| item.get("qty").and_then(|v| v.as_str()).and_then(|s| s.parse().ok()))
+                let qty = item
+                    .get("qty")
+                    .and_then(|v| v.as_f64())
+                    .or_else(|| {
+                        item.get("qty")
+                            .and_then(|v| v.as_str())
+                            .and_then(|s| s.parse().ok())
+                    })
                     .unwrap_or(0.0);
 
                 let grn_parts: Vec<String> = if grn_raw.contains(',') || grn_raw.contains('/') {
-                    grn_raw.split(&[',', '/'][..])
+                    grn_raw
+                        .split(&[',', '/'][..])
                         .map(|s| s.trim().to_uppercase())
                         .filter(|s| !s.is_empty() && s != "N/A" && s != "SIN GRN")
                         .collect()
@@ -1878,9 +2288,13 @@ pub fn get_inbound_reconciliation_view(
 
                 let order_line_final = if !order_line_val.is_empty() && order_line_val != "-" {
                     order_line_val
-                } else if let Some(ol) = ir_item_to_order_line.get(&(ir_clean.clone(), code.clone())) {
+                } else if let Some(ol) =
+                    ir_item_to_order_line.get(&(ir_clean.clone(), code.clone()))
+                {
                     ol.clone()
-                } else if let Some(ol) = wb_item_to_order_line.get(&(wb_val.trim().to_uppercase(), code.clone())) {
+                } else if let Some(ol) =
+                    wb_item_to_order_line.get(&(wb_val.trim().to_uppercase(), code.clone()))
+                {
                     ol.clone()
                 } else {
                     "-".to_string()
@@ -1903,7 +2317,10 @@ pub fn get_inbound_reconciliation_view(
 
         if let Some(ir_map) = po.get("ir_to_data").and_then(|v| v.as_object()) {
             for (ir_raw, data_obj) in ir_map {
-                let wb = data_obj.get("waybill").and_then(|v| v.as_str()).unwrap_or("");
+                let wb = data_obj
+                    .get("waybill")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
                 if let Some(items) = data_obj.get("items").and_then(|v| v.as_array()) {
                     add_po_items(ir_raw, wb, items);
                 }
@@ -1912,7 +2329,10 @@ pub fn get_inbound_reconciliation_view(
 
         if let Some(wb_map) = po.get("wb_to_data").and_then(|v| v.as_object()) {
             for (wb_raw, data_obj) in wb_map {
-                let ir = data_obj.get("import_ref").and_then(|v| v.as_str()).unwrap_or("");
+                let ir = data_obj
+                    .get("import_ref")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
                 if let Some(items) = data_obj.get("items").and_then(|v| v.as_array()) {
                     add_po_items(ir, wb_raw, items);
                 }
@@ -1934,7 +2354,10 @@ pub fn get_inbound_reconciliation_view(
         {
             unmapped_grns.insert(line.grn.clone());
             if !line.item_code.is_empty() {
-                grn_to_items_map.entry(line.grn.clone()).or_default().insert(line.item_code.clone());
+                grn_to_items_map
+                    .entry(line.grn.clone())
+                    .or_default()
+                    .insert(line.item_code.clone());
             }
         }
     }
@@ -1946,7 +2369,9 @@ pub fn get_inbound_reconciliation_view(
             let mut ir_matches: HashMap<String, (HashSet<String>, String)> = HashMap::new();
             for ((ir, code), lg) in &logs_grouped {
                 if !ir.is_empty() && ir != "SIN I.R. MAESTRA" && grn_item_codes.contains(code) {
-                    let entry = ir_matches.entry(ir.clone()).or_insert_with(|| (HashSet::new(), lg.waybill_log.clone()));
+                    let entry = ir_matches
+                        .entry(ir.clone())
+                        .or_insert_with(|| (HashSet::new(), lg.waybill_log.clone()));
                     entry.0.insert(code.clone());
                     if entry.1.is_empty() && !lg.waybill_log.is_empty() {
                         entry.1 = lg.waybill_log.clone();
@@ -1954,7 +2379,9 @@ pub fn get_inbound_reconciliation_view(
                 }
             }
 
-            if let Some((best_ir, (items_set, wb))) = ir_matches.into_iter().max_by_key(|(_, (set, _))| set.len()) {
+            if let Some((best_ir, (items_set, wb))) =
+                ir_matches.into_iter().max_by_key(|(_, (set, _))| set.len())
+            {
                 if !items_set.is_empty() {
                     recovered_mappings.insert(u_grn, (best_ir, wb));
                 }
@@ -1966,7 +2393,9 @@ pub fn get_inbound_reconciliation_view(
                 if line.ir_map == "SIN I.R. MAESTRA" || line.ir_map.is_empty() {
                     if let Some((rec_ir, rec_wb)) = recovered_mappings.get(&line.grn) {
                         line.ir_map = rec_ir.clone();
-                        if (line.wb_map == "SIN WAYBILL" || line.wb_map.is_empty()) && !rec_wb.is_empty() {
+                        if (line.wb_map == "SIN WAYBILL" || line.wb_map.is_empty())
+                            && !rec_wb.is_empty()
+                        {
                             line.wb_map = rec_wb.clone();
                         }
                     }
@@ -1986,7 +2415,8 @@ pub fn get_inbound_reconciliation_view(
     type CommentWbKey = (String, String, String, String, String);
     type CommentVal = (String, String);
     let mut saved_comments_with_wb: HashMap<CommentWbKey, CommentVal> = HashMap::new();
-    let mut saved_comments_without_wb: HashMap<(String, String, String, String), (String, String)> = HashMap::new();
+    let mut saved_comments_without_wb: HashMap<(String, String, String, String), (String, String)> =
+        HashMap::new();
     let mut saved_comments_by_wb_it: HashMap<(String, String), (String, String)> = HashMap::new();
     let mut saved_comments_by_grn_it: HashMap<(String, String), (String, String)> = HashMap::new();
     let mut saved_comments_by_ir_it: HashMap<(String, String), (String, String)> = HashMap::new();
@@ -2053,7 +2483,10 @@ pub fn get_inbound_reconciliation_view(
             (&a.grn, a_line_num).cmp(&(&b.grn, b_line_num))
         });
 
-        let total_rec = logs_grouped.get(key).map(|lg| lg.qty_received).unwrap_or(0.0);
+        let total_rec = logs_grouped
+            .get(key)
+            .map(|lg| lg.qty_received)
+            .unwrap_or(0.0);
         let total_exp = *total_exp_ir_item.get(key).unwrap_or(&0.0);
         let diff_real_ir = total_rec - total_exp;
         let group_size = indices.len();
@@ -2072,12 +2505,15 @@ pub fn get_inbound_reconciliation_view(
             let diff_line = cant_rec_line - line.quantity;
             cum_prev_exp += line.quantity;
 
-            line_calcs.insert(idx, LineCalc {
-                cant_rec: cant_rec_line,
-                diff: diff_line,
-                total_exp,
-                diff_real_ir,
-            });
+            line_calcs.insert(
+                idx,
+                LineCalc {
+                    cant_rec: cant_rec_line,
+                    diff: diff_line,
+                    total_exp,
+                    diff_real_ir,
+                },
+            );
         }
     }
 
@@ -2095,18 +2531,35 @@ pub fn get_inbound_reconciliation_view(
             diff_real_ir: -line.quantity,
         });
 
-        let (wb_final, bin, reloc, ts, user, log_id, snap_d) = if let Some(lg) = logs_grouped.get(&key) {
-            let wb = if line.wb_map != "SIN WAYBILL" && !line.wb_map.is_empty() {
-                line.wb_map.clone()
-            } else if !lg.waybill_log.is_empty() {
-                lg.waybill_log.clone()
+        let (wb_final, bin, reloc, ts, user, log_id, snap_d) =
+            if let Some(lg) = logs_grouped.get(&key) {
+                let wb = if line.wb_map != "SIN WAYBILL" && !line.wb_map.is_empty() {
+                    line.wb_map.clone()
+                } else if !lg.waybill_log.is_empty() {
+                    lg.waybill_log.clone()
+                } else {
+                    line.wb_map.clone()
+                };
+                (
+                    wb,
+                    lg.bin_location.clone(),
+                    lg.relocated_bin.clone(),
+                    lg.timestamp_log.clone(),
+                    lg.username_log.clone(),
+                    lg.id,
+                    lg.snapshot_date.clone(),
+                )
             } else {
-                line.wb_map.clone()
+                (
+                    line.wb_map.clone(),
+                    String::new(),
+                    String::new(),
+                    String::new(),
+                    "admin".to_string(),
+                    (idx + 1) as i64,
+                    None,
+                )
             };
-            (wb, lg.bin_location.clone(), lg.relocated_bin.clone(), lg.timestamp_log.clone(), lg.username_log.clone(), lg.id, lg.snapshot_date.clone())
-        } else {
-            (line.wb_map.clone(), String::new(), String::new(), String::new(), "admin".to_string(), (idx + 1) as i64, None)
-        };
 
         // Si la descripción está vacía o es por defecto, buscar en logs o en inventory_items precargados
         let mut desc_final = line.description.clone();
@@ -2118,11 +2571,17 @@ pub fn get_inbound_reconciliation_view(
             }
             if desc_final.is_empty() || desc_final == "No en sistema 280" {
                 let clean_code = line.item_code.trim().to_uppercase();
-                let clean_code_no_prefix = clean_code.trim_start_matches(".>").trim_start_matches('.').trim().to_string();
+                let clean_code_no_prefix = clean_code
+                    .trim_start_matches(".>")
+                    .trim_start_matches('.')
+                    .trim()
+                    .to_string();
                 let dot_prefix = format!(".>{}", clean_code_no_prefix);
-                if let Some(d) = item_descriptions.get(&clean_code)
+                if let Some(d) = item_descriptions
+                    .get(&clean_code)
                     .or_else(|| item_descriptions.get(&clean_code_no_prefix))
-                    .or_else(|| item_descriptions.get(&dot_prefix)) {
+                    .or_else(|| item_descriptions.get(&dot_prefix))
+                {
                     desc_final = d.clone();
                 }
             }
@@ -2130,27 +2589,61 @@ pub fn get_inbound_reconciliation_view(
 
         let order_line_display = if !line.order_line.is_empty() && line.order_line != "-" {
             line.order_line.clone()
-        } else if let Some(ol) = ir_item_to_order_line.get(&(line.ir_map.clone(), line.item_code.clone())) {
+        } else if let Some(ol) =
+            ir_item_to_order_line.get(&(line.ir_map.clone(), line.item_code.clone()))
+        {
             ol.clone()
-        } else if let Some(ol) = wb_item_to_order_line.get(&(line.wb_map.clone(), line.item_code.clone())) {
+        } else if let Some(ol) =
+            wb_item_to_order_line.get(&(line.wb_map.clone(), line.item_code.clone()))
+        {
             ol.clone()
         } else {
             "-".to_string()
         };
 
         let (motivo, observacion) = saved_comments_with_wb
-            .get(&(line.ir_map.clone(), wb_final.clone(), line.grn.clone(), line.item_code.clone(), order_line_display.clone()))
-            .or_else(|| saved_comments_with_wb.get(&(line.ir_map.clone(), wb_final.clone(), line.grn.clone(), line.item_code.clone(), String::new())))
-            .or_else(|| saved_comments_without_wb.get(&(line.ir_map.clone(), line.grn.clone(), line.item_code.clone(), order_line_display.clone())))
-            .or_else(|| saved_comments_without_wb.get(&(line.ir_map.clone(), line.grn.clone(), line.item_code.clone(), String::new())))
+            .get(&(
+                line.ir_map.clone(),
+                wb_final.clone(),
+                line.grn.clone(),
+                line.item_code.clone(),
+                order_line_display.clone(),
+            ))
+            .or_else(|| {
+                saved_comments_with_wb.get(&(
+                    line.ir_map.clone(),
+                    wb_final.clone(),
+                    line.grn.clone(),
+                    line.item_code.clone(),
+                    String::new(),
+                ))
+            })
+            .or_else(|| {
+                saved_comments_without_wb.get(&(
+                    line.ir_map.clone(),
+                    line.grn.clone(),
+                    line.item_code.clone(),
+                    order_line_display.clone(),
+                ))
+            })
+            .or_else(|| {
+                saved_comments_without_wb.get(&(
+                    line.ir_map.clone(),
+                    line.grn.clone(),
+                    line.item_code.clone(),
+                    String::new(),
+                ))
+            })
             .or_else(|| saved_comments_by_wb_it.get(&(wb_final.clone(), line.item_code.clone())))
             .or_else(|| saved_comments_by_grn_it.get(&(line.grn.clone(), line.item_code.clone())))
             .or_else(|| saved_comments_by_ir_it.get(&(line.ir_map.clone(), line.item_code.clone())))
             .cloned()
-            .map(|(r, c)| (
-                if r.is_empty() { None } else { Some(r) },
-                if c.is_empty() { None } else { Some(c) }
-            ))
+            .map(|(r, c)| {
+                (
+                    if r.is_empty() { None } else { Some(r) },
+                    if c.is_empty() { None } else { Some(c) },
+                )
+            })
             .unwrap_or((None, None));
 
         rows.push(InboundReconciliationRow {
@@ -2182,11 +2675,17 @@ pub fn get_inbound_reconciliation_view(
             let mut desc_final = lg.item_description.clone();
             if desc_final.is_empty() || desc_final == "No en reporte 280" {
                 let clean_code = code.trim().to_uppercase();
-                let clean_code_no_prefix = clean_code.trim_start_matches(".>").trim_start_matches('.').trim().to_string();
+                let clean_code_no_prefix = clean_code
+                    .trim_start_matches(".>")
+                    .trim_start_matches('.')
+                    .trim()
+                    .to_string();
                 let dot_prefix = format!(".>{}", clean_code_no_prefix);
-                if let Some(d) = item_descriptions.get(&clean_code)
+                if let Some(d) = item_descriptions
+                    .get(&clean_code)
                     .or_else(|| item_descriptions.get(&clean_code_no_prefix))
-                    .or_else(|| item_descriptions.get(&dot_prefix)) {
+                    .or_else(|| item_descriptions.get(&dot_prefix))
+                {
                     desc_final = d.clone();
                 }
                 if desc_final.is_empty() {
@@ -2194,27 +2693,60 @@ pub fn get_inbound_reconciliation_view(
                 }
             }
 
-            let order_line_sin_grn = if let Some(ol) = ir_item_to_order_line.get(&(ir.clone(), code.clone())) {
-                ol.clone()
-            } else if let Some(ol) = wb_item_to_order_line.get(&(lg.waybill_log.clone(), code.clone())) {
-                ol.clone()
-            } else {
-                "-".to_string()
-            };
+            let order_line_sin_grn =
+                if let Some(ol) = ir_item_to_order_line.get(&(ir.clone(), code.clone())) {
+                    ol.clone()
+                } else if let Some(ol) =
+                    wb_item_to_order_line.get(&(lg.waybill_log.clone(), code.clone()))
+                {
+                    ol.clone()
+                } else {
+                    "-".to_string()
+                };
 
             let (motivo, observacion) = saved_comments_with_wb
-                .get(&(ir.clone(), lg.waybill_log.clone(), "SIN GRN".to_string(), code.clone(), order_line_sin_grn.clone()))
-                .or_else(|| saved_comments_with_wb.get(&(ir.clone(), lg.waybill_log.clone(), "SIN GRN".to_string(), code.clone(), String::new())))
-                .or_else(|| saved_comments_without_wb.get(&(ir.clone(), "SIN GRN".to_string(), code.clone(), order_line_sin_grn.clone())))
-                .or_else(|| saved_comments_without_wb.get(&(ir.clone(), "SIN GRN".to_string(), code.clone(), String::new())))
+                .get(&(
+                    ir.clone(),
+                    lg.waybill_log.clone(),
+                    "SIN GRN".to_string(),
+                    code.clone(),
+                    order_line_sin_grn.clone(),
+                ))
+                .or_else(|| {
+                    saved_comments_with_wb.get(&(
+                        ir.clone(),
+                        lg.waybill_log.clone(),
+                        "SIN GRN".to_string(),
+                        code.clone(),
+                        String::new(),
+                    ))
+                })
+                .or_else(|| {
+                    saved_comments_without_wb.get(&(
+                        ir.clone(),
+                        "SIN GRN".to_string(),
+                        code.clone(),
+                        order_line_sin_grn.clone(),
+                    ))
+                })
+                .or_else(|| {
+                    saved_comments_without_wb.get(&(
+                        ir.clone(),
+                        "SIN GRN".to_string(),
+                        code.clone(),
+                        String::new(),
+                    ))
+                })
                 .or_else(|| saved_comments_by_wb_it.get(&(lg.waybill_log.clone(), code.clone())))
                 .or_else(|| saved_comments_by_grn_it.get(&("SIN GRN".to_string(), code.clone())))
                 .or_else(|| saved_comments_by_ir_it.get(&(ir.clone(), code.clone())))
                 .cloned()
-                .map(|(r, c)| (
-                    if r.is_empty() { None } else { Some(r) },
-                    if c.is_empty() { None } else { Some(c) }
-                ))
+                .map(|(r, c)| {
+                    (
+                        if r.is_empty() { None } else { Some(r) },
+                        if c.is_empty() { None } else { Some(c) },
+                    )
+                })
                 .unwrap_or((None, None));
 
             rows.push(InboundReconciliationRow {
@@ -2242,9 +2774,18 @@ pub fn get_inbound_reconciliation_view(
     }
 
     // 9. Filtrar y ordenar
-    let filter_grn_clean = filter_grn.as_ref().map(|s| s.trim().to_uppercase()).unwrap_or_default();
-    let filter_wb_clean = filter_waybill.as_ref().map(|s| s.trim().to_uppercase()).unwrap_or_default();
-    let filter_ir_clean = filter_import_ref.as_ref().map(|s| s.trim().to_uppercase()).unwrap_or_default();
+    let filter_grn_clean = filter_grn
+        .as_ref()
+        .map(|s| s.trim().to_uppercase())
+        .unwrap_or_default();
+    let filter_wb_clean = filter_waybill
+        .as_ref()
+        .map(|s| s.trim().to_uppercase())
+        .unwrap_or_default();
+    let filter_ir_clean = filter_import_ref
+        .as_ref()
+        .map(|s| s.trim().to_uppercase())
+        .unwrap_or_default();
     let filter_ir_stripped = filter_ir_clean
         .trim_start_matches("IR-")
         .trim_start_matches("IR_")
@@ -2256,7 +2797,10 @@ pub fn get_inbound_reconciliation_view(
         if !filter_grn_clean.is_empty() && !r.grn.to_uppercase().contains(&filter_grn_clean) {
             return false;
         }
-        if !filter_wb_clean.is_empty() && !match_ref_rust(&r.waybill, &filter_wb_clean) && !r.waybill.to_uppercase().contains(&filter_wb_clean) {
+        if !filter_wb_clean.is_empty()
+            && !match_ref_rust(&r.waybill, &filter_wb_clean)
+            && !r.waybill.to_uppercase().contains(&filter_wb_clean)
+        {
             return false;
         }
         if !filter_ir_clean.is_empty() {
@@ -2268,7 +2812,8 @@ pub fn get_inbound_reconciliation_view(
                 .trim_start_matches("IR")
                 .trim();
             let match_clean = r_ir.contains(&filter_ir_clean);
-            let match_stripped = !filter_ir_stripped.is_empty() && (r_ir.contains(filter_ir_stripped) || r_stripped.contains(filter_ir_stripped));
+            let match_stripped = !filter_ir_stripped.is_empty()
+                && (r_ir.contains(filter_ir_stripped) || r_stripped.contains(filter_ir_stripped));
             let match_smart = match_ref_rust(&r.import_reference, &filter_ir_clean);
             if !match_clean && !match_stripped && !match_smart {
                 return false;
@@ -2280,8 +2825,20 @@ pub fn get_inbound_reconciliation_view(
     rows.sort_by(|a, b| {
         let a_num = a.order_line.trim().parse::<i64>().unwrap_or(0);
         let b_num = b.order_line.trim().parse::<i64>().unwrap_or(0);
-        (&a.import_reference, &a.grn, a_num, &a.order_line, &a.codigo_item)
-            .cmp(&(&b.import_reference, &b.grn, b_num, &b.order_line, &b.codigo_item))
+        (
+            &a.import_reference,
+            &a.grn,
+            a_num,
+            &a.order_line,
+            &a.codigo_item,
+        )
+            .cmp(&(
+                &b.import_reference,
+                &b.grn,
+                b_num,
+                &b.order_line,
+                &b.codigo_item,
+            ))
     });
 
     let response = InboundReconciliationResponse {
@@ -2325,17 +2882,43 @@ pub fn get_inbound_ir_stats_data_rust(
 
     // 1. Extraer PO items y GRNs asociadas desde po_lookup.json
     if let Some(ref po) = po_json {
-        let parse_po_items = |wb_val: &str, items_arr: &Vec<Value>, found_wb: &mut String, po_items: &mut Vec<InboundIrStatsPoItem>, associated_grns: &mut HashSet<String>| {
+        let parse_po_items = |wb_val: &str,
+                              items_arr: &Vec<Value>,
+                              found_wb: &mut String,
+                              po_items: &mut Vec<InboundIrStatsPoItem>,
+                              associated_grns: &mut HashSet<String>| {
             if found_wb.is_empty() && !wb_val.is_empty() {
                 *found_wb = wb_val.to_string();
             }
             for item in items_arr {
-                let code = item.get("item_code").and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
-                let qty = item.get("qty").and_then(|v| v.as_f64())
-                    .or_else(|| item.get("qty").and_then(|v| v.as_str()).and_then(|s| s.parse().ok()))
+                let code = item
+                    .get("item_code")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .trim()
+                    .to_uppercase();
+                let qty = item
+                    .get("qty")
+                    .and_then(|v| v.as_f64())
+                    .or_else(|| {
+                        item.get("qty")
+                            .and_then(|v| v.as_str())
+                            .and_then(|s| s.parse().ok())
+                    })
                     .unwrap_or(0.0);
-                let grn = item.get("grn").and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
-                let cust_ref = item.get("customer_ref").or_else(|| item.get("order_number")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
+                let grn = item
+                    .get("grn")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .trim()
+                    .to_uppercase();
+                let cust_ref = item
+                    .get("customer_ref")
+                    .or_else(|| item.get("order_number"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .trim()
+                    .to_uppercase();
                 if !code.is_empty() {
                     if !grn.is_empty() {
                         for g in grn.split(',') {
@@ -2358,9 +2941,18 @@ pub fn get_inbound_ir_stats_data_rust(
         if let Some(ir_map) = po.get("ir_to_data").and_then(|v| v.as_object()) {
             for (k, data_obj) in ir_map {
                 if match_ref_rust(k, &ir_clean) {
-                    let wb = data_obj.get("waybill").and_then(|v| v.as_str()).unwrap_or("");
+                    let wb = data_obj
+                        .get("waybill")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("");
                     if let Some(items) = data_obj.get("items").and_then(|v| v.as_array()) {
-                        parse_po_items(wb, items, &mut found_wb, &mut po_items, &mut associated_grns);
+                        parse_po_items(
+                            wb,
+                            items,
+                            &mut found_wb,
+                            &mut po_items,
+                            &mut associated_grns,
+                        );
                         break;
                     }
                 }
@@ -2370,10 +2962,19 @@ pub fn get_inbound_ir_stats_data_rust(
         if po_items.is_empty() {
             if let Some(wb_map) = po.get("wb_to_data").and_then(|v| v.as_object()) {
                 for (wb_raw, data_obj) in wb_map {
-                    let ir = data_obj.get("import_ref").and_then(|v| v.as_str()).unwrap_or("");
+                    let ir = data_obj
+                        .get("import_ref")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("");
                     if match_ref_rust(ir, &ir_clean) {
                         if let Some(items) = data_obj.get("items").and_then(|v| v.as_array()) {
-                            parse_po_items(wb_raw, items, &mut found_wb, &mut po_items, &mut associated_grns);
+                            parse_po_items(
+                                wb_raw,
+                                items,
+                                &mut found_wb,
+                                &mut po_items,
+                                &mut associated_grns,
+                            );
                             break;
                         }
                     }
@@ -2388,17 +2989,40 @@ pub fn get_inbound_ir_stats_data_rust(
 
     if let Some(arr) = grn_json.as_ref().and_then(|v| v.as_array()) {
         for row in arr {
-            let item_code = row.get("Item_Code").or_else(|| row.get("item_code")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
-            let grn = row.get("GRN_Number").or_else(|| row.get("grn_number")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
-            let r_ir = row.get("Import_Reference").or_else(|| row.get("import_reference")).and_then(|v| v.as_str()).unwrap_or("").trim().to_uppercase();
-            let qty = row.get("Quantity").or_else(|| row.get("quantity")).and_then(|v| v.as_f64()).unwrap_or(0.0);
+            let item_code = row
+                .get("Item_Code")
+                .or_else(|| row.get("item_code"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .trim()
+                .to_uppercase();
+            let grn = row
+                .get("GRN_Number")
+                .or_else(|| row.get("grn_number"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .trim()
+                .to_uppercase();
+            let r_ir = row
+                .get("Import_Reference")
+                .or_else(|| row.get("import_reference"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .trim()
+                .to_uppercase();
+            let qty = row
+                .get("Quantity")
+                .or_else(|| row.get("quantity"))
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0);
 
             if item_code.is_empty() {
                 continue;
             }
 
-            let matches = (!associated_grns.is_empty() && !grn.is_empty() && associated_grns.contains(&grn))
-                || (!r_ir.is_empty() && match_ref_rust(&r_ir, &ir_clean));
+            let matches =
+                (!associated_grns.is_empty() && !grn.is_empty() && associated_grns.contains(&grn))
+                    || (!r_ir.is_empty() && match_ref_rust(&r_ir, &ir_clean));
 
             if matches {
                 *grouped_280.entry(item_code.clone()).or_insert(0.0) += qty;
@@ -2413,20 +3037,26 @@ pub fn get_inbound_ir_stats_data_rust(
     // 3. Determinar fuente: 280 vs PO Extractor (Prioridad 280, Fallback PO Extractor)
     let has_280_qty = grouped_280.values().sum::<f64>() > 0.0;
     let (source, expected_items) = if has_280_qty {
-        let items_vec = grouped_280.into_iter().map(|(code, qty)| InboundIrStatsExpectedItem {
-            item_code: code,
-            total_expected: qty,
-        }).collect();
+        let items_vec = grouped_280
+            .into_iter()
+            .map(|(code, qty)| InboundIrStatsExpectedItem {
+                item_code: code,
+                total_expected: qty,
+            })
+            .collect();
         ("280".to_string(), items_vec)
     } else if !po_items.is_empty() {
         let mut grouped_po: HashMap<String, f64> = HashMap::new();
         for it in &po_items {
             *grouped_po.entry(it.item_code.clone()).or_insert(0.0) += it.qty;
         }
-        let items_vec = grouped_po.into_iter().map(|(code, qty)| InboundIrStatsExpectedItem {
-            item_code: code,
-            total_expected: qty,
-        }).collect();
+        let items_vec = grouped_po
+            .into_iter()
+            .map(|(code, qty)| InboundIrStatsExpectedItem {
+                item_code: code,
+                total_expected: qty,
+            })
+            .collect();
         ("po_extractor".to_string(), items_vec)
     } else {
         ("none".to_string(), Vec::new())
@@ -2463,9 +3093,9 @@ pub fn get_inbound_expected_bulk_rust(
             continue;
         }
 
-        let stats = ir_cache.entry(ir.clone()).or_insert_with(|| {
-            get_inbound_ir_stats_data_rust(&ir, po_json_path, grn_json_path)
-        });
+        let stats = ir_cache
+            .entry(ir.clone())
+            .or_insert_with(|| get_inbound_ir_stats_data_rust(&ir, po_json_path, grn_json_path));
 
         let mut expected = 0.0;
         for exp in &stats.expected_items {
@@ -2494,7 +3124,10 @@ pub fn unarchive_logs_version_db(conn: &Connection, version_date: &str) -> Resul
 pub fn restore_inbound_rows_bulk_db(conn: &Connection, ids: &[i64]) -> Result<usize> {
     let mut count = 0;
     for id in ids {
-        count += conn.execute("UPDATE inbound_logs SET archived_at = NULL WHERE id = ?1", params![id])?;
+        count += conn.execute(
+            "UPDATE inbound_logs SET archived_at = NULL WHERE id = ?1",
+            params![id],
+        )?;
     }
     invalidate_inbound_reconciliation_cache();
     Ok(count)
@@ -2516,7 +3149,8 @@ mod tests {
 
     fn setup_test_db() -> Connection {
         let conn = Connection::open_in_memory().unwrap();
-        conn.execute_batch("
+        conn.execute_batch(
+            "
             CREATE TABLE inbound_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp TEXT,
@@ -2544,20 +3178,36 @@ mod tests {
                 resolved INTEGER DEFAULT 0,
                 timestamp TEXT
             );
-        ").unwrap();
+        ",
+        )
+        .unwrap();
         conn
     }
 
     #[test]
     fn test_resolve_alerts_bulk() {
         let conn = setup_test_db();
-        conn.execute("INSERT INTO inbound_alerts (alert_type, resolved) VALUES ('test', 0)", []).unwrap();
-        conn.execute("INSERT INTO inbound_alerts (alert_type, resolved) VALUES ('test', 0)", []).unwrap();
+        conn.execute(
+            "INSERT INTO inbound_alerts (alert_type, resolved) VALUES ('test', 0)",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO inbound_alerts (alert_type, resolved) VALUES ('test', 0)",
+            [],
+        )
+        .unwrap();
 
         let resolved = resolve_alerts_bulk_in_db(&conn, &[1, 2]).unwrap();
         assert_eq!(resolved, 2);
 
-        let unresolved: i64 = conn.query_row("SELECT COUNT(*) FROM inbound_alerts WHERE resolved = 0", [], |r| r.get(0)).unwrap();
+        let unresolved: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM inbound_alerts WHERE resolved = 0",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
         assert_eq!(unresolved, 0);
     }
 
@@ -2589,14 +3239,17 @@ mod tests {
         let res2 = save_log_to_db(&conn, log1, "", "").unwrap();
         assert_eq!(res1.id, res2.id);
 
-        let count: i64 = conn.query_row("SELECT COUNT(*) FROM inbound_logs", [], |r| r.get(0)).unwrap();
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM inbound_logs", [], |r| r.get(0))
+            .unwrap();
         assert_eq!(count, 1);
     }
 
     #[test]
     fn test_find_item_inbound_master() {
         let conn = setup_test_db();
-        conn.execute("
+        conn.execute(
+            "
             CREATE TABLE inventory_items (
                 item_code TEXT PRIMARY KEY,
                 description TEXT,
@@ -2613,7 +3266,10 @@ mod tests {
                 abc_code TEXT DEFAULT '',
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
-        ", []).unwrap();
+        ",
+            [],
+        )
+        .unwrap();
 
         conn.execute("
             INSERT INTO inventory_items (item_code, description, bin_location, additional_bins, weight_per_unit, sic_code, abc_code)
@@ -2621,7 +3277,14 @@ mod tests {
         ", []).unwrap();
 
         // 1. Búsqueda exacta
-        let res_exact = find_item_inbound(&conn, ".>RU18278", None, "nonexistent.json", "nonexistent.json").unwrap();
+        let res_exact = find_item_inbound(
+            &conn,
+            ".>RU18278",
+            None,
+            "nonexistent.json",
+            "nonexistent.json",
+        )
+        .unwrap();
         assert_eq!(res_exact.item_code, ".>RU18278");
         assert_eq!(res_exact.description, "CABIN RETROFIT KIT LH514 OP");
         assert_eq!(res_exact.bin_location, "RA81C");
@@ -2630,7 +3293,14 @@ mod tests {
         assert_eq!(res_exact.sic_code, "L");
 
         // 2. Búsqueda flexible (sin símbolos)
-        let res_flex = find_item_inbound(&conn, "RU18278", None, "nonexistent.json", "nonexistent.json").unwrap();
+        let res_flex = find_item_inbound(
+            &conn,
+            "RU18278",
+            None,
+            "nonexistent.json",
+            "nonexistent.json",
+        )
+        .unwrap();
         assert_eq!(res_flex.item_code, ".>RU18278");
         assert_eq!(res_flex.description, "CABIN RETROFIT KIT LH514 OP");
         assert_eq!(res_flex.bin_location, "RA81C");
@@ -2644,7 +3314,14 @@ mod tests {
             VALUES ('NOBIN01', 'SMALL FASTENER SCREW', 'N/A', '', 0.05, 'W', 'A');
         ", []).unwrap();
 
-        let res_nobin = find_item_inbound(&conn, "NOBIN01", None, "./data/po_lookup.json", "./data/grn_master_data.json").unwrap();
+        let res_nobin = find_item_inbound(
+            &conn,
+            "NOBIN01",
+            None,
+            "./data/po_lookup.json",
+            "./data/grn_master_data.json",
+        )
+        .unwrap();
         assert_eq!(res_nobin.item_code, "NOBIN01");
         assert_eq!(res_nobin.bin_location, "N/A");
         assert!(res_nobin.suggested_bin.is_some());
@@ -2653,7 +3330,8 @@ mod tests {
     #[test]
     fn test_get_inbound_reconciliation_view() {
         let conn = setup_test_db();
-        conn.execute("
+        conn.execute(
+            "
             INSERT INTO inbound_logs (
                 timestamp, import_reference, waybill, item_code, item_description,
                 bin_location, relocated_bin, qty_received, qty_grn, difference,
@@ -2662,7 +3340,10 @@ mod tests {
                 '2026-08-16 19:33:08', '26-0594', 'US107278172', 'BG00866933', 'ENGINE',
                 'PISO8', '', 1.0, 1.0, 0.0, 'admin', 'client-1', NULL, '2026-08-16'
             );
-        ", []).unwrap();
+        ",
+            [],
+        )
+        .unwrap();
 
         let temp_dir = std::env::temp_dir().join("logix_test_inbound");
         let _ = std::fs::create_dir_all(&temp_dir);
@@ -2681,7 +3362,8 @@ mod tests {
             None,
             Some("26-0594".to_string()),
             false,
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(res.data.len(), 1);
         let row = &res.data[0];
@@ -2732,7 +3414,8 @@ mod tests {
             None,
             Some("26-0640".to_string()),
             false,
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(res.data.len(), 1);
         let row = &res.data[0];
@@ -2781,7 +3464,8 @@ mod tests {
             None,
             Some("26-0599".to_string()),
             false,
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(res.data.len(), 1);
         let row = &res.data[0];
@@ -2864,7 +3548,7 @@ mod tests {
                     difference: -1.0,
                     difference_reason: Some("Faltante en Origen".to_string()),
                     operator_comment: Some("Caja llegó incompleta".to_string()),
-                }
+                },
             ],
         };
 
@@ -2872,7 +3556,9 @@ mod tests {
         assert!(recon_id > 0);
 
         // Listar conciliaciones guardadas
-        let list = get_saved_grn_reconciliations_list_from_db(&conn, Some("22864".to_string()), None).unwrap();
+        let list =
+            get_saved_grn_reconciliations_list_from_db(&conn, Some("22864".to_string()), None)
+                .unwrap();
         assert_eq!(list.len(), 1);
         assert_eq!(list[0].grn_number, "22864");
         assert_eq!(list[0].total_lines, 2);
@@ -2882,7 +3568,9 @@ mod tests {
         assert_eq!(list[0].status, "CON_DIFERENCIAS");
 
         // Obtener detalle completo de la foto histórica
-        let detail = get_saved_grn_reconciliation_detail_from_db(&conn, recon_id).unwrap().unwrap();
+        let detail = get_saved_grn_reconciliation_detail_from_db(&conn, recon_id)
+            .unwrap()
+            .unwrap();
         assert_eq!(detail.header.id, recon_id);
         assert_eq!(detail.items.len(), 2);
         assert_eq!(detail.items[0].item_code, "BG00866933");
@@ -2936,11 +3624,20 @@ mod tests {
             None,
             None,
             false,
-        ).unwrap();
+        )
+        .unwrap();
 
         // 1. Verificar cascada en SKU-CASCADE:
-        let r1 = res.data.iter().find(|r| r.grn == "GRN-1").expect("GRN-1 exists");
-        let r2 = res.data.iter().find(|r| r.grn == "GRN-2").expect("GRN-2 exists");
+        let r1 = res
+            .data
+            .iter()
+            .find(|r| r.grn == "GRN-1")
+            .expect("GRN-1 exists");
+        let r2 = res
+            .data
+            .iter()
+            .find(|r| r.grn == "GRN-2")
+            .expect("GRN-2 exists");
 
         // Fila 1 debe absorber min(5.0, 8.0) = 5.0 (diferencia 0.0)
         assert_eq!(r1.cant_esperada, 5.0);
@@ -2957,7 +3654,11 @@ mod tests {
         assert_eq!(r2.diferencia_real_ir, -2.0);
 
         // 2. Verificar auto-recuperación de GRN-UNMAPPED:
-        let r3 = res.data.iter().find(|r| r.grn == "GRN-UNMAPPED").expect("GRN-UNMAPPED exists");
+        let r3 = res
+            .data
+            .iter()
+            .find(|r| r.grn == "GRN-UNMAPPED")
+            .expect("GRN-UNMAPPED exists");
         assert_eq!(r3.import_reference, "IR-RECOVERED");
         assert_eq!(r3.waybill, "WB-REC");
         assert_eq!(r3.cant_esperada, 4.0);

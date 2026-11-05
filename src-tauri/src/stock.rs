@@ -81,12 +81,16 @@ pub fn search_stock_items(conn: &Connection, query: &str) -> Result<Vec<StockIte
         Ok(StockItemResult {
             item_code: row.get(0)?,
             description: row.get::<_, Option<String>>(1)?.unwrap_or_default(),
-            bin_location: row.get::<_, Option<String>>(2)?.unwrap_or_else(|| "N/A".to_string()),
+            bin_location: row
+                .get::<_, Option<String>>(2)?
+                .unwrap_or_else(|| "N/A".to_string()),
             additional_bins: row.get::<_, Option<String>>(3)?.unwrap_or_default(),
             system_qty: row.get::<_, Option<f64>>(4)?.unwrap_or(0.0),
             unit_cost: row.get::<_, Option<f64>>(5)?.unwrap_or(0.0),
             weight_per_unit: row.get::<_, Option<f64>>(6)?.unwrap_or(0.0),
-            sic_code: row.get::<_, Option<String>>(7)?.unwrap_or_else(|| "0".to_string()),
+            sic_code: row
+                .get::<_, Option<String>>(7)?
+                .unwrap_or_else(|| "0".to_string()),
             abc_code: row.get::<_, Option<String>>(8)?.unwrap_or_default(),
             length_cm: row.get::<_, Option<f64>>(9)?.unwrap_or(0.0),
             width_cm: row.get::<_, Option<f64>>(10)?.unwrap_or(0.0),
@@ -102,7 +106,10 @@ pub fn search_stock_items(conn: &Connection, query: &str) -> Result<Vec<StockIte
     }
 
     if list.is_empty() {
-        let alpha_query: String = clean_query.chars().filter(|c| c.is_alphanumeric()).collect();
+        let alpha_query: String = clean_query
+            .chars()
+            .filter(|c| c.is_alphanumeric())
+            .collect();
         if !alpha_query.is_empty() {
             let mut stmt_all = conn.prepare(
                 "SELECT item_code, description, bin_location, additional_bins, system_qty, unit_cost, weight_per_unit, sic_code, abc_code, length_cm, width_cm, height_cm, volume_cm3, updated_at
@@ -112,12 +119,16 @@ pub fn search_stock_items(conn: &Connection, query: &str) -> Result<Vec<StockIte
                 Ok(StockItemResult {
                     item_code: row.get(0)?,
                     description: row.get::<_, Option<String>>(1)?.unwrap_or_default(),
-                    bin_location: row.get::<_, Option<String>>(2)?.unwrap_or_else(|| "N/A".to_string()),
+                    bin_location: row
+                        .get::<_, Option<String>>(2)?
+                        .unwrap_or_else(|| "N/A".to_string()),
                     additional_bins: row.get::<_, Option<String>>(3)?.unwrap_or_default(),
                     system_qty: row.get::<_, Option<f64>>(4)?.unwrap_or(0.0),
                     unit_cost: row.get::<_, Option<f64>>(5)?.unwrap_or(0.0),
                     weight_per_unit: row.get::<_, Option<f64>>(6)?.unwrap_or(0.0),
-                    sic_code: row.get::<_, Option<String>>(7)?.unwrap_or_else(|| "0".to_string()),
+                    sic_code: row
+                        .get::<_, Option<String>>(7)?
+                        .unwrap_or_else(|| "0".to_string()),
                     abc_code: row.get::<_, Option<String>>(8)?.unwrap_or_default(),
                     length_cm: row.get::<_, Option<f64>>(9)?.unwrap_or(0.0),
                     width_cm: row.get::<_, Option<f64>>(10)?.unwrap_or(0.0),
@@ -127,7 +138,11 @@ pub fn search_stock_items(conn: &Connection, query: &str) -> Result<Vec<StockIte
                 })
             })?;
             for item in all_iter.flatten() {
-                let item_alpha: String = item.item_code.chars().filter(|c| c.is_alphanumeric()).collect();
+                let item_alpha: String = item
+                    .item_code
+                    .chars()
+                    .filter(|c| c.is_alphanumeric())
+                    .collect();
                 if item_alpha.to_uppercase().contains(&alpha_query) {
                     list.push(item);
                     if list.len() >= 50 {
@@ -193,12 +208,19 @@ pub fn get_occupancy_stats(conn: &Connection) -> Result<OccupancyStats> {
         occupied_bins,
         occupancy_rate,
         total_skus,
-        categories: vec!["General".to_string(), "Alta Rotación".to_string(), "Pesados".to_string()],
+        categories: vec![
+            "General".to_string(),
+            "Alta Rotación".to_string(),
+            "Pesados".to_string(),
+        ],
     })
 }
 
 /// Guarda dimensiones y peso de un producto
-pub fn save_item_measurement(conn: &Connection, input: ItemMeasurementInput) -> Result<MeasurementResponse> {
+pub fn save_item_measurement(
+    conn: &Connection,
+    input: ItemMeasurementInput,
+) -> Result<MeasurementResponse> {
     let code = input.item_code.trim().to_uppercase();
     let length = input.length_cm.unwrap_or(20.0);
     let width = input.width_cm.unwrap_or(15.0);
@@ -253,14 +275,21 @@ pub fn get_available_aisles_db(conn: &Connection) -> Result<Vec<String>> {
     let mut result: Vec<String> = aisles.into_iter().collect();
     result.sort();
     if result.is_empty() {
-        result = vec!["A".to_string(), "B".to_string(), "C".to_string(), "D".to_string(), "E".to_string()];
+        result = vec![
+            "A".to_string(),
+            "B".to_string(),
+            "C".to_string(),
+            "D".to_string(),
+            "E".to_string(),
+        ];
     }
     Ok(result)
 }
 
 /// Obtiene la lista de auditores con sus zonas asignadas
 pub fn get_auditor_zones_db(conn: &Connection) -> Result<Vec<AuditorZoneInfo>> {
-    let mut stmt = conn.prepare("SELECT id, username, assigned_zones, is_approved FROM users ORDER BY username")?;
+    let mut stmt = conn
+        .prepare("SELECT id, username, assigned_zones, is_approved FROM users ORDER BY username")?;
     let iter = stmt.query_map([], |row| {
         let is_appr: i32 = row.get(3)?;
         Ok(AuditorZoneInfo {
@@ -279,7 +308,11 @@ pub fn get_auditor_zones_db(conn: &Connection) -> Result<Vec<AuditorZoneInfo>> {
 }
 
 /// Asigna zonas/pasillos a un auditor
-pub fn assign_auditor_zones_db(conn: &Connection, user_id: i64, assigned_zones: &str) -> Result<String> {
+pub fn assign_auditor_zones_db(
+    conn: &Connection,
+    user_id: i64,
+    assigned_zones: &str,
+) -> Result<String> {
     let clean = assigned_zones.trim().to_uppercase();
     conn.execute(
         "UPDATE users SET assigned_zones = ?1 WHERE id = ?2",
@@ -317,12 +350,16 @@ pub fn search_stock_by_location(conn: &Connection, location: &str) -> Result<Vec
         Ok(StockItemResult {
             item_code: row.get(0)?,
             description: row.get::<_, Option<String>>(1)?.unwrap_or_default(),
-            bin_location: row.get::<_, Option<String>>(2)?.unwrap_or_else(|| "N/A".to_string()),
+            bin_location: row
+                .get::<_, Option<String>>(2)?
+                .unwrap_or_else(|| "N/A".to_string()),
             additional_bins: row.get::<_, Option<String>>(3)?.unwrap_or_default(),
             system_qty: row.get::<_, Option<f64>>(4)?.unwrap_or(0.0),
             unit_cost: row.get::<_, Option<f64>>(5)?.unwrap_or(0.0),
             weight_per_unit: row.get::<_, Option<f64>>(6)?.unwrap_or(0.0),
-            sic_code: row.get::<_, Option<String>>(7)?.unwrap_or_else(|| "0".to_string()),
+            sic_code: row
+                .get::<_, Option<String>>(7)?
+                .unwrap_or_else(|| "0".to_string()),
             abc_code: row.get::<_, Option<String>>(8)?.unwrap_or_default(),
             length_cm: row.get::<_, Option<f64>>(9)?.unwrap_or(0.0),
             width_cm: row.get::<_, Option<f64>>(10)?.unwrap_or(0.0),
@@ -346,7 +383,8 @@ mod tests {
 
     fn setup_test_db() -> Connection {
         let conn = Connection::open_in_memory().unwrap();
-        conn.execute("
+        conn.execute(
+            "
             CREATE TABLE inventory_items (
                 item_code TEXT PRIMARY KEY,
                 description TEXT,
@@ -363,7 +401,10 @@ mod tests {
                 abc_code TEXT DEFAULT '',
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
-        ", []).unwrap();
+        ",
+            [],
+        )
+        .unwrap();
         conn
     }
 

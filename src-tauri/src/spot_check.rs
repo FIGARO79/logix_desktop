@@ -46,15 +46,19 @@ pub fn find_item_quick(conn: &Connection, code: &str) -> Result<Option<ItemQuick
          WHERE UPPER(item_code) = ?1",
     )?;
 
-    let res = stmt.query_row(params![clean_code], |row| {
-        Ok(ItemQuickFind {
-            item_code: row.get(0)?,
-            description: row.get::<_, Option<String>>(1)?.unwrap_or_default(),
-            bin_location: row.get::<_, Option<String>>(2)?.unwrap_or_else(|| "N/A".to_string()),
-            system_qty: row.get::<_, Option<f64>>(3)?.unwrap_or(0.0),
-            unit_cost: row.get::<_, Option<f64>>(4)?.unwrap_or(0.0),
+    let res = stmt
+        .query_row(params![clean_code], |row| {
+            Ok(ItemQuickFind {
+                item_code: row.get(0)?,
+                description: row.get::<_, Option<String>>(1)?.unwrap_or_default(),
+                bin_location: row
+                    .get::<_, Option<String>>(2)?
+                    .unwrap_or_else(|| "N/A".to_string()),
+                system_qty: row.get::<_, Option<f64>>(3)?.unwrap_or(0.0),
+                unit_cost: row.get::<_, Option<f64>>(4)?.unwrap_or(0.0),
+            })
         })
-    }).ok();
+        .ok();
 
     Ok(res)
 }
@@ -89,7 +93,10 @@ pub fn get_spot_checks_from_db(conn: &Connection) -> Result<Vec<SpotCheckItem>> 
 }
 
 /// Guarda un spot check
-pub fn save_spot_check_to_db(conn: &Connection, mut record: SpotCheckItem) -> Result<SpotCheckItem> {
+pub fn save_spot_check_to_db(
+    conn: &Connection,
+    mut record: SpotCheckItem,
+) -> Result<SpotCheckItem> {
     if record.timestamp.trim().is_empty() {
         record.timestamp = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
     }
@@ -156,7 +163,10 @@ pub fn get_express_audits_from_db(conn: &Connection) -> Result<Vec<ExpressAuditI
 }
 
 /// Guarda un express audit
-pub fn save_express_audit_to_db(conn: &Connection, mut record: ExpressAuditItem) -> Result<ExpressAuditItem> {
+pub fn save_express_audit_to_db(
+    conn: &Connection,
+    mut record: ExpressAuditItem,
+) -> Result<ExpressAuditItem> {
     if record.timestamp.trim().is_empty() {
         record.timestamp = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
     }

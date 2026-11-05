@@ -245,8 +245,13 @@ pub struct ConsolidatedPackingListDto {
 // ============================================================================
 
 /// Si la tabla picking_orders está vacía, intenta poblarla desde data/AURRSGLBD0240.csv
-pub fn seed_picking_orders_from_csv_if_empty(conn: &mut Connection, csv_path: &str) -> Result<usize> {
-    let count: i64 = conn.query_row("SELECT COUNT(*) FROM picking_orders", [], |r| r.get(0)).unwrap_or(0);
+pub fn seed_picking_orders_from_csv_if_empty(
+    conn: &mut Connection,
+    csv_path: &str,
+) -> Result<usize> {
+    let count: i64 = conn
+        .query_row("SELECT COUNT(*) FROM picking_orders", [], |r| r.get(0))
+        .unwrap_or(0);
     if count > 0 {
         return Ok(0);
     }
@@ -308,22 +313,65 @@ pub fn seed_picking_orders_from_csv_if_empty(conn: &mut Connection, csv_path: &s
         let now = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
 
         for record in rdr.records().flatten() {
-            let order = idx_order.and_then(|i| record.get(i)).unwrap_or("").trim().to_string();
-            let item = idx_item.and_then(|i| record.get(i)).unwrap_or("").trim().to_string();
+            let order = idx_order
+                .and_then(|i| record.get(i))
+                .unwrap_or("")
+                .trim()
+                .to_string();
+            let item = idx_item
+                .and_then(|i| record.get(i))
+                .unwrap_or("")
+                .trim()
+                .to_string();
             if order.is_empty() || item.is_empty() {
                 continue;
             }
 
-            let despatch = idx_despatch.and_then(|i| record.get(i)).unwrap_or("00").trim().to_string();
-            let cust_code = idx_cust_code.and_then(|i| record.get(i)).unwrap_or("N/A").trim().to_string();
-            let cust_name = idx_cust_name.and_then(|i| record.get(i)).unwrap_or("Cliente General").trim().to_string();
-            let desc = idx_desc.and_then(|i| record.get(i)).unwrap_or("").trim().to_string();
-            let line = idx_line.and_then(|i| record.get(i)).unwrap_or("1").trim().to_string();
-            let raw_qty = idx_qty.and_then(|i| record.get(i)).unwrap_or("0").replace(',', "");
+            let despatch = idx_despatch
+                .and_then(|i| record.get(i))
+                .unwrap_or("00")
+                .trim()
+                .to_string();
+            let cust_code = idx_cust_code
+                .and_then(|i| record.get(i))
+                .unwrap_or("N/A")
+                .trim()
+                .to_string();
+            let cust_name = idx_cust_name
+                .and_then(|i| record.get(i))
+                .unwrap_or("Cliente General")
+                .trim()
+                .to_string();
+            let desc = idx_desc
+                .and_then(|i| record.get(i))
+                .unwrap_or("")
+                .trim()
+                .to_string();
+            let line = idx_line
+                .and_then(|i| record.get(i))
+                .unwrap_or("1")
+                .trim()
+                .to_string();
+            let raw_qty = idx_qty
+                .and_then(|i| record.get(i))
+                .unwrap_or("0")
+                .replace(',', "");
             let qty: f64 = raw_qty.parse().unwrap_or(0.0);
-            let print = idx_print.and_then(|i| record.get(i)).unwrap_or("").trim().to_string();
-            let tz = idx_tz.and_then(|i| record.get(i)).unwrap_or("-05:00").trim().to_string();
-            let carrier = idx_carrier.and_then(|i| record.get(i)).unwrap_or("").trim().to_string();
+            let print = idx_print
+                .and_then(|i| record.get(i))
+                .unwrap_or("")
+                .trim()
+                .to_string();
+            let tz = idx_tz
+                .and_then(|i| record.get(i))
+                .unwrap_or("-05:00")
+                .trim()
+                .to_string();
+            let carrier = idx_carrier
+                .and_then(|i| record.get(i))
+                .unwrap_or("")
+                .trim()
+                .to_string();
 
             stmt.execute(params![
                 order.clone(),
@@ -350,7 +398,10 @@ pub fn seed_picking_orders_from_csv_if_empty(conn: &mut Connection, csv_path: &s
 }
 
 /// Importación masiva de órdenes de picking desde arrays JSON (ej. subida de archivo 240)
-pub fn import_picking_orders_bulk_db(conn: &mut Connection, orders: &[PickingOrderImportRow]) -> Result<usize> {
+pub fn import_picking_orders_bulk_db(
+    conn: &mut Connection,
+    orders: &[PickingOrderImportRow],
+) -> Result<usize> {
     let tx = conn.transaction()?;
     // Limpiar órdenes anteriores antes de la carga del nuevo 240
     tx.execute("DELETE FROM picking_orders", [])?;
@@ -372,14 +423,54 @@ pub fn import_picking_orders_bulk_db(conn: &mut Connection, orders: &[PickingOrd
             if order.is_empty() || item.is_empty() {
                 continue;
             }
-            let despatch = ord.despatch_number.clone().unwrap_or_else(|| "00".to_string()).trim().to_string();
-            let cust_code = ord.customer_code.clone().unwrap_or_else(|| "N/A".to_string()).trim().to_string();
-            let cust_name = ord.customer_name.clone().unwrap_or_else(|| "Cliente General".to_string()).trim().to_string();
-            let carrier = ord.carrier.clone().unwrap_or_else(|| "N/A".to_string()).trim().to_string();
-            let line = ord.order_line.clone().unwrap_or_else(|| "1".to_string()).trim().to_string();
-            let desc = ord.item_description.clone().unwrap_or_default().trim().to_string();
-            let print = ord.print_date.clone().unwrap_or_else(|| now.split(' ').next().unwrap_or("").to_string()).trim().to_string();
-            let tz = ord.time_zone_hours.clone().unwrap_or_else(|| "-05:00".to_string()).trim().to_string();
+            let despatch = ord
+                .despatch_number
+                .clone()
+                .unwrap_or_else(|| "00".to_string())
+                .trim()
+                .to_string();
+            let cust_code = ord
+                .customer_code
+                .clone()
+                .unwrap_or_else(|| "N/A".to_string())
+                .trim()
+                .to_string();
+            let cust_name = ord
+                .customer_name
+                .clone()
+                .unwrap_or_else(|| "Cliente General".to_string())
+                .trim()
+                .to_string();
+            let carrier = ord
+                .carrier
+                .clone()
+                .unwrap_or_else(|| "N/A".to_string())
+                .trim()
+                .to_string();
+            let line = ord
+                .order_line
+                .clone()
+                .unwrap_or_else(|| "1".to_string())
+                .trim()
+                .to_string();
+            let desc = ord
+                .item_description
+                .clone()
+                .unwrap_or_default()
+                .trim()
+                .to_string();
+            let print = ord
+                .print_date
+                .clone()
+                .unwrap_or_else(|| now.split(' ').next().unwrap_or("").to_string())
+                .trim()
+                .to_string();
+            let tz = ord
+                .time_zone_hours
+                .clone()
+                .unwrap_or_else(|| "-05:00".to_string())
+                .trim()
+                .to_string();
             let status = ord.status.clone().unwrap_or_else(|| "PP".to_string());
             let ts = ord.timestamp.clone().unwrap_or_else(|| now.clone());
             let picked = ord.picked_qty.unwrap_or(0.0);
@@ -427,12 +518,15 @@ pub fn normalize_despatch(d: &str) -> String {
 pub fn get_picking_tracking_from_db(conn: &Connection) -> Result<Vec<PickingTrackingItem>> {
     // 1. Obtener lista de auditorías existentes para marcar estado
     // Se indexa estrictamente por (order_number, despatch_number normalizado)
-    let mut stmt_audits = conn.prepare("SELECT order_number, despatch_number, status FROM picking_audits")?;
+    let mut stmt_audits =
+        conn.prepare("SELECT order_number, despatch_number, status FROM picking_audits")?;
     let mut audited_map: HashMap<(String, String), String> = HashMap::new();
     let audit_rows = stmt_audits.query_map([], |r| {
         let o = r.get::<_, String>(0)?.trim().to_uppercase();
         let d = normalize_despatch(&r.get::<_, Option<String>>(1)?.unwrap_or_default());
-        let s = r.get::<_, Option<String>>(2)?.unwrap_or_else(|| "Completo".to_string());
+        let s = r
+            .get::<_, Option<String>>(2)?
+            .unwrap_or_else(|| "Completo".to_string());
         Ok((o, d, s))
     })?;
     for row in audit_rows.flatten() {
@@ -495,11 +589,19 @@ pub fn get_picking_tracking_from_db(conn: &Connection) -> Result<Vec<PickingTrac
 // 2. ORDER DETAILS (/api/picking/order/{order}/{despatch})
 // ============================================================================
 
-pub fn get_picking_order_details_from_db(conn: &Connection, order_number: &str, despatch_number: &str) -> Result<Vec<PickingOrderRow>> {
+pub fn get_picking_order_details_from_db(
+    conn: &Connection,
+    order_number: &str,
+    despatch_number: &str,
+) -> Result<Vec<PickingOrderRow>> {
     let order_clean = order_number.trim();
     let despatch_clean = despatch_number.trim();
     let norm_desp = normalize_despatch(despatch_clean);
-    let alt_desp = if norm_desp == "00" { "0".to_string() } else { norm_desp.trim_start_matches('0').to_string() };
+    let alt_desp = if norm_desp == "00" {
+        "0".to_string()
+    } else {
+        norm_desp.trim_start_matches('0').to_string()
+    };
 
     let mut stmt = conn.prepare(
         "SELECT order_number, despatch_number, customer_code, customer_name,
@@ -518,11 +620,17 @@ pub fn get_picking_order_details_from_db(conn: &Connection, order_number: &str, 
         Ok(PickingOrderRow {
             order_number: row.get(0)?,
             despatch_number: row.get(1)?,
-            customer_code: row.get::<_, Option<String>>(2)?.unwrap_or_else(|| "N/A".to_string()),
-            customer_name: row.get::<_, Option<String>>(3)?.unwrap_or_else(|| "Cliente General".to_string()),
+            customer_code: row
+                .get::<_, Option<String>>(2)?
+                .unwrap_or_else(|| "N/A".to_string()),
+            customer_name: row
+                .get::<_, Option<String>>(3)?
+                .unwrap_or_else(|| "Cliente General".to_string()),
             item_code: row.get(4)?,
             item_description: row.get::<_, Option<String>>(5)?.unwrap_or_default(),
-            order_line: row.get::<_, Option<String>>(6)?.unwrap_or_else(|| "1".to_string()),
+            order_line: row
+                .get::<_, Option<String>>(6)?
+                .unwrap_or_else(|| "1".to_string()),
             qty: row.get(7)?,
         })
     })?;
@@ -538,19 +646,30 @@ pub fn get_picking_order_details_from_db(conn: &Connection, order_number: &str, 
 // 3. SAVE AUDIT (/api/save_picking_audit)
 // ============================================================================
 
-pub fn save_picking_audit_full_to_db(conn: &mut Connection, payload: PickingAuditFullInput) -> Result<i64> {
+pub fn save_picking_audit_full_to_db(
+    conn: &mut Connection,
+    payload: PickingAuditFullInput,
+) -> Result<i64> {
     let tx = conn.transaction()?;
 
-    let timestamp = payload.timestamp.unwrap_or_else(|| Local::now().format("%Y-%m-%d %H:%M:%S").to_string());
+    let timestamp = payload
+        .timestamp
+        .unwrap_or_else(|| Local::now().format("%Y-%m-%d %H:%M:%S").to_string());
     let status = payload.status.unwrap_or_else(|| "Completo".to_string());
     let username = payload.username.unwrap_or_else(|| "admin".to_string());
     let packages = payload.packages.unwrap_or(1);
     let cust_code = payload.customer_code.unwrap_or_else(|| "N/A".to_string());
-    let cust_name = payload.customer_name.unwrap_or_else(|| "Cliente General".to_string());
+    let cust_name = payload
+        .customer_name
+        .unwrap_or_else(|| "Cliente General".to_string());
     let ord_num = payload.order_number.trim().to_string();
     let raw_desp = payload.despatch_number.unwrap_or_else(|| "00".to_string());
     let desp_num = normalize_despatch(&raw_desp);
-    let alt_desp = if desp_num == "00" { "0".to_string() } else { desp_num.trim_start_matches('0').to_string() };
+    let alt_desp = if desp_num == "00" {
+        "0".to_string()
+    } else {
+        desp_num.trim_start_matches('0').to_string()
+    };
 
     // 1. Check for existing audit by ID or order_number + despatch_number to avoid duplicate headers
     let existing_id: Option<i64> = if let Some(id) = payload.id {
@@ -566,13 +685,23 @@ pub fn save_picking_audit_full_to_db(conn: &mut Connection, payload: PickingAudi
                )",
             params![ord_num.to_uppercase(), desp_num, alt_desp],
             |row| row.get(0),
-        ).ok()
+        )
+        .ok()
     };
 
     let audit_id = if let Some(id) = existing_id {
-        tx.execute("DELETE FROM picking_audit_items WHERE audit_id = ?1", params![id])?;
-        tx.execute("DELETE FROM picking_packages WHERE audit_id = ?1", params![id])?;
-        tx.execute("DELETE FROM picking_package_items WHERE audit_id = ?1", params![id])?;
+        tx.execute(
+            "DELETE FROM picking_audit_items WHERE audit_id = ?1",
+            params![id],
+        )?;
+        tx.execute(
+            "DELETE FROM picking_packages WHERE audit_id = ?1",
+            params![id],
+        )?;
+        tx.execute(
+            "DELETE FROM picking_package_items WHERE audit_id = ?1",
+            params![id],
+        )?;
 
         tx.execute(
             "UPDATE picking_audits SET
@@ -580,16 +709,8 @@ pub fn save_picking_audit_full_to_db(conn: &mut Connection, payload: PickingAudi
                 username = ?5, timestamp = ?6, status = ?7, packages = ?8, shipment_id = ?9
              WHERE id = ?10",
             params![
-                ord_num,
-                desp_num,
-                cust_code,
-                cust_name,
-                username,
-                timestamp,
-                status,
-                packages,
-                ord_num,
-                id,
+                ord_num, desp_num, cust_code, cust_name, username, timestamp, status, packages,
+                ord_num, id,
             ],
         )?;
         id
@@ -600,14 +721,7 @@ pub fn save_picking_audit_full_to_db(conn: &mut Connection, payload: PickingAudi
                 username, timestamp, status, packages, shipment_id
             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             params![
-                ord_num,
-                desp_num,
-                cust_code,
-                cust_name,
-                username,
-                timestamp,
-                status,
-                packages,
+                ord_num, desp_num, cust_code, cust_name, username, timestamp, status, packages,
                 ord_num,
             ],
         )?;
@@ -673,8 +787,13 @@ pub fn save_picking_audit_full_to_db(conn: &mut Connection, payload: PickingAudi
                 (key.trim().to_uppercase(), "".to_string())
             };
 
-            let item_desc = payload.items.iter()
-                .find(|it| it.item_code.trim().to_uppercase() == item_code && (order_line.is_empty() || it.order_line == order_line))
+            let item_desc = payload
+                .items
+                .iter()
+                .find(|it| {
+                    it.item_code.trim().to_uppercase() == item_code
+                        && (order_line.is_empty() || it.order_line == order_line)
+                })
                 .map(|it| it.description.clone())
                 .unwrap_or_default();
 
@@ -693,12 +812,7 @@ pub fn save_picking_audit_full_to_db(conn: &mut Connection, payload: PickingAudi
                     if qty > 0.0 {
                         let pkg_num: i64 = pkg_str.parse().unwrap_or(1);
                         stmt_pkg_item.execute(params![
-                            audit_id,
-                            pkg_num,
-                            order_line,
-                            item_code,
-                            item_desc,
-                            qty,
+                            audit_id, pkg_num, order_line, item_code, item_desc, qty,
                         ])?;
                     }
                 }
@@ -738,12 +852,18 @@ pub fn get_picking_audits_full_from_db(conn: &Connection) -> Result<Vec<PickingA
         Ok((
             row.get::<_, i64>(0)?,
             row.get::<_, Option<String>>(1)?.unwrap_or_default(),
-            row.get::<_, Option<String>>(2)?.unwrap_or_else(|| "00".to_string()),
-            row.get::<_, Option<String>>(3)?.unwrap_or_else(|| "N/A".to_string()),
-            row.get::<_, Option<String>>(4)?.unwrap_or_else(|| "Cliente General".to_string()),
-            row.get::<_, Option<String>>(5)?.unwrap_or_else(|| "admin".to_string()),
-            row.get::<_, Option<String>>(6)?.unwrap_or_else(|| Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
-            row.get::<_, Option<String>>(7)?.unwrap_or_else(|| "Completo".to_string()),
+            row.get::<_, Option<String>>(2)?
+                .unwrap_or_else(|| "00".to_string()),
+            row.get::<_, Option<String>>(3)?
+                .unwrap_or_else(|| "N/A".to_string()),
+            row.get::<_, Option<String>>(4)?
+                .unwrap_or_else(|| "Cliente General".to_string()),
+            row.get::<_, Option<String>>(5)?
+                .unwrap_or_else(|| "admin".to_string()),
+            row.get::<_, Option<String>>(6)?
+                .unwrap_or_else(|| Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
+            row.get::<_, Option<String>>(7)?
+                .unwrap_or_else(|| "Completo".to_string()),
             row.get::<_, Option<i64>>(8)?.unwrap_or(1),
         ))
     })?;
@@ -800,7 +920,10 @@ pub fn get_picking_audits_full_from_db(conn: &Connection) -> Result<Vec<PickingA
             }
             let key = format!("{}:{}", pki.2, order_line);
             let pkg_str = pki.0.to_string();
-            packages_assignment.entry(key).or_default().insert(pkg_str, pki.3 as i64);
+            packages_assignment
+                .entry(key)
+                .or_default()
+                .insert(pkg_str, pki.3 as i64);
         }
 
         // Cargar dimensiones
@@ -844,7 +967,10 @@ pub fn get_picking_audits_full_from_db(conn: &Connection) -> Result<Vec<PickingA
 // 5. GET AUDIT DETAIL (/api/picking_audit/{id})
 // ============================================================================
 
-pub fn get_picking_audit_by_id_full_db(conn: &Connection, id: i64) -> Result<Option<PickingAuditSummaryFull>> {
+pub fn get_picking_audit_by_id_full_db(
+    conn: &Connection,
+    id: i64,
+) -> Result<Option<PickingAuditSummaryFull>> {
     let all = get_picking_audits_full_from_db(conn)?;
     Ok(all.into_iter().find(|a| a.id == id))
 }
@@ -853,13 +979,19 @@ pub fn get_picking_audit_by_id_full_db(conn: &Connection, id: i64) -> Result<Opt
 // 6. UPDATE AUDIT (/api/update_picking_audit/{id})
 // ============================================================================
 
-pub fn update_picking_audit_full_in_db(conn: &mut Connection, id: i64, payload: PickingAuditFullInput) -> Result<bool> {
+pub fn update_picking_audit_full_in_db(
+    conn: &mut Connection,
+    id: i64,
+    payload: PickingAuditFullInput,
+) -> Result<bool> {
     let tx = conn.transaction()?;
 
     let status = payload.status.unwrap_or_else(|| "Completo".to_string());
     let packages = payload.packages.unwrap_or(1);
     let cust_code = payload.customer_code.unwrap_or_else(|| "N/A".to_string());
-    let cust_name = payload.customer_name.unwrap_or_else(|| "Cliente General".to_string());
+    let cust_name = payload
+        .customer_name
+        .unwrap_or_else(|| "Cliente General".to_string());
     let ord_num = payload.order_number.trim().to_string();
     let raw_desp = payload.despatch_number.unwrap_or_else(|| "00".to_string());
     let desp_num = normalize_despatch(&raw_desp);
@@ -873,19 +1005,14 @@ pub fn update_picking_audit_full_in_db(conn: &mut Connection, id: i64, payload: 
             status = ?5,
             packages = ?6
          WHERE id = ?7",
-        params![
-            ord_num,
-            desp_num,
-            cust_code,
-            cust_name,
-            status,
-            packages,
-            id,
-        ],
+        params![ord_num, desp_num, cust_code, cust_name, status, packages, id,],
     )?;
 
     // Eliminar items previos y reinsertar con edited = 1
-    tx.execute("DELETE FROM picking_audit_items WHERE audit_id = ?1", params![id])?;
+    tx.execute(
+        "DELETE FROM picking_audit_items WHERE audit_id = ?1",
+        params![id],
+    )?;
     {
         let mut stmt_item = tx.prepare(
             "INSERT INTO picking_audit_items (
@@ -909,7 +1036,10 @@ pub fn update_picking_audit_full_in_db(conn: &mut Connection, id: i64, payload: 
     }
 
     // Reinsertar asignación de bultos
-    tx.execute("DELETE FROM picking_package_items WHERE audit_id = ?1", params![id])?;
+    tx.execute(
+        "DELETE FROM picking_package_items WHERE audit_id = ?1",
+        params![id],
+    )?;
     if let Some(obj) = payload.packages_assignment.as_object() {
         let mut stmt_pkg_item = tx.prepare(
             "INSERT INTO picking_package_items (
@@ -925,8 +1055,13 @@ pub fn update_picking_audit_full_in_db(conn: &mut Connection, id: i64, payload: 
                 (key.trim().to_uppercase(), "".to_string())
             };
 
-            let item_desc = payload.items.iter()
-                .find(|it| it.item_code.trim().to_uppercase() == item_code && (order_line.is_empty() || it.order_line == order_line))
+            let item_desc = payload
+                .items
+                .iter()
+                .find(|it| {
+                    it.item_code.trim().to_uppercase() == item_code
+                        && (order_line.is_empty() || it.order_line == order_line)
+                })
                 .map(|it| it.description.clone())
                 .unwrap_or_default();
 
@@ -945,12 +1080,7 @@ pub fn update_picking_audit_full_in_db(conn: &mut Connection, id: i64, payload: 
                     if qty > 0.0 {
                         let pkg_num: i64 = pkg_str.parse().unwrap_or(1);
                         stmt_pkg_item.execute(params![
-                            id,
-                            pkg_num,
-                            order_line,
-                            item_code,
-                            item_desc,
-                            qty,
+                            id, pkg_num, order_line, item_code, item_desc, qty,
                         ])?;
                     }
                 }
@@ -959,7 +1089,10 @@ pub fn update_picking_audit_full_in_db(conn: &mut Connection, id: i64, payload: 
     }
 
     // Reinsertar dimensiones de bultos
-    tx.execute("DELETE FROM picking_packages WHERE audit_id = ?1", params![id])?;
+    tx.execute(
+        "DELETE FROM picking_packages WHERE audit_id = ?1",
+        params![id],
+    )?;
     {
         let mut stmt_dim = tx.prepare(
             "INSERT INTO picking_packages (
@@ -991,10 +1124,22 @@ pub fn delete_picking_audits_from_db(conn: &Connection, ids: &[i64]) -> Result<u
     let mut count = 0;
     for id in ids {
         count += conn.execute("DELETE FROM picking_audits WHERE id = ?1", params![id])?;
-        conn.execute("DELETE FROM picking_audit_items WHERE audit_id = ?1", params![id])?;
-        conn.execute("DELETE FROM picking_package_items WHERE audit_id = ?1", params![id])?;
-        conn.execute("DELETE FROM picking_packages WHERE audit_id = ?1", params![id])?;
-        conn.execute("DELETE FROM shipment_audits WHERE audit_id = ?1", params![id])?;
+        conn.execute(
+            "DELETE FROM picking_audit_items WHERE audit_id = ?1",
+            params![id],
+        )?;
+        conn.execute(
+            "DELETE FROM picking_package_items WHERE audit_id = ?1",
+            params![id],
+        )?;
+        conn.execute(
+            "DELETE FROM picking_packages WHERE audit_id = ?1",
+            params![id],
+        )?;
+        conn.execute(
+            "DELETE FROM shipment_audits WHERE audit_id = ?1",
+            params![id],
+        )?;
     }
     Ok(count)
 }
@@ -1003,7 +1148,10 @@ pub fn delete_picking_audits_from_db(conn: &Connection, ids: &[i64]) -> Result<u
 // 8. PACKING LIST DE UNA AUDITORÍA (/api/picking/packing_list/{audit_id})
 // ============================================================================
 
-pub fn get_picking_packing_list_from_db(conn: &Connection, audit_id: i64) -> Result<Option<PickingAuditPackingListDto>> {
+pub fn get_picking_packing_list_from_db(
+    conn: &Connection,
+    audit_id: i64,
+) -> Result<Option<PickingAuditPackingListDto>> {
     let audit_id_str = audit_id.to_string();
     let mut stmt = conn.prepare(
         "SELECT id, order_number, despatch_number, customer_code, customer_name, timestamp, packages
@@ -1018,10 +1166,14 @@ pub fn get_picking_packing_list_from_db(conn: &Connection, audit_id: i64) -> Res
         Ok((
             row.get::<_, i64>(0)?,
             row.get::<_, Option<String>>(1)?.unwrap_or_default(),
-            row.get::<_, Option<String>>(2)?.unwrap_or_else(|| "00".to_string()),
-            row.get::<_, Option<String>>(3)?.unwrap_or_else(|| "N/A".to_string()),
-            row.get::<_, Option<String>>(4)?.unwrap_or_else(|| "Cliente General".to_string()),
-            row.get::<_, Option<String>>(5)?.unwrap_or_else(|| Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
+            row.get::<_, Option<String>>(2)?
+                .unwrap_or_else(|| "00".to_string()),
+            row.get::<_, Option<String>>(3)?
+                .unwrap_or_else(|| "N/A".to_string()),
+            row.get::<_, Option<String>>(4)?
+                .unwrap_or_else(|| "Cliente General".to_string()),
+            row.get::<_, Option<String>>(5)?
+                .unwrap_or_else(|| Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
             row.get::<_, Option<i64>>(6)?.unwrap_or(1),
         ))
     });
@@ -1054,13 +1206,16 @@ pub fn get_picking_packing_list_from_db(conn: &Connection, audit_id: i64) -> Res
     let mut packages: HashMap<String, Vec<PackingListItemDetailDto>> = HashMap::new();
     for it in items_iter.flatten() {
         let pkg_key = it.0.to_string();
-        packages.entry(pkg_key).or_default().push(PackingListItemDetailDto {
-            item_code: it.1,
-            description: it.2,
-            order_line: it.3,
-            qty: it.4,
-            quantity: it.4,
-        });
+        packages
+            .entry(pkg_key)
+            .or_default()
+            .push(PackingListItemDetailDto {
+                item_code: it.1,
+                description: it.2,
+                order_line: it.3,
+                qty: it.4,
+                quantity: it.4,
+            });
     }
 
     if packages.is_empty() {
@@ -1121,7 +1276,13 @@ pub fn get_picking_packing_list_from_db(conn: &Connection, audit_id: i64) -> Res
 // 9. SHIPMENTS (/api/shipments/)
 // ============================================================================
 
-pub fn create_shipment_in_db(conn: &mut Connection, audit_ids: &[i64], note: Option<String>, carrier: Option<String>, username: Option<String>) -> Result<i64> {
+pub fn create_shipment_in_db(
+    conn: &mut Connection,
+    audit_ids: &[i64],
+    note: Option<String>,
+    carrier: Option<String>,
+    username: Option<String>,
+) -> Result<i64> {
     let tx = conn.transaction()?;
 
     let created_at = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
@@ -1135,9 +1296,8 @@ pub fn create_shipment_in_db(conn: &mut Connection, audit_ids: &[i64], note: Opt
     let shipment_id = tx.last_insert_rowid();
 
     {
-        let mut stmt_link = tx.prepare(
-            "INSERT INTO shipment_audits (shipment_id, audit_id) VALUES (?1, ?2)",
-        )?;
+        let mut stmt_link =
+            tx.prepare("INSERT INTO shipment_audits (shipment_id, audit_id) VALUES (?1, ?2)")?;
         for aid in audit_ids {
             stmt_link.execute(params![shipment_id, aid])?;
         }
@@ -1158,10 +1318,12 @@ pub fn list_shipments_from_db(conn: &Connection) -> Result<Vec<ShipmentDto>> {
         Ok((
             row.get::<_, i64>(0)?,
             row.get::<_, String>(1)?,
-            row.get::<_, Option<String>>(2)?.unwrap_or_else(|| "admin".to_string()),
+            row.get::<_, Option<String>>(2)?
+                .unwrap_or_else(|| "admin".to_string()),
             row.get::<_, Option<String>>(3)?.unwrap_or_default(),
             row.get::<_, Option<String>>(4)?.unwrap_or_default(),
-            row.get::<_, Option<String>>(5)?.unwrap_or_else(|| "active".to_string()),
+            row.get::<_, Option<String>>(5)?
+                .unwrap_or_else(|| "active".to_string()),
         ))
     })?;
 
@@ -1182,8 +1344,12 @@ pub fn list_shipments_from_db(conn: &Connection) -> Result<Vec<ShipmentDto>> {
                 audit_id: row.get(0)?,
                 order_number: row.get(1)?,
                 despatch_number: row.get(2)?,
-                customer_code: row.get::<_, Option<String>>(3)?.unwrap_or_else(|| "N/A".to_string()),
-                customer_name: row.get::<_, Option<String>>(4)?.unwrap_or_else(|| "Cliente General".to_string()),
+                customer_code: row
+                    .get::<_, Option<String>>(3)?
+                    .unwrap_or_else(|| "N/A".to_string()),
+                customer_name: row
+                    .get::<_, Option<String>>(4)?
+                    .unwrap_or_else(|| "Cliente General".to_string()),
                 packages: row.get::<_, Option<i64>>(5)?.unwrap_or(1),
             })
         })?;
@@ -1205,7 +1371,10 @@ pub fn list_shipments_from_db(conn: &Connection) -> Result<Vec<ShipmentDto>> {
     Ok(result)
 }
 
-pub fn get_consolidated_packing_list_from_db(conn: &Connection, shipment_id: i64) -> Result<Option<ConsolidatedPackingListDto>> {
+pub fn get_consolidated_packing_list_from_db(
+    conn: &Connection,
+    shipment_id: i64,
+) -> Result<Option<ConsolidatedPackingListDto>> {
     let mut stmt = conn.prepare(
         "SELECT id, created_at, carrier, note, status
          FROM shipments
@@ -1218,7 +1387,8 @@ pub fn get_consolidated_packing_list_from_db(conn: &Connection, shipment_id: i64
             row.get::<_, String>(1)?,
             row.get::<_, Option<String>>(2)?.unwrap_or_default(),
             row.get::<_, Option<String>>(3)?.unwrap_or_default(),
-            row.get::<_, Option<String>>(4)?.unwrap_or_else(|| "active".to_string()),
+            row.get::<_, Option<String>>(4)?
+                .unwrap_or_else(|| "active".to_string()),
         ))
     });
 
@@ -1240,10 +1410,14 @@ pub fn get_consolidated_packing_list_from_db(conn: &Connection, shipment_id: i64
         Ok((
             row.get::<_, i64>(0)?,
             row.get::<_, Option<String>>(1)?.unwrap_or_default(),
-            row.get::<_, Option<String>>(2)?.unwrap_or_else(|| "00".to_string()),
-            row.get::<_, Option<String>>(3)?.unwrap_or_else(|| "N/A".to_string()),
-            row.get::<_, Option<String>>(4)?.unwrap_or_else(|| "Cliente General".to_string()),
-            row.get::<_, Option<String>>(5)?.unwrap_or_else(|| Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
+            row.get::<_, Option<String>>(2)?
+                .unwrap_or_else(|| "00".to_string()),
+            row.get::<_, Option<String>>(3)?
+                .unwrap_or_else(|| "N/A".to_string()),
+            row.get::<_, Option<String>>(4)?
+                .unwrap_or_else(|| "Cliente General".to_string()),
+            row.get::<_, Option<String>>(5)?
+                .unwrap_or_else(|| Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
             row.get::<_, Option<i64>>(6)?.unwrap_or(1),
         ))
     })?;
@@ -1272,12 +1446,15 @@ pub fn get_consolidated_packing_list_from_db(conn: &Connection, shipment_id: i64
         let mut packages: HashMap<String, Vec<ConsolidatedOrderItemDto>> = HashMap::new();
         for p in pkg_iter.flatten() {
             let pkg_key = p.0.to_string();
-            packages.entry(pkg_key).or_default().push(ConsolidatedOrderItemDto {
-                order_line: p.1,
-                item_code: p.2,
-                description: p.3,
-                quantity: p.4,
-            });
+            packages
+                .entry(pkg_key)
+                .or_default()
+                .push(ConsolidatedOrderItemDto {
+                    order_line: p.1,
+                    item_code: p.2,
+                    description: p.3,
+                    quantity: p.4,
+                });
         }
 
         let mut stmt_dims = conn.prepare(
@@ -1321,7 +1498,10 @@ pub fn get_consolidated_packing_list_from_db(conn: &Connection, shipment_id: i64
 }
 
 pub fn delete_shipment_in_db(conn: &Connection, shipment_id: i64) -> Result<()> {
-    conn.execute("DELETE FROM shipment_audits WHERE shipment_id = ?1", params![shipment_id])?;
+    conn.execute(
+        "DELETE FROM shipment_audits WHERE shipment_id = ?1",
+        params![shipment_id],
+    )?;
     conn.execute("DELETE FROM shipments WHERE id = ?1", params![shipment_id])?;
     Ok(())
 }
@@ -1409,8 +1589,9 @@ mod tests {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 shipment_id INTEGER NOT NULL,
                 audit_id INTEGER NOT NULL
-            );"
-        ).unwrap();
+            );",
+        )
+        .unwrap();
         conn
     }
 
@@ -1457,7 +1638,9 @@ mod tests {
         assert_eq!(audits[0].items.len(), 1);
         assert_eq!(audits[0].packages_dimensions.len(), 1);
 
-        let packing_list = get_picking_packing_list_from_db(&conn, audit_id).unwrap().unwrap();
+        let packing_list = get_picking_packing_list_from_db(&conn, audit_id)
+            .unwrap()
+            .unwrap();
         assert_eq!(packing_list.order_number, "0046907");
         assert_eq!(packing_list.packages.get("1").unwrap().len(), 1);
     }
@@ -1482,7 +1665,14 @@ mod tests {
         };
         let audit_id = save_picking_audit_full_to_db(&mut conn, input).unwrap();
 
-        let ship_id = create_shipment_in_db(&mut conn, &[audit_id], Some("Nota de envío".to_string()), Some("Servientrega".to_string()), Some("admin".to_string())).unwrap();
+        let ship_id = create_shipment_in_db(
+            &mut conn,
+            &[audit_id],
+            Some("Nota de envío".to_string()),
+            Some("Servientrega".to_string()),
+            Some("admin".to_string()),
+        )
+        .unwrap();
         assert_eq!(ship_id, 1);
 
         let shipments = list_shipments_from_db(&conn).unwrap();
@@ -1490,7 +1680,9 @@ mod tests {
         assert_eq!(shipments[0].carrier, "Servientrega");
         assert_eq!(shipments[0].total_orders, 1);
 
-        let packing_list = get_consolidated_packing_list_from_db(&conn, ship_id).unwrap().unwrap();
+        let packing_list = get_consolidated_packing_list_from_db(&conn, ship_id)
+            .unwrap()
+            .unwrap();
         assert_eq!(packing_list.carrier, "Servientrega");
         assert_eq!(packing_list.total_orders, 1);
     }
@@ -1499,25 +1691,23 @@ mod tests {
     fn test_import_picking_orders_bulk_replaces_existing() {
         let mut conn = setup_test_db();
 
-        let batch1 = vec![
-            PickingOrderImportRow {
-                shipment_id: None,
-                order_number: "001".to_string(),
-                despatch_number: Some("00".to_string()),
-                customer_code: Some("C1".to_string()),
-                customer_name: Some("Cliente 1".to_string()),
-                carrier: None,
-                order_line: Some("1".to_string()),
-                item_code: "ITEM-A".to_string(),
-                item_description: Some("Item A".to_string()),
-                requested_qty: 10.0,
-                picked_qty: Some(0.0),
-                print_date: Some("2026-08-16".to_string()),
-                time_zone_hours: Some("-05:00".to_string()),
-                status: Some("PP".to_string()),
-                timestamp: None,
-            },
-        ];
+        let batch1 = vec![PickingOrderImportRow {
+            shipment_id: None,
+            order_number: "001".to_string(),
+            despatch_number: Some("00".to_string()),
+            customer_code: Some("C1".to_string()),
+            customer_name: Some("Cliente 1".to_string()),
+            carrier: None,
+            order_line: Some("1".to_string()),
+            item_code: "ITEM-A".to_string(),
+            item_description: Some("Item A".to_string()),
+            requested_qty: 10.0,
+            picked_qty: Some(0.0),
+            print_date: Some("2026-08-16".to_string()),
+            time_zone_hours: Some("-05:00".to_string()),
+            status: Some("PP".to_string()),
+            timestamp: None,
+        }];
 
         let count1 = import_picking_orders_bulk_db(&mut conn, &batch1).unwrap();
         assert_eq!(count1, 1);
@@ -1526,25 +1716,23 @@ mod tests {
         assert_eq!(tracking1.len(), 1);
         assert_eq!(tracking1[0].order_number, "001");
 
-        let batch2 = vec![
-            PickingOrderImportRow {
-                shipment_id: None,
-                order_number: "002".to_string(),
-                despatch_number: Some("00".to_string()),
-                customer_code: Some("C2".to_string()),
-                customer_name: Some("Cliente 2".to_string()),
-                carrier: None,
-                order_line: Some("1".to_string()),
-                item_code: "ITEM-B".to_string(),
-                item_description: Some("Item B".to_string()),
-                requested_qty: 5.0,
-                picked_qty: Some(0.0),
-                print_date: Some("2026-08-16".to_string()),
-                time_zone_hours: Some("-05:00".to_string()),
-                status: Some("PP".to_string()),
-                timestamp: None,
-            },
-        ];
+        let batch2 = vec![PickingOrderImportRow {
+            shipment_id: None,
+            order_number: "002".to_string(),
+            despatch_number: Some("00".to_string()),
+            customer_code: Some("C2".to_string()),
+            customer_name: Some("Cliente 2".to_string()),
+            carrier: None,
+            order_line: Some("1".to_string()),
+            item_code: "ITEM-B".to_string(),
+            item_description: Some("Item B".to_string()),
+            requested_qty: 5.0,
+            picked_qty: Some(0.0),
+            print_date: Some("2026-08-16".to_string()),
+            time_zone_hours: Some("-05:00".to_string()),
+            status: Some("PP".to_string()),
+            timestamp: None,
+        }];
 
         let count2 = import_picking_orders_bulk_db(&mut conn, &batch2).unwrap();
         assert_eq!(count2, 1);
@@ -1624,14 +1812,25 @@ mod tests {
         let tracking_after = get_picking_tracking_from_db(&conn).unwrap();
         assert_eq!(tracking_after.len(), 2);
 
-        let desp_00 = tracking_after.iter().find(|t| t.order_number == "0046907" && t.despatch_number == "00").unwrap();
-        let desp_01 = tracking_after.iter().find(|t| t.order_number == "0046907" && t.despatch_number == "01").unwrap();
+        let desp_00 = tracking_after
+            .iter()
+            .find(|t| t.order_number == "0046907" && t.despatch_number == "00")
+            .unwrap();
+        let desp_01 = tracking_after
+            .iter()
+            .find(|t| t.order_number == "0046907" && t.despatch_number == "01")
+            .unwrap();
 
-        assert!(desp_00.is_audited, "El despacho 00 debe estar marcado como auditado");
+        assert!(
+            desp_00.is_audited,
+            "El despacho 00 debe estar marcado como auditado"
+        );
         assert_eq!(desp_00.status, "Completo");
 
-        assert!(!desp_01.is_audited, "El despacho 01 NO debe estar marcado como auditado");
+        assert!(
+            !desp_01.is_audited,
+            "El despacho 01 NO debe estar marcado como auditado"
+        );
         assert_eq!(desp_01.status, "PP");
     }
 }
-

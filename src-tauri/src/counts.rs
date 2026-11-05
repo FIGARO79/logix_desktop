@@ -83,21 +83,22 @@ pub fn get_active_session(conn: &Connection) -> Result<CountSession> {
          LIMIT 1",
     )?;
 
-    let session = stmt.query_row([], |row| {
-        let id: i64 = row.get(0)?;
-        Ok(CountSession {
-            id,
-            session_id: id,
-            name: row.get(1)?,
-            user_username: row.get(2)?,
-            start_time: row.get(3)?,
-            end_time: row.get(4)?,
-            status: row.get(5)?,
-            inventory_stage: row.get(6)?,
-            is_active: true,
+    let session = stmt
+        .query_row([], |row| {
+            let id: i64 = row.get(0)?;
+            Ok(CountSession {
+                id,
+                session_id: id,
+                name: row.get(1)?,
+                user_username: row.get(2)?,
+                start_time: row.get(3)?,
+                end_time: row.get(4)?,
+                status: row.get(5)?,
+                inventory_stage: row.get(6)?,
+                is_active: true,
+            })
         })
-    }).unwrap_or_else(|_| {
-        CountSession {
+        .unwrap_or_else(|_| CountSession {
             id: 1,
             session_id: 1,
             name: "Sesión Principal Local".to_string(),
@@ -107,8 +108,7 @@ pub fn get_active_session(conn: &Connection) -> Result<CountSession> {
             status: "in_progress".to_string(),
             inventory_stage: 1,
             is_active: true,
-        }
-    });
+        });
 
     Ok(session)
 }
@@ -150,7 +150,9 @@ pub fn close_session(conn: &Connection, session_id: i64) -> Result<()> {
 pub fn get_session_locations(conn: &Connection, session_id: i64) -> Result<Vec<String>> {
     let mut locs = HashSet::new();
 
-    if let Ok(mut stmt) = conn.prepare("SELECT location_code FROM session_locations WHERE session_id = ?1") {
+    if let Ok(mut stmt) =
+        conn.prepare("SELECT location_code FROM session_locations WHERE session_id = ?1")
+    {
         if let Ok(iter) = stmt.query_map(params![session_id], |row| row.get::<_, String>(0)) {
             for l in iter.flatten() {
                 locs.insert(l.trim().to_uppercase());
@@ -158,7 +160,8 @@ pub fn get_session_locations(conn: &Connection, session_id: i64) -> Result<Vec<S
         }
     }
 
-    if let Ok(mut stmt) = conn.prepare("SELECT DISTINCT location FROM counts WHERE session_id = ?1") {
+    if let Ok(mut stmt) = conn.prepare("SELECT DISTINCT location FROM counts WHERE session_id = ?1")
+    {
         if let Ok(iter) = stmt.query_map(params![session_id], |row| row.get::<_, String>(0)) {
             for l in iter.flatten() {
                 locs.insert(l.trim().to_uppercase());
@@ -172,7 +175,11 @@ pub fn get_session_locations(conn: &Connection, session_id: i64) -> Result<Vec<S
 }
 
 /// Obtiene conteos de una ubicación específica en la sesión
-pub fn get_session_counts_by_location(conn: &Connection, session_id: i64, location: &str) -> Result<Vec<CountRecord>> {
+pub fn get_session_counts_by_location(
+    conn: &Connection,
+    session_id: i64,
+    location: &str,
+) -> Result<Vec<CountRecord>> {
     let loc_upper = location.trim().to_uppercase();
     let mut stmt = conn.prepare(
         "SELECT id, session_id, count_type, item_code, description, location, counted_qty, stage, user_id, status, unit_cost, timestamp
@@ -234,15 +241,19 @@ pub fn get_item_for_counting(conn: &Connection, code: &str) -> Result<ItemCounti
          WHERE UPPER(item_code) = ?1",
     )?;
 
-    let mut item_res = stmt.query_row(params![clean_code], |row| {
-        Ok(ItemCountingDetails {
-            item_code: row.get(0)?,
-            description: row.get::<_, Option<String>>(1)?.unwrap_or_default(),
-            bin_location: row.get::<_, Option<String>>(2)?.unwrap_or_else(|| "N/A".to_string()),
-            system_qty: row.get::<_, Option<f64>>(3)?.unwrap_or(0.0),
-            unit_cost: row.get::<_, Option<f64>>(4)?.unwrap_or(0.0),
+    let mut item_res = stmt
+        .query_row(params![clean_code], |row| {
+            Ok(ItemCountingDetails {
+                item_code: row.get(0)?,
+                description: row.get::<_, Option<String>>(1)?.unwrap_or_default(),
+                bin_location: row
+                    .get::<_, Option<String>>(2)?
+                    .unwrap_or_else(|| "N/A".to_string()),
+                system_qty: row.get::<_, Option<f64>>(3)?.unwrap_or(0.0),
+                unit_cost: row.get::<_, Option<f64>>(4)?.unwrap_or(0.0),
+            })
         })
-    }).ok();
+        .ok();
 
     // Fallback flexible para ítems con puntos, guiones o prefijos (ej. .>RU18278, BG-0086)
     if item_res.is_none() {
@@ -253,13 +264,19 @@ pub fn get_item_for_counting(conn: &Connection, code: &str) -> Result<ItemCounti
                 Ok(ItemCountingDetails {
                     item_code: row.get(0)?,
                     description: row.get::<_, Option<String>>(1)?.unwrap_or_default(),
-                    bin_location: row.get::<_, Option<String>>(2)?.unwrap_or_else(|| "N/A".to_string()),
+                    bin_location: row
+                        .get::<_, Option<String>>(2)?
+                        .unwrap_or_else(|| "N/A".to_string()),
                     system_qty: row.get::<_, Option<f64>>(3)?.unwrap_or(0.0),
                     unit_cost: row.get::<_, Option<f64>>(4)?.unwrap_or(0.0),
                 })
             })?;
             for cand in iter.flatten() {
-                let cand_alpha: String = cand.item_code.chars().filter(|c| c.is_alphanumeric()).collect();
+                let cand_alpha: String = cand
+                    .item_code
+                    .chars()
+                    .filter(|c| c.is_alphanumeric())
+                    .collect();
                 if cand_alpha.to_uppercase() == alpha_code {
                     item_res = Some(cand);
                     break;
@@ -399,7 +416,11 @@ pub fn get_count_stats(conn: &Connection) -> Result<CountStats> {
     let all_counts = get_all_counts(conn, None)?;
     let total_counts = all_counts.len();
     let total_units: f64 = all_counts.iter().map(|c| c.counted_qty).sum();
-    let locations_counted = all_counts.iter().map(|c| c.location.clone()).collect::<HashSet<String>>().len();
+    let locations_counted = all_counts
+        .iter()
+        .map(|c| c.location.clone())
+        .collect::<HashSet<String>>()
+        .len();
 
     let diffs = get_cycle_count_differences_db(conn)?;
     let discrepancies = diffs.iter().filter(|d| d.status != "OK").count();
@@ -427,7 +448,8 @@ pub fn get_inventory_dashboard_stats(conn: &Connection) -> Result<Value> {
         return Ok(json!({ "empty": true }));
     }
 
-    let mut active_stmt = conn.prepare("SELECT COUNT(DISTINCT item_code) FROM inventory_items WHERE system_qty > 0")?;
+    let mut active_stmt =
+        conn.prepare("SELECT COUNT(DISTINCT item_code) FROM inventory_items WHERE system_qty > 0")?;
     let mut total_active_skus: i64 = active_stmt.query_row([], |r| r.get(0)).unwrap_or(0);
     if total_active_skus == 0 {
         total_active_skus = total_records;
@@ -458,22 +480,35 @@ pub fn get_inventory_dashboard_stats(conn: &Connection) -> Result<Value> {
         cost: f64,
     }
 
-    let rows: Vec<RowData> = stmt.query_map([], |r| {
-        Ok(RowData {
-            id: r.get(0)?,
-            item_code: r.get::<_, String>(2)?.trim().to_uppercase(),
-            abc_code: r.get::<_, Option<String>>(3)?.unwrap_or_else(|| "C".to_string()),
-            system_qty: r.get::<_, Option<f64>>(4)?.unwrap_or(0.0),
-            difference: r.get::<_, Option<f64>>(6)?.unwrap_or(0.0),
-            user_id: r.get::<_, Option<String>>(7)?.unwrap_or_else(|| "Sistema".to_string()),
-            location: r.get::<_, Option<String>>(8)?.unwrap_or_else(|| "N/A".to_string()),
-            item_description: r.get::<_, Option<String>>(9)?.unwrap_or_default(),
-            root_cause: r.get::<_, Option<String>>(10)?.unwrap_or_else(|| "Sin causa determinada".to_string()),
-            status: r.get::<_, Option<String>>(11)?.unwrap_or_else(|| "closed".to_string()),
-            stage: r.get::<_, Option<i32>>(12)?.unwrap_or(1),
-            cost: r.get::<_, Option<f64>>(13)?.unwrap_or(0.0),
-        })
-    })?.filter_map(|r| r.ok()).collect();
+    let rows: Vec<RowData> = stmt
+        .query_map([], |r| {
+            Ok(RowData {
+                id: r.get(0)?,
+                item_code: r.get::<_, String>(2)?.trim().to_uppercase(),
+                abc_code: r
+                    .get::<_, Option<String>>(3)?
+                    .unwrap_or_else(|| "C".to_string()),
+                system_qty: r.get::<_, Option<f64>>(4)?.unwrap_or(0.0),
+                difference: r.get::<_, Option<f64>>(6)?.unwrap_or(0.0),
+                user_id: r
+                    .get::<_, Option<String>>(7)?
+                    .unwrap_or_else(|| "Sistema".to_string()),
+                location: r
+                    .get::<_, Option<String>>(8)?
+                    .unwrap_or_else(|| "N/A".to_string()),
+                item_description: r.get::<_, Option<String>>(9)?.unwrap_or_default(),
+                root_cause: r
+                    .get::<_, Option<String>>(10)?
+                    .unwrap_or_else(|| "Sin causa determinada".to_string()),
+                status: r
+                    .get::<_, Option<String>>(11)?
+                    .unwrap_or_else(|| "closed".to_string()),
+                stage: r.get::<_, Option<i32>>(12)?.unwrap_or(1),
+                cost: r.get::<_, Option<f64>>(13)?.unwrap_or(0.0),
+            })
+        })?
+        .filter_map(|r| r.ok())
+        .collect();
 
     let total_rows = rows.len() as f64;
     if total_rows == 0.0 {
@@ -515,10 +550,16 @@ pub fn get_inventory_dashboard_stats(conn: &Connection) -> Result<Value> {
             *sku_diff_count.entry(row.item_code.clone()).or_insert(0) += 1;
         }
 
-        let abc = if row.abc_code.is_empty() { "C".to_string() } else { row.abc_code.clone() };
+        let abc = if row.abc_code.is_empty() {
+            "C".to_string()
+        } else {
+            row.abc_code.clone()
+        };
         let abc_entry = exact_by_abc.entry(abc).or_insert((0, 0));
         abc_entry.1 += 1;
-        if is_exact { abc_entry.0 += 1; }
+        if is_exact {
+            abc_entry.0 += 1;
+        }
 
         *loc_diffs.entry(row.location.clone()).or_insert(0.0) += row.difference.abs();
         *sku_diffs.entry(row.item_code.clone()).or_insert(0.0) += row.difference.abs();
@@ -536,7 +577,11 @@ pub fn get_inventory_dashboard_stats(conn: &Connection) -> Result<Value> {
         net_val_diff += val_d;
 
         if !is_exact {
-            let cause = if row.root_cause.is_empty() { "Sin causa determinada".to_string() } else { row.root_cause.clone() };
+            let cause = if row.root_cause.is_empty() {
+                "Sin causa determinada".to_string()
+            } else {
+                row.root_cause.clone()
+            };
             let c_entry = cause_impact.entry(cause).or_insert((0, 0.0));
             c_entry.0 += 1;
             c_entry.1 += abs_val_d;
@@ -544,7 +589,9 @@ pub fn get_inventory_dashboard_stats(conn: &Connection) -> Result<Value> {
 
         if row.stage == 1 {
             first_count_total += 1;
-            if is_exact { first_count_exact += 1; }
+            if is_exact {
+                first_count_exact += 1;
+            }
         } else {
             recount_needed_count += 1;
         }
@@ -563,12 +610,20 @@ pub fn get_inventory_dashboard_stats(conn: &Connection) -> Result<Value> {
 
         let u_entry = user_stats.entry(row.user_id.clone()).or_insert((0, 0));
         u_entry.0 += 1;
-        if !is_exact { u_entry.1 += 1; }
+        if !is_exact {
+            u_entry.1 += 1;
+        }
 
-        let zone = if row.location.len() >= 2 { row.location[0..2].to_string() } else { "General".to_string() };
+        let zone = if row.location.len() >= 2 {
+            row.location[0..2].to_string()
+        } else {
+            "General".to_string()
+        };
         let z_entry = zone_stats.entry(zone).or_insert((0, 0));
         z_entry.0 += 1;
-        if !is_exact { z_entry.1 += 1; }
+        if !is_exact {
+            z_entry.1 += 1;
+        }
 
         if abs_val_d > 0.0 {
             top_losses.push(json!({
@@ -605,7 +660,9 @@ pub fn get_inventory_dashboard_stats(conn: &Connection) -> Result<Value> {
     let compliance_pct = 100.0;
 
     let unique_skus_counted = unique_skus.len() as i64;
-    let coverage_pct = (((unique_skus_counted as f64 / (total_active_skus.max(1) as f64)) * 100.0) * 10.0).round() / 10.0;
+    let coverage_pct =
+        (((unique_skus_counted as f64 / (total_active_skus.max(1) as f64)) * 100.0) * 10.0).round()
+            / 10.0;
 
     let total_bins_counted = loc_diffs.len();
     let exact_bins_count = loc_diffs.values().filter(|&&v| v < 0.0001).count();
@@ -653,53 +710,65 @@ pub fn get_inventory_dashboard_stats(conn: &Connection) -> Result<Value> {
         eri_global
     };
 
-    let recount_rate_pct = (((recount_needed_count as f64 / total_rows) * 100.0) * 10.0).round() / 10.0;
+    let recount_rate_pct =
+        (((recount_needed_count as f64 / total_rows) * 100.0) * 10.0).round() / 10.0;
 
     let tot_diff_count: i32 = cause_impact.values().map(|v| v.0).sum();
-    let mut pareto_causes: Vec<Value> = cause_impact.into_iter().map(|(cause, (cnt, impact))| {
-        let pct = if tot_diff_count > 0 {
-            (((cnt as f64 / tot_diff_count as f64) * 100.0) * 10.0).round() / 10.0
-        } else {
-            0.0
-        };
-        json!({
-            "root_cause": cause,
-            "count": cnt,
-            "impact_usd": (impact * 100.0).round() / 100.0,
-            "pct": pct
+    let mut pareto_causes: Vec<Value> = cause_impact
+        .into_iter()
+        .map(|(cause, (cnt, impact))| {
+            let pct = if tot_diff_count > 0 {
+                (((cnt as f64 / tot_diff_count as f64) * 100.0) * 10.0).round() / 10.0
+            } else {
+                0.0
+            };
+            json!({
+                "root_cause": cause,
+                "count": cnt,
+                "impact_usd": (impact * 100.0).round() / 100.0,
+                "pct": pct
+            })
         })
-    }).collect();
+        .collect();
     pareto_causes.sort_by(|a, b| {
         let imp_a = a.get("impact_usd").and_then(|v| v.as_f64()).unwrap_or(0.0);
         let imp_b = b.get("impact_usd").and_then(|v| v.as_f64()).unwrap_or(0.0);
-        imp_b.partial_cmp(&imp_a).unwrap_or(std::cmp::Ordering::Equal)
+        imp_b
+            .partial_cmp(&imp_a)
+            .unwrap_or(std::cmp::Ordering::Equal)
     });
 
-    let users_prod: Vec<Value> = user_stats.into_iter().map(|(u, (tot, errs))| {
-        let err_rate = if tot > 0 {
-            (((errs as f64 / tot as f64) * 100.0) * 10.0).round() / 10.0
-        } else {
-            0.0
-        };
-        json!({
-            "user": u,
-            "items": tot,
-            "error_rate": err_rate
+    let users_prod: Vec<Value> = user_stats
+        .into_iter()
+        .map(|(u, (tot, errs))| {
+            let err_rate = if tot > 0 {
+                (((errs as f64 / tot as f64) * 100.0) * 10.0).round() / 10.0
+            } else {
+                0.0
+            };
+            json!({
+                "user": u,
+                "items": tot,
+                "error_rate": err_rate
+            })
         })
-    }).collect();
+        .collect();
 
-    let mut zones_vec: Vec<Value> = zone_stats.into_iter().map(|(z, (tot, errs))| {
-        let err_rate = if tot > 0 {
-            (((errs as f64 / tot as f64) * 100.0) * 10.0).round() / 10.0
-        } else {
-            0.0
-        };
-        json!({
-            "zone": z,
-            "total": tot,
-            "error_rate": err_rate
+    let mut zones_vec: Vec<Value> = zone_stats
+        .into_iter()
+        .map(|(z, (tot, errs))| {
+            let err_rate = if tot > 0 {
+                (((errs as f64 / tot as f64) * 100.0) * 10.0).round() / 10.0
+            } else {
+                0.0
+            };
+            json!({
+                "zone": z,
+                "total": tot,
+                "error_rate": err_rate
+            })
         })
-    }).collect();
+        .collect();
     zones_vec.sort_by(|a, b| {
         let r_a = a.get("error_rate").and_then(|v| v.as_f64()).unwrap_or(0.0);
         let r_b = b.get("error_rate").and_then(|v| v.as_f64()).unwrap_or(0.0);
@@ -707,8 +776,14 @@ pub fn get_inventory_dashboard_stats(conn: &Connection) -> Result<Value> {
     });
 
     top_losses.sort_by(|a, b| {
-        let l_a = a.get("abs_val_diff").and_then(|v| v.as_f64()).unwrap_or(0.0);
-        let l_b = b.get("abs_val_diff").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let l_a = a
+            .get("abs_val_diff")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0);
+        let l_b = b
+            .get("abs_val_diff")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0);
         l_b.partial_cmp(&l_a).unwrap_or(std::cmp::Ordering::Equal)
     });
     top_losses.truncate(10);
@@ -842,7 +917,7 @@ pub fn get_planner_cycle_count_differences(
                 c.user_id, c.status, COALESCE(c.notes, 'Sin causa determinada')
          FROM counts c
          LEFT JOIN inventory_items i ON UPPER(TRIM(c.item_code)) = UPPER(TRIM(i.item_code))
-         WHERE 1=1"
+         WHERE 1=1",
     );
 
     if only_differences {
@@ -864,14 +939,24 @@ pub fn get_planner_cycle_count_differences(
             executed_date: r.get::<_, Option<String>>(1)?.unwrap_or_default(),
             item_code: r.get::<_, String>(2)?.trim().to_uppercase(),
             item_description: r.get::<_, Option<String>>(3)?.unwrap_or_default(),
-            bin_location: r.get::<_, Option<String>>(4)?.unwrap_or_else(|| "N/A".to_string()),
-            abc_code: r.get::<_, Option<String>>(5)?.unwrap_or_else(|| "C".to_string()),
+            bin_location: r
+                .get::<_, Option<String>>(4)?
+                .unwrap_or_else(|| "N/A".to_string()),
+            abc_code: r
+                .get::<_, Option<String>>(5)?
+                .unwrap_or_else(|| "C".to_string()),
             system_qty: r.get::<_, Option<f64>>(6)?.unwrap_or(0.0),
             physical_qty: r.get::<_, Option<f64>>(7)?.unwrap_or(0.0),
             difference: r.get::<_, Option<f64>>(8)?.unwrap_or(0.0),
-            username: r.get::<_, Option<String>>(9)?.unwrap_or_else(|| "Sistema".to_string()),
-            status: r.get::<_, Option<String>>(10)?.unwrap_or_else(|| "pending".to_string()),
-            root_cause: r.get::<_, Option<String>>(11)?.unwrap_or_else(|| "Sin causa determinada".to_string()),
+            username: r
+                .get::<_, Option<String>>(9)?
+                .unwrap_or_else(|| "Sistema".to_string()),
+            status: r
+                .get::<_, Option<String>>(10)?
+                .unwrap_or_else(|| "pending".to_string()),
+            root_cause: r
+                .get::<_, Option<String>>(11)?
+                .unwrap_or_else(|| "Sin causa determinada".to_string()),
         })
     })?;
 
@@ -882,7 +967,11 @@ pub fn get_planner_cycle_count_differences(
     Ok(list)
 }
 
-pub fn update_planner_cycle_count_diff(conn: &Connection, rec_id: i64, physical_qty: f64) -> Result<()> {
+pub fn update_planner_cycle_count_diff(
+    conn: &Connection,
+    rec_id: i64,
+    physical_qty: f64,
+) -> Result<()> {
     conn.execute(
         "UPDATE counts SET counted_qty = ?1, status = 'completed' WHERE id = ?2",
         params![physical_qty, rec_id],
@@ -892,11 +981,14 @@ pub fn update_planner_cycle_count_diff(conn: &Connection, rec_id: i64, physical_
 
 /// Calcula discrepancias de conteo cíclico consultando la base de datos local
 pub fn get_cycle_count_differences_db(conn: &Connection) -> Result<Vec<CycleCountResult>> {
-    let mut stmt_stock = conn.prepare("SELECT item_code, bin_location, system_qty, unit_cost FROM inventory_items")?;
+    let mut stmt_stock =
+        conn.prepare("SELECT item_code, bin_location, system_qty, unit_cost FROM inventory_items")?;
     let system_stock: Vec<(String, String, f64, f64)> = stmt_stock
         .query_map([], |row| {
             let code: String = row.get(0)?;
-            let bin: String = row.get::<_, Option<String>>(1)?.unwrap_or_else(|| "N/A".to_string());
+            let bin: String = row
+                .get::<_, Option<String>>(1)?
+                .unwrap_or_else(|| "N/A".to_string());
             let qty: f64 = row.get::<_, Option<f64>>(2)?.unwrap_or(0.0);
             let cost: f64 = row.get::<_, Option<f64>>(3)?.unwrap_or(0.0);
             Ok((code, bin, qty, cost))
@@ -904,7 +996,8 @@ pub fn get_cycle_count_differences_db(conn: &Connection) -> Result<Vec<CycleCoun
         .flatten()
         .collect();
 
-    let mut stmt_counts = conn.prepare("SELECT item_code, location, counted_qty, stage FROM counts")?;
+    let mut stmt_counts =
+        conn.prepare("SELECT item_code, location, counted_qty, stage FROM counts")?;
     let physical_counts: Vec<(String, String, f64, i32)> = stmt_counts
         .query_map([], |row| {
             let code: String = row.get(0)?;
@@ -916,7 +1009,10 @@ pub fn get_cycle_count_differences_db(conn: &Connection) -> Result<Vec<CycleCoun
         .flatten()
         .collect();
 
-    Ok(calculate_cycle_count_differences(system_stock, physical_counts))
+    Ok(calculate_cycle_count_differences(
+        system_stock,
+        physical_counts,
+    ))
 }
 
 pub fn calculate_cycle_count_differences(
@@ -975,8 +1071,14 @@ pub fn calculate_cycle_count_differences(
     let mut results = Vec::new();
 
     for (item, loc) in all_keys {
-        let (sys_qty, unit_cost) = system_map.get(&(item.clone(), loc.clone())).copied().unwrap_or((0.0, 0.0));
-        let (cnt_qty, stage_used) = physical_map.get(&(item.clone(), loc.clone())).copied().unwrap_or((0.0, 1));
+        let (sys_qty, unit_cost) = system_map
+            .get(&(item.clone(), loc.clone()))
+            .copied()
+            .unwrap_or((0.0, 0.0));
+        let (cnt_qty, stage_used) = physical_map
+            .get(&(item.clone(), loc.clone()))
+            .copied()
+            .unwrap_or((0.0, 1));
         let diff_qty = cnt_qty - sys_qty;
         let diff_val = diff_qty * unit_cost;
 
@@ -1005,7 +1107,11 @@ pub fn calculate_cycle_count_differences(
 }
 
 /// Actualiza la causa raíz de una discrepancia
-pub fn update_count_root_cause_db(conn: &Connection, count_id: i64, root_cause: String) -> Result<()> {
+pub fn update_count_root_cause_db(
+    conn: &Connection,
+    count_id: i64,
+    root_cause: String,
+) -> Result<()> {
     conn.execute(
         "UPDATE counts SET notes = ?1 WHERE id = ?2",
         params![root_cause, count_id],
@@ -1044,7 +1150,8 @@ mod tests {
     #[test]
     fn test_count_session_and_location_lifecycle() {
         let conn = Connection::open_in_memory().unwrap();
-        conn.execute_batch("
+        conn.execute_batch(
+            "
             CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
             CREATE TABLE count_sessions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1078,7 +1185,9 @@ mod tests {
                 notes TEXT
             );
             INSERT INTO app_settings (key, value) VALUES ('current_inventory_stage', '1');
-        ").unwrap();
+        ",
+        )
+        .unwrap();
 
         // Iniciar sesión
         let session = start_session(&conn, "Sesión Pasillo A", "auditor1").unwrap();
@@ -1113,13 +1222,30 @@ mod tests {
         assert!(added.id.is_some());
 
         // Actualizar causa raíz
-        update_count_root_cause_db(&conn, added.id.unwrap(), "Discrepancia en empaque".to_string()).unwrap();
-        let note: String = conn.query_row("SELECT notes FROM counts WHERE id = ?1", params![added.id.unwrap()], |r| r.get(0)).unwrap();
+        update_count_root_cause_db(
+            &conn,
+            added.id.unwrap(),
+            "Discrepancia en empaque".to_string(),
+        )
+        .unwrap();
+        let note: String = conn
+            .query_row(
+                "SELECT notes FROM counts WHERE id = ?1",
+                params![added.id.unwrap()],
+                |r| r.get(0),
+            )
+            .unwrap();
         assert_eq!(note, "Discrepancia en empaque");
 
         // Cerrar sesión
         close_session(&conn, session.id).unwrap();
-        let closed_status: String = conn.query_row("SELECT status FROM count_sessions WHERE id = ?1", params![session.id], |r| r.get(0)).unwrap();
+        let closed_status: String = conn
+            .query_row(
+                "SELECT status FROM count_sessions WHERE id = ?1",
+                params![session.id],
+                |r| r.get(0),
+            )
+            .unwrap();
         assert_eq!(closed_status, "closed");
     }
 }

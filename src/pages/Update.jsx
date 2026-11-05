@@ -192,6 +192,7 @@ const Update = () => {
         let unlistenDrop = null;
         let unlistenHover = null;
         let unlistenCancel = null;
+        let unlistenSync = null;
         let isMounted = true;
 
         if (isTauri()) {
@@ -224,6 +225,12 @@ const Update = () => {
                         unlistenCancel = await eventApi.listen('tauri://file-drop-cancelled', () => {
                             if (isMounted) setDragActive(false);
                         }).catch(() => null);
+
+                        unlistenSync = await eventApi.listen('network-sync-event', () => {
+                            if (isMounted) {
+                                fetchSyncStatus();
+                            }
+                        }).catch(() => null);
                     }
                 } catch (e) {
                     console.warn("Tauri event listen error:", e);
@@ -237,6 +244,7 @@ const Update = () => {
             if (typeof unlistenDrop === 'function') unlistenDrop();
             if (typeof unlistenHover === 'function') unlistenHover();
             if (typeof unlistenCancel === 'function') unlistenCancel();
+            if (typeof unlistenSync === 'function') unlistenSync();
         };
     }, [handleFiles]);
 

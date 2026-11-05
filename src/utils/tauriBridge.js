@@ -626,7 +626,17 @@ export const processLocalCSVUpload = async (file, selectedGrns = [], updateOptio
                 if (isTauri()) {
                     await invoke('set_sync_status', { key: 'grn_pending', timestamp: Math.floor(Date.now() / 1000) });
                     await invoke('save_grn_master_json', { jsonContent: JSON.stringify(grnArray, null, 2) });
-                    resolve(`Se guardaron ${grnArray.length} líneas de GRN (280) en el almacenamiento local.`);
+                    try {
+                        await invoke('save_and_replicate_work_file', {
+                            fileName: file.name,
+                            fileType: '280',
+                            parsedData: grnArray,
+                            uploader: null
+                        });
+                    } catch (repErr) {
+                        console.warn('Replicación en red no disponible (280):', repErr);
+                    }
+                    resolve(`Se guardaron ${grnArray.length} líneas de GRN (280) en almacenamiento local y red.`);
                     return;
                 }
                 resolve(`Se procesaron ${grnArray.length} líneas de GRN (280) localmente.`);
@@ -686,7 +696,17 @@ export const processLocalCSVUpload = async (file, selectedGrns = [], updateOptio
                         };
                     }
                     await invoke('save_xdock_reservations_json', { jsonContent: JSON.stringify(jsonToSave, null, 2) });
-                    resolve(`Se cargaron ${Object.keys(xdockMap).length} registros de Reservas Xdock (0006) en SQLite y almacenamiento local.`);
+                    try {
+                        await invoke('save_and_replicate_work_file', {
+                            fileName: file.name,
+                            fileType: '0006',
+                            parsedData: jsonToSave,
+                            uploader: null
+                        });
+                    } catch (repErr) {
+                        console.warn('Replicación en red no disponible (0006):', repErr);
+                    }
+                    resolve(`Se cargaron ${Object.keys(xdockMap).length} registros de Reservas Xdock (0006) en SQLite y red.`);
                     return;
                 }
                 resolve(`Se procesaron ${Object.keys(xdockMap).length} registros de Reservas Xdock.`);
@@ -810,7 +830,17 @@ export const processLocalCSVUpload = async (file, selectedGrns = [], updateOptio
                 if (isTauri()) {
                     await invoke('set_sync_status', { key: 'po_extractor', timestamp: Math.floor(Date.now() / 1000) });
                     await invoke('save_po_lookup_json', { jsonContent: JSON.stringify(lookupData, null, 2) });
-                    resolve(`Archivo '${file.name}' procesado con éxito como PO Extractor (${totalWb} Waybills, ${totalIr} Ref. de Importación).`);
+                    try {
+                        await invoke('save_and_replicate_work_file', {
+                            fileName: file.name,
+                            fileType: 'po_extractor',
+                            parsedData: lookupData,
+                            uploader: null
+                        });
+                    } catch (repErr) {
+                        console.warn('Replicación en red no disponible (po_extractor):', repErr);
+                    }
+                    resolve(`Archivo '${file.name}' procesado con éxito como PO Extractor (${totalWb} Waybills, ${totalIr} Ref. de Importación) y red.`);
                     return;
                 }
                 resolve(`Archivo '${file.name}' procesado localmente como PO Extractor (${totalWb} Waybills, ${totalIr} Ref. de Importación).`);

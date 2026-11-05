@@ -119,18 +119,38 @@ pub fn get_suggested_bin_rust(
     }
 
     let description = item_details.item_description.to_uppercase();
-    let cantilever_kw: Vec<String> = zone_rules.cantilever_keywords.split(',').map(|k| k.trim().to_uppercase()).filter(|k| !k.is_empty()).collect();
+    let cantilever_kw: Vec<String> = zone_rules
+        .cantilever_keywords
+        .split(',')
+        .map(|k| k.trim().to_uppercase())
+        .filter(|k| !k.is_empty())
+        .collect();
     let is_cantilever = cantilever_kw.iter().any(|kw| description.contains(kw));
 
     let minuteria_weight_max: f64 = zone_rules.minuteria_weight_max.parse().unwrap_or(0.1);
     let heavy_weight_min: f64 = zone_rules.heavy_weight_min.parse().unwrap_or(10.0);
-    let heavy_levels: Vec<i32> = zone_rules.heavy_levels.split(',').map(|lvl| lvl.trim().parse().unwrap_or(0)).filter(|&lvl| lvl > 0).collect();
+    let heavy_levels: Vec<i32> = zone_rules
+        .heavy_levels
+        .split(',')
+        .map(|lvl| lvl.trim().parse().unwrap_or(0))
+        .filter(|&lvl| lvl > 0)
+        .collect();
 
-    let high_rotation_levels: Vec<i32> = zone_rules.high_rotation_levels.split(',').map(|lvl| lvl.trim().parse().unwrap_or(-1)).filter(|&lvl| lvl >= 0).collect();
+    let high_rotation_levels: Vec<i32> = zone_rules
+        .high_rotation_levels
+        .split(',')
+        .map(|lvl| lvl.trim().parse().unwrap_or(-1))
+        .filter(|&lvl| lvl >= 0)
+        .collect();
     let high_rotation_min_score: i32 = zone_rules.high_rotation_min_score.parse().unwrap_or(1);
     let high_rotation_max_score: i32 = zone_rules.high_rotation_max_score.parse().unwrap_or(10);
 
-    let default_levels: Vec<i32> = zone_rules.default_levels.split(',').map(|lvl| lvl.trim().parse().unwrap_or(0)).filter(|&lvl| lvl > 0).collect();
+    let default_levels: Vec<i32> = zone_rules
+        .default_levels
+        .split(',')
+        .map(|lvl| lvl.trim().parse().unwrap_or(0))
+        .filter(|&lvl| lvl > 0)
+        .collect();
 
     let weight_val_clean = item_details.weight_per_unit.replace(',', "");
     let weight: f64 = weight_val_clean.parse().unwrap_or(0.0);
@@ -165,12 +185,27 @@ pub fn get_suggested_bin_rust(
     // Verificar si la ubicación actual ya es óptima
     if !current_bin.is_empty() {
         if let Some(info) = storage.get(&current_bin) {
-            let current_zone = info.zone.as_deref().unwrap_or("Unknown").trim().to_uppercase();
-            let matches_zone = target_zone.as_ref().map(|tz| tz.trim().to_uppercase() == current_zone).unwrap_or(true);
-            let matches_levels = target_levels.as_ref().map(|tl| tl.contains(&info.level)).unwrap_or(true);
+            let current_zone = info
+                .zone
+                .as_deref()
+                .unwrap_or("Unknown")
+                .trim()
+                .to_uppercase();
+            let matches_zone = target_zone
+                .as_ref()
+                .map(|tz| tz.trim().to_uppercase() == current_zone)
+                .unwrap_or(true);
+            let matches_levels = target_levels
+                .as_ref()
+                .map(|tl| tl.contains(&info.level))
+                .unwrap_or(true);
 
             if matches_zone && matches_levels {
-                let current_spot = info.spot.as_ref().map(|s| s.to_lowercase()).unwrap_or_else(|| "cold".to_string());
+                let current_spot = info
+                    .spot
+                    .as_ref()
+                    .map(|s| s.to_lowercase())
+                    .unwrap_or_else(|| "cold".to_string());
                 let current_score = info.score;
                 let exile_max_score_val: i32 = zone_rules.exile_max_score.parse().unwrap_or(3);
 
@@ -198,7 +233,10 @@ pub fn get_suggested_bin_rust(
         let level = info.level;
         let score = info.score;
 
-        if forbidden_zones.iter().any(|fz| fz.trim().to_uppercase() == zone_upper) {
+        if forbidden_zones
+            .iter()
+            .any(|fz| fz.trim().to_uppercase() == zone_upper)
+        {
             continue;
         }
 
@@ -240,7 +278,11 @@ pub fn get_suggested_bin_rust(
             candidates.push(Candidate {
                 bin: bin_code.clone(),
                 occupancy: current_items,
-                spot: info.spot.as_ref().map(|s| s.to_lowercase()).unwrap_or_else(|| "cold".to_string()),
+                spot: info
+                    .spot
+                    .as_ref()
+                    .map(|s| s.to_lowercase())
+                    .unwrap_or_else(|| "cold".to_string()),
                 score,
             });
         }
@@ -279,7 +321,9 @@ pub fn get_suggested_bin_rust(
     Some(candidates[0].bin.clone())
 }
 
-pub fn load_slotting_config(path_str: &str) -> (
+pub fn load_slotting_config(
+    path_str: &str,
+) -> (
     HashMap<String, BinInfo>,
     HashMap<String, TurnoverInfo>,
     ZoneRules,
@@ -303,16 +347,37 @@ pub fn load_slotting_config(path_str: &str) -> (
             // 1. Storage bins
             if let Some(storage_obj) = val.get("storage").and_then(|v| v.as_object()) {
                 for (bin_code, b_val) in storage_obj {
-                    let zone = b_val.get("zone").and_then(|v| v.as_str()).map(|s| s.to_string());
-                    let aisle = b_val.get("aisle").and_then(|v| v.as_str()).map(|s| s.to_string());
-                    let spot = b_val.get("spot").and_then(|v| v.as_str()).map(|s| s.to_string());
-                    let level = b_val.get("level")
+                    let zone = b_val
+                        .get("zone")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string());
+                    let aisle = b_val
+                        .get("aisle")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string());
+                    let spot = b_val
+                        .get("spot")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string());
+                    let level = b_val
+                        .get("level")
                         .and_then(|v| v.as_i64().map(|n| n as i32))
-                        .or_else(|| b_val.get("level").and_then(|v| v.as_str()).and_then(|s| s.parse().ok()))
+                        .or_else(|| {
+                            b_val
+                                .get("level")
+                                .and_then(|v| v.as_str())
+                                .and_then(|s| s.parse().ok())
+                        })
                         .unwrap_or(0);
-                    let score = b_val.get("score")
+                    let score = b_val
+                        .get("score")
                         .and_then(|v| v.as_i64().map(|n| n as i32))
-                        .or_else(|| b_val.get("score").and_then(|v| v.as_str()).and_then(|s| s.parse().ok()))
+                        .or_else(|| {
+                            b_val
+                                .get("score")
+                                .and_then(|v| v.as_str())
+                                .and_then(|s| s.parse().ok())
+                        })
                         .unwrap_or(0);
 
                     storage.insert(
@@ -331,7 +396,10 @@ pub fn load_slotting_config(path_str: &str) -> (
             // 2. Turnover
             if let Some(turnover_obj) = val.get("turnover").and_then(|v| v.as_object()) {
                 for (sic, t_val) in turnover_obj {
-                    let spot = t_val.get("spot").and_then(|v| v.as_str()).map(|s| s.to_string());
+                    let spot = t_val
+                        .get("spot")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string());
                     turnover.insert(sic.to_uppercase(), TurnoverInfo { spot });
                 }
             }
@@ -354,21 +422,41 @@ pub fn load_slotting_config(path_str: &str) -> (
                         .unwrap_or_else(|| def.to_string())
                 };
 
-                zone_rules.cantilever_keywords = get_str("cantilever_keywords", &zone_rules.cantilever_keywords);
-                zone_rules.minuteria_weight_max = get_str("minuteria_weight_max", &zone_rules.minuteria_weight_max);
-                zone_rules.heavy_weight_min = get_str("heavy_weight_min", &zone_rules.heavy_weight_min);
+                zone_rules.cantilever_keywords =
+                    get_str("cantilever_keywords", &zone_rules.cantilever_keywords);
+                zone_rules.minuteria_weight_max =
+                    get_str("minuteria_weight_max", &zone_rules.minuteria_weight_max);
+                zone_rules.heavy_weight_min =
+                    get_str("heavy_weight_min", &zone_rules.heavy_weight_min);
                 zone_rules.heavy_levels = get_str("heavy_levels", &zone_rules.heavy_levels);
-                zone_rules.high_rotation_levels = get_str("high_rotation_levels", &zone_rules.high_rotation_levels);
-                zone_rules.high_rotation_min_score = get_str("high_rotation_min_score", &zone_rules.high_rotation_min_score);
-                zone_rules.high_rotation_max_score = get_str("high_rotation_max_score", &zone_rules.high_rotation_max_score);
-                zone_rules.medium_rotation_levels = get_str("medium_rotation_levels", &zone_rules.medium_rotation_levels);
-                zone_rules.medium_rotation_min_score = get_str("medium_rotation_min_score", &zone_rules.medium_rotation_min_score);
-                zone_rules.medium_rotation_max_score = get_str("medium_rotation_max_score", &zone_rules.medium_rotation_max_score);
+                zone_rules.high_rotation_levels =
+                    get_str("high_rotation_levels", &zone_rules.high_rotation_levels);
+                zone_rules.high_rotation_min_score = get_str(
+                    "high_rotation_min_score",
+                    &zone_rules.high_rotation_min_score,
+                );
+                zone_rules.high_rotation_max_score = get_str(
+                    "high_rotation_max_score",
+                    &zone_rules.high_rotation_max_score,
+                );
+                zone_rules.medium_rotation_levels =
+                    get_str("medium_rotation_levels", &zone_rules.medium_rotation_levels);
+                zone_rules.medium_rotation_min_score = get_str(
+                    "medium_rotation_min_score",
+                    &zone_rules.medium_rotation_min_score,
+                );
+                zone_rules.medium_rotation_max_score = get_str(
+                    "medium_rotation_max_score",
+                    &zone_rules.medium_rotation_max_score,
+                );
                 zone_rules.default_levels = get_str("default_levels", &zone_rules.default_levels);
-                zone_rules.exile_rack_levels = get_str("exile_rack_levels", &zone_rules.exile_rack_levels);
-                zone_rules.exile_sic_codes = get_str("exile_sic_codes", &zone_rules.exile_sic_codes);
+                zone_rules.exile_rack_levels =
+                    get_str("exile_rack_levels", &zone_rules.exile_rack_levels);
+                zone_rules.exile_sic_codes =
+                    get_str("exile_sic_codes", &zone_rules.exile_sic_codes);
                 zone_rules.minuteria_zone = get_str("minuteria_zone", &zone_rules.minuteria_zone);
-                zone_rules.exile_max_score = get_str("exile_max_score", &zone_rules.exile_max_score);
+                zone_rules.exile_max_score =
+                    get_str("exile_max_score", &zone_rules.exile_max_score);
             }
 
             // 4. Mix limits
@@ -386,9 +474,12 @@ pub fn load_slotting_config(path_str: &str) -> (
                         })
                         .unwrap_or_else(|| def.to_string())
                 };
-                mix_limits.minuteria_max_skus = get_str("minuteria_max_skus", &mix_limits.minuteria_max_skus);
-                mix_limits.nivel2_max_skus = get_str("nivel2_max_skus", &mix_limits.nivel2_max_skus);
-                mix_limits.otros_niveles_max_skus = get_str("otros_niveles_max_skus", &mix_limits.otros_niveles_max_skus);
+                mix_limits.minuteria_max_skus =
+                    get_str("minuteria_max_skus", &mix_limits.minuteria_max_skus);
+                mix_limits.nivel2_max_skus =
+                    get_str("nivel2_max_skus", &mix_limits.nivel2_max_skus);
+                mix_limits.otros_niveles_max_skus =
+                    get_str("otros_niveles_max_skus", &mix_limits.otros_niveles_max_skus);
             }
         }
     }
@@ -406,7 +497,7 @@ pub fn get_occupancy_from_db(conn: &rusqlite::Connection) -> HashMap<String, i32
            AND UPPER(bin_location) != 'N/A'
            AND UPPER(bin_location) != 'SIN UBICACION'
            AND system_qty > 0
-         GROUP BY UPPER(TRIM(bin_location))"
+         GROUP BY UPPER(TRIM(bin_location))",
     ) {
         if let Ok(iter) = stmt.query_map([], |row| {
             let bin: String = row.get(0)?;
@@ -489,11 +580,16 @@ pub fn seed_storage_locations_if_empty(conn: &rusqlite::Connection) {
         }
     }
     let _ = conn.execute("COMMIT", []);
-    eprintln!("[slotting] Se insertaron {} ubicaciones en storage_locations.", storage.len());
+    eprintln!(
+        "[slotting] Se insertaron {} ubicaciones en storage_locations.",
+        storage.len()
+    );
 }
 
 /// Versión interna que parsea directamente desde un string JSON.
-fn load_slotting_config_from_str(json_str: &str) -> (
+fn load_slotting_config_from_str(
+    json_str: &str,
+) -> (
     HashMap<String, BinInfo>,
     HashMap<String, TurnoverInfo>,
     ZoneRules,
@@ -507,62 +603,127 @@ fn load_slotting_config_from_str(json_str: &str) -> (
     if let Ok(val) = serde_json::from_str::<serde_json::Value>(json_str) {
         if let Some(storage_obj) = val.get("storage").and_then(|v| v.as_object()) {
             for (bin_code, b_val) in storage_obj {
-                let zone = b_val.get("zone").and_then(|v| v.as_str()).map(|s| s.to_string());
-                let aisle = b_val.get("aisle").and_then(|v| v.as_str()).map(|s| s.to_string());
-                let spot = b_val.get("spot").and_then(|v| v.as_str()).map(|s| s.to_string());
-                let level = b_val.get("level")
+                let zone = b_val
+                    .get("zone")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string());
+                let aisle = b_val
+                    .get("aisle")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string());
+                let spot = b_val
+                    .get("spot")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string());
+                let level = b_val
+                    .get("level")
                     .and_then(|v| v.as_i64().map(|n| n as i32))
-                    .or_else(|| b_val.get("level").and_then(|v| v.as_str()).and_then(|s| s.parse().ok()))
+                    .or_else(|| {
+                        b_val
+                            .get("level")
+                            .and_then(|v| v.as_str())
+                            .and_then(|s| s.parse().ok())
+                    })
                     .unwrap_or(0);
-                let score = b_val.get("score")
+                let score = b_val
+                    .get("score")
                     .and_then(|v| v.as_i64().map(|n| n as i32))
-                    .or_else(|| b_val.get("score").and_then(|v| v.as_str()).and_then(|s| s.parse().ok()))
+                    .or_else(|| {
+                        b_val
+                            .get("score")
+                            .and_then(|v| v.as_str())
+                            .and_then(|s| s.parse().ok())
+                    })
                     .unwrap_or(0);
-                storage.insert(bin_code.to_uppercase(), BinInfo { zone, aisle, level, score, spot });
+                storage.insert(
+                    bin_code.to_uppercase(),
+                    BinInfo {
+                        zone,
+                        aisle,
+                        level,
+                        score,
+                        spot,
+                    },
+                );
             }
         }
         if let Some(turnover_obj) = val.get("turnover").and_then(|v| v.as_object()) {
             for (sic, t_val) in turnover_obj {
-                let spot = t_val.get("spot").and_then(|v| v.as_str()).map(|s| s.to_string());
+                let spot = t_val
+                    .get("spot")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string());
                 turnover.insert(sic.to_uppercase(), TurnoverInfo { spot });
             }
         }
         if let Some(zr) = val.get("zone_rules").and_then(|v| v.as_object()) {
             let get_str = |key: &str, def: &str| -> String {
-                zr.get(key).map(|v| {
-                    if let Some(s) = v.as_str() { s.to_string() }
-                    else if let Some(n) = v.as_f64() { n.to_string() }
-                    else if let Some(i) = v.as_i64() { i.to_string() }
-                    else { def.to_string() }
-                }).unwrap_or_else(|| def.to_string())
+                zr.get(key)
+                    .map(|v| {
+                        if let Some(s) = v.as_str() {
+                            s.to_string()
+                        } else if let Some(n) = v.as_f64() {
+                            n.to_string()
+                        } else if let Some(i) = v.as_i64() {
+                            i.to_string()
+                        } else {
+                            def.to_string()
+                        }
+                    })
+                    .unwrap_or_else(|| def.to_string())
             };
-            zone_rules.cantilever_keywords = get_str("cantilever_keywords", &zone_rules.cantilever_keywords);
-            zone_rules.minuteria_weight_max = get_str("minuteria_weight_max", &zone_rules.minuteria_weight_max);
+            zone_rules.cantilever_keywords =
+                get_str("cantilever_keywords", &zone_rules.cantilever_keywords);
+            zone_rules.minuteria_weight_max =
+                get_str("minuteria_weight_max", &zone_rules.minuteria_weight_max);
             zone_rules.heavy_weight_min = get_str("heavy_weight_min", &zone_rules.heavy_weight_min);
             zone_rules.heavy_levels = get_str("heavy_levels", &zone_rules.heavy_levels);
-            zone_rules.high_rotation_levels = get_str("high_rotation_levels", &zone_rules.high_rotation_levels);
-            zone_rules.high_rotation_min_score = get_str("high_rotation_min_score", &zone_rules.high_rotation_min_score);
-            zone_rules.high_rotation_max_score = get_str("high_rotation_max_score", &zone_rules.high_rotation_max_score);
-            zone_rules.medium_rotation_levels = get_str("medium_rotation_levels", &zone_rules.medium_rotation_levels);
-            zone_rules.medium_rotation_min_score = get_str("medium_rotation_min_score", &zone_rules.medium_rotation_min_score);
-            zone_rules.medium_rotation_max_score = get_str("medium_rotation_max_score", &zone_rules.medium_rotation_max_score);
+            zone_rules.high_rotation_levels =
+                get_str("high_rotation_levels", &zone_rules.high_rotation_levels);
+            zone_rules.high_rotation_min_score = get_str(
+                "high_rotation_min_score",
+                &zone_rules.high_rotation_min_score,
+            );
+            zone_rules.high_rotation_max_score = get_str(
+                "high_rotation_max_score",
+                &zone_rules.high_rotation_max_score,
+            );
+            zone_rules.medium_rotation_levels =
+                get_str("medium_rotation_levels", &zone_rules.medium_rotation_levels);
+            zone_rules.medium_rotation_min_score = get_str(
+                "medium_rotation_min_score",
+                &zone_rules.medium_rotation_min_score,
+            );
+            zone_rules.medium_rotation_max_score = get_str(
+                "medium_rotation_max_score",
+                &zone_rules.medium_rotation_max_score,
+            );
             zone_rules.default_levels = get_str("default_levels", &zone_rules.default_levels);
-            zone_rules.exile_rack_levels = get_str("exile_rack_levels", &zone_rules.exile_rack_levels);
+            zone_rules.exile_rack_levels =
+                get_str("exile_rack_levels", &zone_rules.exile_rack_levels);
             zone_rules.exile_sic_codes = get_str("exile_sic_codes", &zone_rules.exile_sic_codes);
             zone_rules.minuteria_zone = get_str("minuteria_zone", &zone_rules.minuteria_zone);
             zone_rules.exile_max_score = get_str("exile_max_score", &zone_rules.exile_max_score);
         }
         if let Some(ml) = val.get("mix_limits").and_then(|v| v.as_object()) {
             let get_str = |key: &str, def: &str| -> String {
-                ml.get(key).map(|v| {
-                    if let Some(s) = v.as_str() { s.to_string() }
-                    else if let Some(i) = v.as_i64() { i.to_string() }
-                    else { def.to_string() }
-                }).unwrap_or_else(|| def.to_string())
+                ml.get(key)
+                    .map(|v| {
+                        if let Some(s) = v.as_str() {
+                            s.to_string()
+                        } else if let Some(i) = v.as_i64() {
+                            i.to_string()
+                        } else {
+                            def.to_string()
+                        }
+                    })
+                    .unwrap_or_else(|| def.to_string())
             };
-            mix_limits.minuteria_max_skus = get_str("minuteria_max_skus", &mix_limits.minuteria_max_skus);
+            mix_limits.minuteria_max_skus =
+                get_str("minuteria_max_skus", &mix_limits.minuteria_max_skus);
             mix_limits.nivel2_max_skus = get_str("nivel2_max_skus", &mix_limits.nivel2_max_skus);
-            mix_limits.otros_niveles_max_skus = get_str("otros_niveles_max_skus", &mix_limits.otros_niveles_max_skus);
+            mix_limits.otros_niveles_max_skus =
+                get_str("otros_niveles_max_skus", &mix_limits.otros_niveles_max_skus);
         }
     }
 
@@ -576,8 +737,26 @@ mod tests {
     #[test]
     fn test_slotting_heavy_item() {
         let mut storage = HashMap::new();
-        storage.insert("A-01-01".to_string(), BinInfo { zone: Some("Rack".to_string()), aisle: Some("01".to_string()), level: 1, score: 5, spot: Some("hot".to_string()) });
-        storage.insert("A-01-03".to_string(), BinInfo { zone: Some("Rack".to_string()), aisle: Some("01".to_string()), level: 3, score: 5, spot: Some("warm".to_string()) });
+        storage.insert(
+            "A-01-01".to_string(),
+            BinInfo {
+                zone: Some("Rack".to_string()),
+                aisle: Some("01".to_string()),
+                level: 1,
+                score: 5,
+                spot: Some("hot".to_string()),
+            },
+        );
+        storage.insert(
+            "A-01-03".to_string(),
+            BinInfo {
+                zone: Some("Rack".to_string()),
+                aisle: Some("01".to_string()),
+                level: 3,
+                score: 5,
+                spot: Some("warm".to_string()),
+            },
+        );
 
         let turnover = HashMap::new();
         let zone_rules = ZoneRules::default();
@@ -591,15 +770,41 @@ mod tests {
             weight_per_unit: "25.0".to_string(),
         };
 
-        let suggested = get_suggested_bin_rust(&storage, &turnover, &zone_rules, &mix_limits, &item, &occupancy, "X");
+        let suggested = get_suggested_bin_rust(
+            &storage,
+            &turnover,
+            &zone_rules,
+            &mix_limits,
+            &item,
+            &occupancy,
+            "X",
+        );
         assert_eq!(suggested, Some("A-01-03".to_string()));
     }
 
     #[test]
     fn test_slotting_minuteria_item() {
         let mut storage = HashMap::new();
-        storage.insert("M-01-01".to_string(), BinInfo { zone: Some("Minuteria".to_string()), aisle: Some("01".to_string()), level: 1, score: 8, spot: Some("hot".to_string()) });
-        storage.insert("A-01-01".to_string(), BinInfo { zone: Some("Rack".to_string()), aisle: Some("01".to_string()), level: 1, score: 8, spot: Some("hot".to_string()) });
+        storage.insert(
+            "M-01-01".to_string(),
+            BinInfo {
+                zone: Some("Minuteria".to_string()),
+                aisle: Some("01".to_string()),
+                level: 1,
+                score: 8,
+                spot: Some("hot".to_string()),
+            },
+        );
+        storage.insert(
+            "A-01-01".to_string(),
+            BinInfo {
+                zone: Some("Rack".to_string()),
+                aisle: Some("01".to_string()),
+                level: 1,
+                score: 8,
+                spot: Some("hot".to_string()),
+            },
+        );
 
         let turnover = HashMap::new();
         let zone_rules = ZoneRules::default();
@@ -613,7 +818,15 @@ mod tests {
             weight_per_unit: "0.05".to_string(),
         };
 
-        let suggested = get_suggested_bin_rust(&storage, &turnover, &zone_rules, &mix_limits, &item, &occupancy, "W");
+        let suggested = get_suggested_bin_rust(
+            &storage,
+            &turnover,
+            &zone_rules,
+            &mix_limits,
+            &item,
+            &occupancy,
+            "W",
+        );
         assert_eq!(suggested, Some("M-01-01".to_string()));
     }
 }

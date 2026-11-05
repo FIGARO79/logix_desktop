@@ -83,11 +83,12 @@ pub fn get_planner_daily_items_from_db(conn: &Connection) -> Result<Vec<PlannerD
     let today = Local::now().format("%Y-%m-%d").to_string();
 
     // 1. Revisar si ya hay ejecuciones hoy
-    let mut stmt_exec = conn.prepare(
-        "SELECT item_code, status FROM planner_executions WHERE plan_date = ?1",
-    )?;
+    let mut stmt_exec =
+        conn.prepare("SELECT item_code, status FROM planner_executions WHERE plan_date = ?1")?;
     let mut exec_map = std::collections::HashMap::new();
-    if let Ok(iter) = stmt_exec.query_map(params![today], |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))) {
+    if let Ok(iter) = stmt_exec.query_map(params![today], |row| {
+        Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+    }) {
         for item in iter.flatten() {
             exec_map.insert(item.0.to_uppercase(), item.1);
         }
@@ -104,12 +105,19 @@ pub fn get_planner_daily_items_from_db(conn: &Connection) -> Result<Vec<PlannerD
     let iter = stmt.query_map([], |row| {
         let code: String = row.get(0)?;
         let desc: String = row.get::<_, Option<String>>(1)?.unwrap_or_default();
-        let bin: String = row.get::<_, Option<String>>(2)?.unwrap_or_else(|| "N/A".to_string());
+        let bin: String = row
+            .get::<_, Option<String>>(2)?
+            .unwrap_or_else(|| "N/A".to_string());
         let qty: f64 = row.get::<_, Option<f64>>(3)?.unwrap_or(0.0);
-        let abc: String = row.get::<_, Option<String>>(4)?.unwrap_or_else(|| "A".to_string());
+        let abc: String = row
+            .get::<_, Option<String>>(4)?
+            .unwrap_or_else(|| "A".to_string());
 
         let code_upper = code.to_uppercase();
-        let status = exec_map.get(&code_upper).cloned().unwrap_or_else(|| "Pendiente".to_string());
+        let status = exec_map
+            .get(&code_upper)
+            .cloned()
+            .unwrap_or_else(|| "Pendiente".to_string());
 
         Ok(PlannerDailyItem {
             id: code.clone(),
@@ -163,7 +171,10 @@ pub fn save_planner_execution_to_db(
 pub fn get_planner_stats_from_db(conn: &Connection) -> Result<PlannerStats> {
     let items = get_planner_daily_items_from_db(conn)?;
     let total = items.len();
-    let completed = items.iter().filter(|it| it.status == "Completado" || it.status == "Auditado").count();
+    let completed = items
+        .iter()
+        .filter(|it| it.status == "Completado" || it.status == "Auditado")
+        .count();
     let remaining = total.saturating_sub(completed);
     let progress = if total > 0 {
         (completed as f64 / total as f64) * 100.0
@@ -228,7 +239,8 @@ mod tests {
 
     fn setup_test_db() -> Connection {
         let conn = Connection::open_in_memory().unwrap();
-        conn.execute_batch("
+        conn.execute_batch(
+            "
             CREATE TABLE planner_config (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
@@ -245,7 +257,9 @@ mod tests {
                 user_id TEXT,
                 timestamp TEXT
             );
-        ").unwrap();
+        ",
+        )
+        .unwrap();
         conn
     }
 
@@ -271,18 +285,24 @@ mod tests {
     #[test]
     fn test_planner_difference_cause_update() {
         let conn = setup_test_db();
-        conn.execute("
+        conn.execute(
+            "
             INSERT INTO planner_executions (plan_date, item_code, system_qty, counted_qty, status)
             VALUES ('2026-08-16', 'SKU999', 10.0, 8.0, 'Discrepancia')
-        ", []).unwrap();
+        ",
+            [],
+        )
+        .unwrap();
 
         update_planner_difference_cause_db(&conn, 1, "Investigado - Ajuste aplicado").unwrap();
 
-        let updated_status: String = conn.query_row(
-            "SELECT status FROM planner_executions WHERE id = 1",
-            [],
-            |r| r.get(0)
-        ).unwrap();
+        let updated_status: String = conn
+            .query_row(
+                "SELECT status FROM planner_executions WHERE id = 1",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
 
         assert_eq!(updated_status, "Investigado - Ajuste aplicado");
     }

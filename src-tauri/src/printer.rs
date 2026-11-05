@@ -62,19 +62,23 @@ pub fn get_available_printers() -> Result<Vec<PrinterInfo>, String> {
                     continue;
                 }
 
-                let printer_name = if trimmed.starts_with("printer ") || trimmed.starts_with("impresora ") {
-                    let parts: Vec<&str> = trimmed.split_whitespace().collect();
-                    if parts.len() >= 2 {
-                        parts[1].to_string()
+                let printer_name =
+                    if trimmed.starts_with("printer ") || trimmed.starts_with("impresora ") {
+                        let parts: Vec<&str> = trimmed.split_whitespace().collect();
+                        if parts.len() >= 2 {
+                            parts[1].to_string()
+                        } else {
+                            continue;
+                        }
                     } else {
-                        continue;
-                    }
-                } else {
-                    trimmed.to_string()
-                };
+                        trimmed.to_string()
+                    };
 
                 let is_def = !default_name.is_empty() && printer_name == default_name;
-                if !printers.iter().any(|p: &PrinterInfo| p.name == printer_name) {
+                if !printers
+                    .iter()
+                    .any(|p: &PrinterInfo| p.name == printer_name)
+                {
                     printers.push(PrinterInfo {
                         name: printer_name,
                         is_default: is_def,
@@ -98,7 +102,9 @@ pub fn get_available_printers() -> Result<Vec<PrinterInfo>, String> {
                     for item in arr {
                         let name = item["Name"].as_str().unwrap_or("").trim().to_string();
                         let is_def = item["Default"].as_bool().unwrap_or(false);
-                        if !name.is_empty() && !printers.iter().any(|p: &PrinterInfo| p.name == name) {
+                        if !name.is_empty()
+                            && !printers.iter().any(|p: &PrinterInfo| p.name == name)
+                        {
                             printers.push(PrinterInfo {
                                 name,
                                 is_default: is_def,
@@ -107,8 +113,16 @@ pub fn get_available_printers() -> Result<Vec<PrinterInfo>, String> {
                         }
                     }
                 } else if let Some(obj) = val.as_object() {
-                    let name = obj.get("Name").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
-                    let is_def = obj.get("Default").and_then(|v| v.as_bool()).unwrap_or(false);
+                    let name = obj
+                        .get("Name")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .trim()
+                        .to_string();
+                    let is_def = obj
+                        .get("Default")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false);
                     if !name.is_empty() {
                         printers.push(PrinterInfo {
                             name,
@@ -126,9 +140,10 @@ pub fn get_available_printers() -> Result<Vec<PrinterInfo>, String> {
 
 /// Genera código ZPL optimizado para la etiqueta Sandvik 70mm x 100mm (203/300 DPI)
 pub fn generate_sandvik_zpl(label: &SandvikLabelPrintPayload) -> String {
-    let packaging_date = label.packaging_date.clone().unwrap_or_else(|| {
-        chrono::Local::now().format("%d/%m/%y").to_string()
-    });
+    let packaging_date = label
+        .packaging_date
+        .clone()
+        .unwrap_or_else(|| chrono::Local::now().format("%d/%m/%y").to_string());
     let qr_content = label.qr_data.as_deref().unwrap_or(&label.item_code);
 
     format!(
@@ -167,10 +182,14 @@ pub fn generate_sandvik_zpl(label: &SandvikLabelPrintPayload) -> String {
 /// Envía contenido ZPL / RAW directamente a la impresora seleccionada en segundo plano
 pub fn send_raw_to_printer(printer_name: Option<String>, raw_data: &str) -> Result<String, String> {
     let mut temp_file = std::env::temp_dir();
-    let file_name = format!("label_print_{}.zpl", chrono::Local::now().timestamp_millis());
+    let file_name = format!(
+        "label_print_{}.zpl",
+        chrono::Local::now().timestamp_millis()
+    );
     temp_file.push(file_name);
 
-    fs::write(&temp_file, raw_data).map_err(|e| format!("Error escribiendo archivo temporal ZPL: {}", e))?;
+    fs::write(&temp_file, raw_data)
+        .map_err(|e| format!("Error escribiendo archivo temporal ZPL: {}", e))?;
 
     let file_path_str = temp_file.to_string_lossy().to_string();
 
@@ -186,7 +205,9 @@ pub fn send_raw_to_printer(printer_name: Option<String>, raw_data: &str) -> Resu
         }
         cmd.arg(&file_path_str);
 
-        let output = cmd.output().map_err(|e| format!("Error ejecutando comando lp en Linux: {}", e))?;
+        let output = cmd
+            .output()
+            .map_err(|e| format!("Error ejecutando comando lp en Linux: {}", e))?;
         let _ = fs::remove_file(&temp_file);
 
         if !output.status.success() {
@@ -195,7 +216,10 @@ pub fn send_raw_to_printer(printer_name: Option<String>, raw_data: &str) -> Resu
         }
 
         let target_display = printer_name.unwrap_or_else(|| "Predeterminada".to_string());
-        Ok(format!("Etiqueta enviada exitosamente a la impresora: {}", target_display))
+        Ok(format!(
+            "Etiqueta enviada exitosamente a la impresora: {}",
+            target_display
+        ))
     }
 
     #[cfg(target_os = "windows")]
@@ -226,8 +250,15 @@ pub fn send_raw_to_printer(printer_name: Option<String>, raw_data: &str) -> Resu
             return Err(format!("Fallo de impresión en Windows: {}", err_msg));
         }
 
-        let target_display = if !target_printer.is_empty() { target_printer } else { "Predeterminada".to_string() };
-        Ok(format!("Etiqueta enviada exitosamente a la impresora: {}", target_display))
+        let target_display = if !target_printer.is_empty() {
+            target_printer
+        } else {
+            "Predeterminada".to_string()
+        };
+        Ok(format!(
+            "Etiqueta enviada exitosamente a la impresora: {}",
+            target_display
+        ))
     }
 
     #[cfg(not(any(target_os = "linux", target_os = "windows")))]

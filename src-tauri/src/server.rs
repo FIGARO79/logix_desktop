@@ -148,9 +148,21 @@ impl HostServerManager {
 fn cors_headers() -> Vec<Header> {
     vec![
         Header::from_bytes(&b"Access-Control-Allow-Origin"[..], &b"*"[..]).unwrap(),
-        Header::from_bytes(&b"Access-Control-Allow-Methods"[..], &b"GET, POST, OPTIONS, PUT, DELETE"[..]).unwrap(),
-        Header::from_bytes(&b"Access-Control-Allow-Headers"[..], &b"Content-Type, Authorization, X-Requested-With"[..]).unwrap(),
-        Header::from_bytes(&b"Content-Type"[..], &b"application/json; charset=utf-8"[..]).unwrap(),
+        Header::from_bytes(
+            &b"Access-Control-Allow-Methods"[..],
+            &b"GET, POST, OPTIONS, PUT, DELETE"[..],
+        )
+        .unwrap(),
+        Header::from_bytes(
+            &b"Access-Control-Allow-Headers"[..],
+            &b"Content-Type, Authorization, X-Requested-With"[..],
+        )
+        .unwrap(),
+        Header::from_bytes(
+            &b"Content-Type"[..],
+            &b"application/json; charset=utf-8"[..],
+        )
+        .unwrap(),
     ]
 }
 
@@ -165,7 +177,10 @@ fn json_response(status_code: u16, data: Value) -> Response<std::io::Cursor<Vec<
     )
 }
 
-fn handle_request(request: &mut tiny_http::Request, db: &Database) -> Response<std::io::Cursor<Vec<u8>>> {
+fn handle_request(
+    request: &mut tiny_http::Request,
+    db: &Database,
+) -> Response<std::io::Cursor<Vec<u8>>> {
     if request.method() == &Method::Options {
         return json_response(200, json!({ "status": "ok" }));
     }

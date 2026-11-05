@@ -76,7 +76,9 @@ pub fn get_reconciliation_from_db(
         .query_map([], |row| {
             let code: String = row.get(0)?;
             let desc: String = row.get::<_, Option<String>>(1)?.unwrap_or_default();
-            let bin: String = row.get::<_, Option<String>>(2)?.unwrap_or_else(|| "N/A".to_string());
+            let bin: String = row
+                .get::<_, Option<String>>(2)?
+                .unwrap_or_else(|| "N/A".to_string());
             let qty: f64 = row.get::<_, Option<f64>>(3)?.unwrap_or(0.0);
             let cost: f64 = row.get::<_, Option<f64>>(4)?.unwrap_or(0.0);
             Ok((code, desc, bin, qty, cost))
@@ -86,9 +88,7 @@ pub fn get_reconciliation_from_db(
 
     let mut stmt_counts = conn.prepare("SELECT item_code, counted_qty, stage FROM counts")?;
     let count_records: Vec<(String, f64, i32)> = stmt_counts
-        .query_map([], |row| {
-            Ok((row.get(0)?, row.get(1)?, row.get(2)?))
-        })?
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?
         .flatten()
         .collect();
 
@@ -96,12 +96,19 @@ pub fn get_reconciliation_from_db(
     let q_tol = qty_tolerance.unwrap_or(0.05);
     let v_tol = val_tolerance.unwrap_or(50.0);
 
-    Ok(calculate_reconciliation(master_items, count_records, recount_statuses, q_tol, v_tol))
+    Ok(calculate_reconciliation(
+        master_items,
+        count_records,
+        recount_statuses,
+        q_tol,
+        v_tol,
+    ))
 }
 
 /// Obtiene las estadísticas de inventario general desde SQLite
 pub fn get_reconciliation_stats_from_db(conn: &Connection) -> Result<GeneralInventoryStats> {
-    let mut stmt_items = conn.prepare("SELECT item_code, system_qty, unit_cost FROM inventory_items")?;
+    let mut stmt_items =
+        conn.prepare("SELECT item_code, system_qty, unit_cost FROM inventory_items")?;
     let master_qty_cost: Vec<(String, f64, f64)> = stmt_items
         .query_map([], |row| {
             let code: String = row.get(0)?;
@@ -118,7 +125,10 @@ pub fn get_reconciliation_stats_from_db(conn: &Connection) -> Result<GeneralInve
         .flatten()
         .collect();
 
-    Ok(calculate_general_inventory_stats(master_qty_cost, count_records))
+    Ok(calculate_general_inventory_stats(
+        master_qty_cost,
+        count_records,
+    ))
 }
 
 /// Obtiene el resumen para el panel de administración de inventario
@@ -149,7 +159,10 @@ pub fn get_inventory_settings_from_db(conn: &Connection) -> Result<InventorySett
 }
 
 /// Guarda la configuración de W2W
-pub fn save_inventory_settings_to_db(conn: &Connection, settings: &InventorySettings) -> Result<()> {
+pub fn save_inventory_settings_to_db(
+    conn: &Connection,
+    settings: &InventorySettings,
+) -> Result<()> {
     let val_json = serde_json::to_string(settings).unwrap_or_default();
     conn.execute(
         "INSERT INTO app_settings (key, value) VALUES ('w2w_settings', ?1)
@@ -170,7 +183,10 @@ pub fn start_w2w_stage_1_db(conn: &Connection) -> Result<String> {
     settings.stage = 1;
     save_inventory_settings_to_db(conn, &settings)?;
 
-    Ok("Inventario reiniciado en Etapa 1. Todos los datos de conteo han sido reseteados.".to_string())
+    Ok(
+        "Inventario reiniciado en Etapa 1. Todos los datos de conteo han sido reseteados."
+            .to_string(),
+    )
 }
 
 /// Avanza de etapa en el inventario general con cálculo de tolerancias y generación automática de reconteos
@@ -191,15 +207,19 @@ pub fn advance_inventory_stage_db(
 
     // Calcular reconciliación con conteos actuales
     let rows = get_reconciliation_from_db(conn, Some(q_tol), Some(v_tol))?;
-    
+
     // Limpiar lista de reconteo anterior para esta etapa
-    conn.execute("DELETE FROM recount_list WHERE stage_to_count = ?1", params![next_stage])?;
+    conn.execute(
+        "DELETE FROM recount_list WHERE stage_to_count = ?1",
+        params![next_stage],
+    )?;
 
     let now_ts = chrono::Utc::now().to_rfc3339();
     let mut recount_count = 0;
 
     for row in rows {
-        if row.status == "PENDING" || row.status == "PENDING_RECOUNT" || row.status == "DISCREPANCY" {
+        if row.status == "PENDING" || row.status == "PENDING_RECOUNT" || row.status == "DISCREPANCY"
+        {
             conn.execute(
                 "INSERT INTO recount_list (item_code, stage_to_count, status, created_at)
                  VALUES (?1, ?2, 'pending', ?3)",
@@ -230,10 +250,12 @@ pub fn approve_w2w_item_db(conn: &Connection, item_code: &str) -> Result<String>
 }
 
 /// Archiva la reconciliación actual como un histórico
-pub fn archive_w2w_reconciliation_db(conn: &Connection, archive_name: Option<String>) -> Result<String> {
-    let name = archive_name.unwrap_or_else(|| {
-        chrono::Utc::now().format("W2W_%Y-%m-%d_%H%M%S").to_string()
-    });
+pub fn archive_w2w_reconciliation_db(
+    conn: &Connection,
+    archive_name: Option<String>,
+) -> Result<String> {
+    let name = archive_name
+        .unwrap_or_else(|| chrono::Utc::now().format("W2W_%Y-%m-%d_%H%M%S").to_string());
     let rows = get_reconciliation_from_db(conn, None, None)?;
     let json_val = serde_json::to_string(&rows).unwrap_or_default();
     let key = format!("w2w_archive_{}", name);
@@ -244,7 +266,10 @@ pub fn archive_w2w_reconciliation_db(conn: &Connection, archive_name: Option<Str
         params![key, json_val],
     )?;
 
-    Ok(format!("Reconciliación archivada exitosamente como '{}'", name))
+    Ok(format!(
+        "Reconciliación archivada exitosamente como '{}'",
+        name
+    ))
 }
 
 /// Algoritmo principal de cálculo de reconciliación
@@ -289,10 +314,12 @@ pub fn calculate_reconciliation(
     let mut rows: Vec<ReconciliationRow> = Vec::with_capacity(all_keys.len());
 
     for code in all_keys {
-        let (desc, bin, sys_qty, cost) = master_map
-            .get(&code)
-            .cloned()
-            .unwrap_or(("ITEM NO CATALOGADO".to_string(), "N/A".to_string(), 0.0, 0.0));
+        let (desc, bin, sys_qty, cost) = master_map.get(&code).cloned().unwrap_or((
+            "ITEM NO CATALOGADO".to_string(),
+            "N/A".to_string(),
+            0.0,
+            0.0,
+        ));
 
         let stage_counts = counts_by_item.get(&code);
         let c1 = stage_counts.and_then(|m| m.get(&1)).copied();
@@ -380,7 +407,10 @@ pub fn calculate_reconciliation(
         if order_a != order_b {
             order_a.cmp(&order_b)
         } else {
-            b.diff_val.abs().partial_cmp(&a.diff_val.abs()).unwrap_or(std::cmp::Ordering::Equal)
+            b.diff_val
+                .abs()
+                .partial_cmp(&a.diff_val.abs())
+                .unwrap_or(std::cmp::Ordering::Equal)
         }
     });
 
@@ -494,15 +524,25 @@ mod tests {
     #[test]
     fn test_calculate_reconciliation() {
         let master_items = vec![
-            ("SKU1".to_string(), "Desc 1".to_string(), "A-1".to_string(), 10.0, 100.0),
-            ("SKU2".to_string(), "Desc 2".to_string(), "A-2".to_string(), 5.0, 50.0),
+            (
+                "SKU1".to_string(),
+                "Desc 1".to_string(),
+                "A-1".to_string(),
+                10.0,
+                100.0,
+            ),
+            (
+                "SKU2".to_string(),
+                "Desc 2".to_string(),
+                "A-2".to_string(),
+                5.0,
+                50.0,
+            ),
         ];
-        let count_records = vec![
-            ("SKU1".to_string(), 10.0, 1),
-            ("SKU2".to_string(), 3.0, 1),
-        ];
+        let count_records = vec![("SKU1".to_string(), 10.0, 1), ("SKU2".to_string(), 3.0, 1)];
 
-        let rows = calculate_reconciliation(master_items, count_records, HashMap::new(), 0.05, 50.0);
+        let rows =
+            calculate_reconciliation(master_items, count_records, HashMap::new(), 0.05, 50.0);
         assert_eq!(rows.len(), 2);
 
         let sku1 = rows.iter().find(|r| r.item_code == "SKU1").unwrap();
@@ -563,11 +603,13 @@ mod tests {
         assert_eq!(recounts, 1); // ITEM_A tiene diferencia de 3 unidades ($300 > $50), ITEM_B tiene 0
 
         // Verificar que ITEM_A está en recount_list
-        let recount_item: String = conn.query_row(
-            "SELECT item_code FROM recount_list WHERE stage_to_count = 2",
-            [],
-            |r| r.get(0)
-        ).unwrap();
+        let recount_item: String = conn
+            .query_row(
+                "SELECT item_code FROM recount_list WHERE stage_to_count = 2",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
         assert_eq!(recount_item, "ITEM_A");
 
         // Probar aprobación de ítem
