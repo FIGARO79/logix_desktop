@@ -56,6 +56,26 @@ const IRReconciliation = () => {
         setTitle("Tablero de Control IR");
     }, [setTitle]);
 
+    useEffect(() => {
+        let unlistenSync = null;
+        let isMounted = true;
+        import('@tauri-apps/api/event').then(eventApi => {
+            if (eventApi && typeof eventApi.listen === 'function' && isMounted) {
+                eventApi.listen('network-sync-event', (event) => {
+                    const evType = event?.payload?.event_type;
+                    if (!evType || evType.startsWith('INBOUND') || evType === 'WORK_FILE_UPLOAD') {
+                        queryClient.invalidateQueries({ queryKey: ['ir_reconciliations'] });
+                    }
+                }).then(fn => { unlistenSync = fn; }).catch(console.warn);
+            }
+        }).catch(console.warn);
+
+        return () => {
+            isMounted = false;
+            if (typeof unlistenSync === 'function') unlistenSync();
+        };
+    }, [queryClient]);
+
     const handleDelete = async (id) => {
         if (!confirm("¿Está seguro de eliminar este registro de conciliación del historial?")) return;
         try {

@@ -183,6 +183,9 @@ export const saveInboundLog = (log) =>
 export const deleteInboundLog = (id) =>
     tauriInvoke('delete_inbound_log', { id });
 
+export const syncInboundLogsNetwork = () =>
+    tauriInvoke('sync_inbound_logs_network');
+
 export const archiveInboundLogs = (ids) =>
     tauriInvoke('archive_inbound_logs', { ids });
 
@@ -481,7 +484,7 @@ export default {
     getItemDetails, searchStockItems, getValidBins, getOccupancyStats,
     saveItemMeasurement, clearAllDatabase,
     // Inbound
-    getInboundLogs, saveInboundLog, deleteInboundLog, archiveInboundLogs,
+    getInboundLogs, saveInboundLog, deleteInboundLog, archiveInboundLogs, syncInboundLogsNetwork,
     getInboundVersions, findItemInbound, getInboundAlerts, clearInboundAlerts,
     resolveInboundAlert, resolveInboundAlertsBulk, runInboundAuditor,
     getIrReconciliations, saveIrReconciliation, deleteIrReconciliation,

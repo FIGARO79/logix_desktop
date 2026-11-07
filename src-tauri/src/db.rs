@@ -540,6 +540,16 @@ impl Database {
         Self::add_column_if_not_exists(&conn, "inbound_logs", "difference", "REAL DEFAULT 0.0")?;
         Self::add_column_if_not_exists(&conn, "inbound_logs", "relocated_bin", "TEXT")?;
 
+        // Asegurar que todos los registros de inbound_logs posean un client_id único para replicación distribuida
+        let _ = conn.execute(
+            "UPDATE inbound_logs SET client_id = 'gen_' || id || '_' || hex(randomblob(8)) WHERE client_id IS NULL OR client_id = '';",
+            [],
+        );
+        let _ = conn.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_inbound_client_id ON inbound_logs(client_id) WHERE client_id IS NOT NULL AND client_id != '';",
+            [],
+        );
+
         Self::add_column_if_not_exists(&conn, "inbound_alerts", "resolved", "INTEGER DEFAULT 0")?;
         Self::add_column_if_not_exists(
             &conn,

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { getDB, getGRNExpectedQtyBulk } from '../utils/offlineDb';
+import { isTauri, callTauriCommand } from '../utils/tauriBridge';
 
 const InboundHistory = () => {
     const { setTitle } = useOutletContext();
@@ -10,6 +11,22 @@ const InboundHistory = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [versions, setVersions] = useState([]);
     const [currentVersion, setCurrentVersion] = useState('');
+    const [isSyncingNetwork, setIsSyncingNetwork] = useState(false);
+
+    const handleNetworkSync = async () => {
+        if (isSyncingNetwork) return;
+        setIsSyncingNetwork(true);
+        try {
+            if (isTauri()) {
+                await callTauriCommand('sync_inbound_logs_network');
+            }
+            await loadLogs(currentVersion, true);
+        } catch (err) {
+            console.error("Error sincronizando logs con la red:", err);
+        } finally {
+            setIsSyncingNetwork(false);
+        }
+    };
 
     const normalizeDate = (dateString) => {
         if (!dateString) return null;
@@ -149,10 +166,30 @@ const InboundHistory = () => {
 
     useEffect(() => {
         loadLogs();
+
+        let unlistenSync = null;
+        let isMounted = true;
+        if (isTauri()) {
+            import('@tauri-apps/api/event').then(eventApi => {
+                if (eventApi && typeof eventApi.listen === 'function' && isMounted) {
+                    eventApi.listen('network-sync-event', (event) => {
+                        const evType = event?.payload?.event_type;
+                        if (!evType || evType.startsWith('INBOUND') || evType === 'WORK_FILE_UPLOAD') {
+                            loadLogs(currentVersion, true);
+                        }
+                    }).then(fn => { unlistenSync = fn; }).catch(console.warn);
+                }
+            }).catch(console.warn);
+        }
+
         const interval = setInterval(() => {
             if (!currentVersion) loadLogs('', true);
         }, 15000);
-        return () => clearInterval(interval);
+        return () => {
+            isMounted = false;
+            clearInterval(interval);
+            if (typeof unlistenSync === 'function') unlistenSync();
+        };
     }, [currentVersion]);
 
     const filteredLogs = logs.filter(log => {
@@ -197,6 +234,17 @@ const InboundHistory = () => {
                         <option value="">Actual</option>
                         {versions.map(v => <option key={v} value={v}>{formatDate(v)}</option>)}
                     </select>
+                    <button
+                        onClick={handleNetworkSync}
+                        disabled={isSyncingNetwork}
+                        className={`h-7 px-2.5 font-normal bg-white hover:bg-gray-100 border border-[#d1d5db] text-[#1f1f1f] rounded shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer text-[12px] ${isSyncingNetwork ? 'opacity-70 cursor-wait' : ''}`}
+                        title="Transmitir y sincronizar todos los logs de inbound con las demás máquinas en la red"
+                    >
+                        <svg className={`w-3.5 h-3.5 text-[#1f1f1f] ${isSyncingNetwork ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span>Sincronizar Red</span>
+                    </button>
                     <button
                         onClick={() => window.location.href = currentVersion ? `/api/export_log?version_date=${currentVersion}` : '/api/export_log'}
                         className="h-7 px-3 font-normal bg-[#354a5f] hover:bg-[#2a3c4e] text-white rounded shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer text-[12px]"

@@ -105,6 +105,8 @@ const Inbound = () => {
     const [scannerOpen, setScannerOpen] = useState(false);
     const [qrImage, setQrImage] = useState(null);
     const [editId, setEditId] = useState(null);
+    const [editClientId, setEditClientId] = useState(null);
+    const [isSyncingNetwork, setIsSyncingNetwork] = useState(false);
 
     // --- Estado para el Tablero de Control de la IR ---
     const [irStats, setIrStats] = useState(DEFAULT_IR_STATS);
@@ -309,6 +311,28 @@ const Inbound = () => {
         }
     };
 
+    const handleNetworkSync = async () => {
+        if (isSyncingNetwork) return;
+        setIsSyncingNetwork(true);
+        try {
+            if (isTauri()) {
+                const res = await callTauriCommand('sync_inbound_logs_network');
+                toast.success(res || "Logs de inbound sincronizados con la red");
+            } else {
+                toast.info("Modo navegador: la replicación descentralizada opera en la app de escritorio.");
+            }
+            await loadLogs();
+            queryClient.invalidateQueries({ queryKey: ['inbound_logs'] });
+            queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
+            queryClient.invalidateQueries({ queryKey: ['ir_reconciliations'] });
+        } catch (err) {
+            console.error("Error sincronizando logs con la red:", err);
+            toast.error("Error al sincronizar logs con la red");
+        } finally {
+            setIsSyncingNetwork(false);
+        }
+    };
+
     useEffect(() => {
         loadVersions();
         loadSlottingBins();
@@ -316,6 +340,26 @@ const Inbound = () => {
         // Check inicial
         runAutoSync();
         syncPendingInbound().then(() => queryClient.invalidateQueries({ queryKey: ['inbound_logs'] }));
+
+        let unlistenSync = null;
+        let isMounted = true;
+
+        if (isTauri()) {
+            import('@tauri-apps/api/event').then(eventApi => {
+                if (eventApi && typeof eventApi.listen === 'function' && isMounted) {
+                    eventApi.listen('network-sync-event', (event) => {
+                        const evType = event?.payload?.event_type;
+                        if (!evType || evType.startsWith('INBOUND') || evType === 'WORK_FILE_UPLOAD') {
+                            queryClient.invalidateQueries({ queryKey: ['inbound_logs'] });
+                            queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
+                            queryClient.invalidateQueries({ queryKey: ['ir_reconciliations'] });
+                            queryClient.invalidateQueries({ queryKey: ['inbound_alerts'] });
+                            loadLogs();
+                        }
+                    }).then(fn => { unlistenSync = fn; }).catch(console.warn);
+                }
+            }).catch(console.warn);
+        }
 
         // Intervalo de revisión cada 10 minutos
         const syncInterval = setInterval(() => {
@@ -326,8 +370,10 @@ const Inbound = () => {
         window.addEventListener('focus', handleFocus);
 
         return () => {
+            isMounted = false;
             clearInterval(syncInterval);
             window.removeEventListener('focus', handleFocus);
+            if (typeof unlistenSync === 'function') unlistenSync();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -996,7 +1042,7 @@ const Inbound = () => {
         if (isSaving) return; // Bloquear doble clic
         setIsSaving(true);
 
-        const targetClientId = (typeof editId === 'string' && editId.includes('-')) ? editId : crypto.randomUUID();
+        const targetClientId = editClientId || ((typeof editId === 'string' && editId.includes('-')) ? editId : crypto.randomUUID());
         const payload = {
             importReference: importRef.trim().toUpperCase(),
             waybill: waybill.trim().toUpperCase(),
@@ -1124,6 +1170,7 @@ const Inbound = () => {
     };
 
     const resetForm = () => {
+        setEditClientId(null);
         setEditId(null);
         setItemCode('');
         setQuantity('');
@@ -1148,6 +1195,7 @@ const Inbound = () => {
     };
 
     const startEdit = (log) => {
+        setEditClientId(log.client_id || log.clientId || null);
         setEditId(log.id);
         const ir = (log.importReference || log.importRef || '').trim();
         const wb = (log.waybill || '').trim();
@@ -1233,6 +1281,18 @@ const Inbound = () => {
                                             {pendingCount} Pendientes
                                         </div>
                                     )}
+                                    <button
+                                        type="button"
+                                        onClick={handleNetworkSync}
+                                        disabled={isSyncingNetwork}
+                                        className={`flex items-center gap-1.5 px-2 py-0.5 bg-white hover:bg-gray-100 border border-gray-300 rounded text-black text-[11px] font-normal cursor-pointer transition-colors ${isSyncingNetwork ? 'opacity-70 cursor-wait' : ''}`}
+                                        title="Transmitir y sincronizar todos los logs de inbound con las demás máquinas en la red"
+                                    >
+                                        <svg className={`w-3.5 h-3.5 text-black ${isSyncingNetwork ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        <span>Sincronizar Red</span>
+                                    </button>
                                     <button type="button" onClick={async () => { setIsSyncing(true); const ok = await downloadMasterData(); alert(ok ? 'Maestro sincronizado.' : 'Error al sincronizar.'); setIsSyncing(false); }} className={`p-1.5 rounded hover:bg-gray-200 ${isSyncing ? 'animate-spin' : ''}`} title="Sincronizar Maestro">
                                         <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                     </button>

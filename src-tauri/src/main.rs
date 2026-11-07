@@ -545,32 +545,79 @@ fn get_inbound_logs(
 #[tauri::command]
 fn save_inbound_log(
     state: State<'_, AppState>,
-    entry: inbound::LogInbound,
+    mut entry: inbound::LogInbound,
 ) -> Result<inbound::LogInbound, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+
+    if entry.client_id.is_none() || entry.client_id.as_ref().map(|s| s.trim().is_empty()).unwrap_or(true) {
+        entry.client_id = Some(format!(
+            "inb_{}_{}",
+            chrono::Local::now().format("%Y%m%d%H%M%S"),
+            network_sync::uuid_fast()
+        ));
+    }
+
     let po_path = get_data_file_path("po_lookup.json");
     let grn_path = get_data_file_path("grn_master_data.json");
-    inbound::save_log_to_db(
+    let saved = inbound::save_log_to_db(
         &conn,
         entry,
         po_path.to_str().unwrap_or("./data/po_lookup.json"),
         grn_path.to_str().unwrap_or("./data/grn_master_data.json"),
     )
-    .map_err(|e| e.to_string())
+    .map_err(|e| e.to_string())?;
+
+    // Replicar evento a la red descentralizada si está disponible
+    if let Ok(payload) = serde_json::to_value(&saved) {
+        let _ = network_sync::publish_event(&conn, "INBOUND_LOG_SAVE", payload);
+    }
+
+    Ok(saved)
 }
 
 #[tauri::command]
 fn delete_inbound_log(state: State<'_, AppState>, id: i64) -> Result<String, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    let client_id: Option<String> = conn
+        .query_row(
+            "SELECT client_id FROM inbound_logs WHERE id = ?1",
+            params![id],
+            |r| r.get(0),
+        )
+        .ok();
+
     inbound::delete_log_from_db(&conn, id).map_err(|e| e.to_string())?;
+
+    if let Some(cid) = client_id {
+        let payload = serde_json::json!({
+            "client_id": cid,
+            "id": id
+        });
+        let _ = network_sync::publish_event(&conn, "INBOUND_LOG_DELETE", payload);
+    }
+
     Ok("Log eliminado".to_string())
 }
 
 #[tauri::command]
 fn archive_inbound_logs(state: State<'_, AppState>) -> Result<String, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
     let count = inbound::archive_logs_in_db(&conn).map_err(|e| e.to_string())?;
+
+    let payload = serde_json::json!({
+        "archived_at": now
+    });
+    let _ = network_sync::publish_event(&conn, "INBOUND_LOGS_ARCHIVE", payload);
+
     Ok(format!("{} logs archivados exitosamente", count))
+}
+
+#[tauri::command]
+fn sync_inbound_logs_network(state: State<'_, AppState>) -> Result<String, String> {
+    let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    let count = network_sync::broadcast_all_inbound_logs(&conn)?;
+    Ok(format!("{} registros de inbound sincronizados con la red", count))
 }
 
 #[tauri::command]
@@ -699,20 +746,70 @@ fn unarchive_inbound_logs_version(
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     let count =
         inbound::unarchive_logs_version_db(&conn, &version_date).map_err(|e| e.to_string())?;
+
+    let payload = serde_json::json!({
+        "version_date": version_date
+    });
+    let _ = network_sync::publish_event(&conn, "INBOUND_LOGS_UNARCHIVE", payload);
+
     Ok(format!("{} registros desarchivados con éxito", count))
 }
 
 #[tauri::command]
 fn restore_inbound_rows_bulk(state: State<'_, AppState>, ids: Vec<i64>) -> Result<String, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    let mut client_ids: Vec<String> = Vec::new();
+    for id in &ids {
+        if let Ok(cid) = conn.query_row(
+            "SELECT client_id FROM inbound_logs WHERE id = ?1",
+            params![id],
+            |r| r.get::<_, Option<String>>(0),
+        ) {
+            if let Some(c) = cid {
+                client_ids.push(c);
+            }
+        }
+    }
+
     let count = inbound::restore_inbound_rows_bulk_db(&conn, &ids).map_err(|e| e.to_string())?;
+
+    if !client_ids.is_empty() {
+        let payload = serde_json::json!({
+            "client_ids": client_ids,
+            "ids": ids
+        });
+        let _ = network_sync::publish_event(&conn, "INBOUND_LOGS_RESTORE_BULK", payload);
+    }
+
     Ok(format!("{} registros restaurados", count))
 }
 
 #[tauri::command]
 fn delete_inbound_rows_bulk(state: State<'_, AppState>, ids: Vec<i64>) -> Result<String, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    let mut client_ids: Vec<String> = Vec::new();
+    for id in &ids {
+        if let Ok(cid) = conn.query_row(
+            "SELECT client_id FROM inbound_logs WHERE id = ?1",
+            params![id],
+            |r| r.get::<_, Option<String>>(0),
+        ) {
+            if let Some(c) = cid {
+                client_ids.push(c);
+            }
+        }
+    }
+
     let count = inbound::delete_inbound_rows_bulk_db(&conn, &ids).map_err(|e| e.to_string())?;
+
+    if !client_ids.is_empty() {
+        let payload = serde_json::json!({
+            "client_ids": client_ids,
+            "ids": ids
+        });
+        let _ = network_sync::publish_event(&conn, "INBOUND_LOGS_DELETE_BULK", payload);
+    }
+
     Ok(format!("{} registros eliminados", count))
 }
 
@@ -2430,6 +2527,7 @@ fn main() {
             save_inbound_log,
             delete_inbound_log,
             archive_inbound_logs,
+            sync_inbound_logs_network,
             get_inbound_versions,
             find_item_inbound,
             get_inbound_alerts,

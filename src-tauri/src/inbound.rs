@@ -335,20 +335,27 @@ pub fn save_log_to_db(
     // 3. Diferencia = Recibida - Esperada GRN
     entry.difference = entry.qty_received - entry.qty_grn;
 
-    // 4. Si viene client_id, comprobar idempotencia
+    // 4. Si viene client_id, comprobar si ya existe en la base de datos para actualizar
     if let Some(ref cid) = entry.client_id {
         if !cid.trim().is_empty() {
             let mut check_stmt =
                 conn.prepare("SELECT id FROM inbound_logs WHERE client_id = ?1")?;
             let existing_id: Option<i64> = check_stmt.query_row(params![cid], |r| r.get(0)).ok();
             if let Some(eid) = existing_id {
-                entry.id = Some(eid);
-                return Ok(entry);
+                if entry.id.is_none() {
+                    entry.id = Some(eid);
+                }
             }
         }
+    } else {
+        entry.client_id = Some(format!(
+            "inb_{}_{}",
+            now.format("%Y%m%d%H%M%S"),
+            crate::network_sync::uuid_fast()
+        ));
     }
 
-    // 4. Si viene id existente, actualizar en lugar de insertar
+    // 5. Si viene id existente, actualizar en lugar de insertar
     if let Some(existing_id) = entry.id {
         if existing_id > 0 {
             conn.execute(
@@ -361,8 +368,10 @@ pub fn save_log_to_db(
                     relocated_bin = ?6,
                     qty_received = ?7,
                     qty_grn = ?8,
-                    difference = ?9
-                 WHERE id = ?10",
+                    difference = ?9,
+                    timestamp = ?10,
+                    version_date = ?11
+                 WHERE id = ?12",
                 params![
                     entry.import_reference.trim().to_uppercase(),
                     entry.waybill.as_ref().map(|s| s.trim().to_uppercase()),
@@ -373,9 +382,12 @@ pub fn save_log_to_db(
                     entry.qty_received,
                     entry.qty_grn,
                     entry.difference,
+                    entry.timestamp,
+                    entry.version_date,
                     existing_id,
                 ],
             )?;
+            invalidate_inbound_reconciliation_cache();
             return Ok(entry);
         }
     }

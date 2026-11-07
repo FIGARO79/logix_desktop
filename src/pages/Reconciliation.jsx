@@ -90,15 +90,34 @@ const Reconciliation = () => {
     });
 
     useEffect(() => {
+        let unlistenSync = null;
+        let isMounted = true;
+        import('@tauri-apps/api/event').then(eventApi => {
+            if (eventApi && typeof eventApi.listen === 'function' && isMounted) {
+                eventApi.listen('network-sync-event', (event) => {
+                    const evType = event?.payload?.event_type;
+                    if (!evType || evType.startsWith('INBOUND') || evType === 'WORK_FILE_UPLOAD') {
+                        refetch();
+                    }
+                }).then(fn => { unlistenSync = fn; }).catch(console.warn);
+            }
+        }).catch(console.warn);
+
+        let bc = null;
         if (typeof BroadcastChannel !== 'undefined') {
-            const bc = new BroadcastChannel('logix_events');
+            bc = new BroadcastChannel('logix_events');
             bc.onmessage = (event) => {
                 if (event.data?.type === 'INBOUND_MUTATED') {
                     refetch();
                 }
             };
-            return () => bc.close();
         }
+
+        return () => {
+            isMounted = false;
+            if (bc) bc.close();
+            if (typeof unlistenSync === 'function') unlistenSync();
+        };
     }, [refetch]);
 
     // Expandir filas con múltiples GRNs para que cada GRN esté en su propia línea individual
