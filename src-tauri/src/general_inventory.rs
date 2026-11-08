@@ -147,15 +147,28 @@ pub fn get_inventory_summary_from_db(conn: &Connection) -> Result<InventorySumma
 
 /// Obtiene la configuración de W2W / Inventario General
 pub fn get_inventory_settings_from_db(conn: &Connection) -> Result<InventorySettings> {
-    let mut stmt = conn.prepare("SELECT value FROM app_settings WHERE key = 'w2w_settings'")?;
-    let val_str: Option<String> = stmt.query_row([], |row| row.get(0)).ok();
+    let mut cfg = InventorySettings::default();
 
-    if let Some(s) = val_str {
-        if let Ok(cfg) = serde_json::from_str::<InventorySettings>(&s) {
-            return Ok(cfg);
+    if let Ok(mut stmt) = conn.prepare("SELECT value FROM app_settings WHERE key = 'w2w_settings'") {
+        let val_str: Option<String> = stmt.query_row([], |row| row.get(0)).ok();
+        if let Some(s) = val_str {
+            if let Ok(parsed) = serde_json::from_str::<InventorySettings>(&s) {
+                cfg = parsed;
+            }
         }
     }
-    Ok(InventorySettings::default())
+
+    // Compatibilidad y sincronización con 'current_inventory_stage'
+    if let Ok(mut stmt_stage) = conn.prepare("SELECT value FROM app_settings WHERE key = 'current_inventory_stage'") {
+        let stage_str: Option<String> = stmt_stage.query_row([], |row| row.get(0)).ok();
+        if let Some(s) = stage_str {
+            if let Ok(st) = s.trim().parse::<i32>() {
+                cfg.stage = st;
+            }
+        }
+    }
+
+    Ok(cfg)
 }
 
 /// Guarda la configuración de W2W
@@ -168,6 +181,11 @@ pub fn save_inventory_settings_to_db(
         "INSERT INTO app_settings (key, value) VALUES ('w2w_settings', ?1)
          ON CONFLICT(key) DO UPDATE SET value = excluded.value",
         params![val_json],
+    )?;
+    conn.execute(
+        "INSERT INTO app_settings (key, value) VALUES ('current_inventory_stage', ?1)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        params![settings.stage.to_string()],
     )?;
     Ok(())
 }

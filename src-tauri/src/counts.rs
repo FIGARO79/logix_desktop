@@ -168,7 +168,7 @@ pub fn start_session(conn: &Connection, name: &str, username: &str) -> Result<Co
 pub fn close_session(conn: &Connection, session_id: i64) -> Result<()> {
     let now = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
     conn.execute(
-        "UPDATE count_sessions SET status = 'completed', end_time = ?1 WHERE id = ?2",
+        "UPDATE count_sessions SET status = 'closed', end_time = ?1 WHERE id = ?2",
         params![now, session_id],
     )?;
     Ok(())
@@ -1275,5 +1275,61 @@ mod tests {
             )
             .unwrap();
         assert_eq!(closed_status, "closed");
+    }
+
+    #[test]
+    fn test_stage_zero_restriction_and_session_validation() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "
+            CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT);
+            CREATE TABLE count_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT,
+                user_username TEXT,
+                start_time TEXT,
+                end_time TEXT,
+                status TEXT DEFAULT 'in_progress',
+                inventory_stage INTEGER DEFAULT 1
+            );
+            INSERT INTO app_settings (key, value) VALUES ('current_inventory_stage', '0');
+            ",
+        )
+        .unwrap();
+
+        // 1. Con etapa 0, get_active_session debe retornar None
+        let active = get_active_session(&conn).unwrap();
+        assert!(active.is_none());
+
+        // 2. Con etapa 0, start_session debe fallar con error descriptivo
+        let err = start_session(&conn, "Sesión Inválida", "auditor1");
+        assert!(err.is_err());
+        let err_str = err.unwrap_err().to_string();
+        assert!(err_str.contains("Etapa 1") || err_str.contains("iniciado"));
+
+        // 3. Al iniciar la etapa 1
+        conn.execute(
+            "INSERT INTO app_settings (key, value) VALUES ('current_inventory_stage', '1')
+             ON CONFLICT(key) DO UPDATE SET value = '1'",
+            [],
+        )
+        .unwrap();
+
+        // 4. Con etapa 1, start_session debe funcionar exitosamente
+        let session = start_session(&conn, "Sesión Etapa 1", "auditor1").unwrap();
+        assert_eq!(session.status, "in_progress");
+        assert_eq!(session.inventory_stage, 1);
+
+        // 5. get_active_session debe retornar la sesión iniciada
+        let active_now = get_active_session(&conn).unwrap();
+        assert!(active_now.is_some());
+        let act = active_now.unwrap();
+        assert_eq!(act.id, session.id);
+        assert_eq!(act.status, "in_progress");
+
+        // 6. Al cerrar la sesión, get_active_session debe ser None
+        close_session(&conn, session.id).unwrap();
+        let active_closed = get_active_session(&conn).unwrap();
+        assert!(active_closed.is_none());
     }
 }
