@@ -16,18 +16,6 @@ const AdminInventory = () => {
     const [message, setMessage] = useState(null);
     const [error, setError] = useState(null);
 
-    // --- Manage Counts State ---
-    const [counts, setCounts] = useState([]);
-    const [filteredCounts, setFilteredCounts] = useState([]);
-    const [countStats, setCountStats] = useState(null);
-    const [usernames, setUsernames] = useState([]);
-    const [selectedUser, setSelectedUser] = useState('');
-
-    // Reopen Location Form State
-    const [reopenSessionId, setReopenSessionId] = useState('');
-    const [reopenLocationCode, setReopenLocationCode] = useState('');
-    const [adminMsg, setAdminMsg] = useState('');
-
     // --- Reconciliation State ---
     const [reconItems, setReconItems] = useState([]);
     const [reconLoading, setReconLoading] = useState(false);
@@ -390,24 +378,6 @@ const AdminInventory = () => {
         }
     };
 
-    const fetchCounts = useCallback(async () => {
-        try {
-            const [resAll, resStats] = await Promise.all([
-                fetch('/api/counts/all'),
-                fetch('/api/counts/stats')
-            ]);
-            if (!resAll.ok) throw new Error("Error cargando conteos");
-            const data = await resAll.json();
-            setCounts(data);
-            setFilteredCounts(selectedUser ? data.filter(c => c.username === selectedUser) : data);
-            const distinctUsers = [...new Set(data.map(c => c.username).filter(Boolean))].sort();
-            setUsernames(distinctUsers);
-            if (resStats.ok) setCountStats(await resStats.json());
-        } catch (err) {
-            setError(err.message);
-        }
-    }, [selectedUser]);
-
     const [auditorZones, setAuditorZones] = useState([]);
     const [editedZones, setEditedZones] = useState({});
     const [availableAisles, setAvailableAisles] = useState(['CA', 'EB', 'EC', 'ED', 'EE', 'Piso', 'RA', 'RB', 'RC', 'RD', 'RE']);
@@ -471,11 +441,7 @@ const AdminInventory = () => {
 
     useEffect(() => {
         fetchStats();
-        // Precarga anticipada para que la transición entre pestañas sea instantánea (<16ms)
-        fetchReconciliation();
-        if (activeTab === 'counts' || activeTab === 'cycle') {
-            fetchCounts();
-        } else if (activeTab === 'reconciliation') {
+        if (activeTab === 'reconciliation') {
             fetchReconciliation();
         } else if (activeTab === 'zones') {
             fetchAuditorZones();
@@ -485,7 +451,6 @@ const AdminInventory = () => {
             // Desktop: no onLine check, always available - only skip if tab is hidden
             if (!document.hidden) {
                 fetchStats();
-                if (activeTab === 'cycle') fetchCounts();
             }
         }, 5000);
 
@@ -499,7 +464,6 @@ const AdminInventory = () => {
                     event.data?.type === 'INVENTORY_FINALIZED'
                 ) {
                     fetchStats();
-                    if (activeTab === 'cycle' || activeTab === 'counts') fetchCounts();
                     if (activeTab === 'reconciliation') fetchReconciliation();
                     if (activeTab === 'zones') fetchAuditorZones();
                 }
@@ -510,7 +474,7 @@ const AdminInventory = () => {
             clearInterval(interval);
             if (bc) bc.close();
         };
-    }, [activeTab, fetchStats, fetchCounts, fetchReconciliation, fetchAuditorZones]);
+    }, [activeTab, fetchStats, fetchReconciliation, fetchAuditorZones]);
 
     useEffect(() => {
         if (message) {
@@ -525,15 +489,6 @@ const AdminInventory = () => {
             return () => clearTimeout(timer);
         }
     }, [error]);
-
-    const handleDelete = async (id) => {
-        if (!window.confirm("¿Eliminar este registro?")) return;
-        try {
-            const res = await fetch(`/api/counts/${id}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error("Error");
-            fetchCounts();
-        } catch (e) { alert(e.message); }
-    };
 
     return (
         <div className="max-w-[1920px] mx-auto px-4 py-3 font-['Segoe_UI',Tahoma,sans-serif] text-[12px] text-[#1f1f1f] bg-[#f3f3f3] min-h-screen">
