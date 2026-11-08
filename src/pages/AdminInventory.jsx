@@ -142,6 +142,109 @@ const AdminInventory = () => {
         await exportExcelFileNative(workbook, fileName);
     };
 
+    const handleExportW2WReport = async () => {
+        setLoading(true);
+        try {
+            let items = reconItems;
+            if (!items || items.length === 0) {
+                const res = await fetch('/api/admin/inventory/reconciliation');
+                if (res.ok) {
+                    const data = await res.json();
+                    items = Array.isArray(data) ? data : (data.items || []);
+                }
+            }
+            if (!items || items.length === 0) {
+                alert("No hay registros de inventario disponibles para exportar el informe.");
+                return;
+            }
+            const formattedData = items.map(item => ({
+                'Ítem': item.item_code,
+                'Descripción': item.description,
+                'Ubicación Sistema': item.system_location || item.bin_location || '—',
+                'Ubicación Escaneada': item.scanned_location || item.counted_location || '—',
+                'Costo': Number(item.cost) || 0,
+                'Cant. Sistema': Number(item.system_qty) || 0,
+                'Etapa 1': item.c1 !== null && item.c1 !== undefined ? item.c1 : '-',
+                'Etapa 2': item.c2 !== null && item.c2 !== undefined ? item.c2 : '-',
+                'Etapa 3': item.c3 !== null && item.c3 !== undefined ? item.c3 : '-',
+                'Etapa 4': item.c4 !== null && item.c4 !== undefined ? item.c4 : '-',
+                'Contado': item.is_counted ? item.final_counted : 'Sin Contar',
+                'Diferencia': item.is_counted ? item.diff_qty : 0,
+                'Valor Diferencia': item.is_counted ? Number(item.diff_val) || 0 : 0
+            }));
+            const ws = XLSX.utils.json_to_sheet(formattedData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Informe_Inventario_W2W');
+            const dateStr = new Date().toISOString().slice(0, 10);
+            await exportExcelFileNative(wb, `Informe_Final_Inventario_W2W_${dateStr}.xlsx`);
+        } catch (err) {
+            console.error("Error al exportar informe W2W:", err);
+            alert("Error al exportar informe: " + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleExportStageExcel = async (stageNum) => {
+        setLoading(true);
+        try {
+            if (stageNum === 1) {
+                const res = await fetch('/api/counts/all');
+                if (!res.ok) throw new Error("Error obteniendo conteos");
+                const countsData = await res.json();
+                const filtered = Array.isArray(countsData)
+                    ? countsData.filter(c => !c.stage || c.stage === 1)
+                    : [];
+                if (!filtered.length) {
+                    alert("No hay conteos registrados en la Fase 1.");
+                    return;
+                }
+                const formatted = filtered.map(c => ({
+                    'ID': c.id,
+                    'Ítem': c.item_code,
+                    'Descripción': c.description || c.item_description || '',
+                    'Ubicación': c.counted_location || c.location || '',
+                    'Cantidad Contada': c.counted_qty,
+                    'Usuario': c.username || '',
+                    'Etapa': c.stage || 1,
+                    'Fecha': c.timestamp || c.created_at || ''
+                }));
+                const ws = XLSX.utils.json_to_sheet(formatted);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Conteos_Fase_1');
+                const dateStr = new Date().toISOString().slice(0, 10);
+                await exportExcelFileNative(wb, `Conteos_Fase_1_${dateStr}.xlsx`);
+            } else {
+                const res = await fetch('/api/recount_list/active');
+                if (!res.ok) throw new Error("Error obteniendo lista de reconteo");
+                const data = await res.json();
+                const list = Array.isArray(data) ? data : (data.items || []);
+                const filtered = list.filter(r => !r.stage_to_count || r.stage_to_count === stageNum);
+                if (!filtered.length) {
+                    alert(`No hay ítems registrados en la lista de reconteo de la Fase ${stageNum}.`);
+                    return;
+                }
+                const formatted = filtered.map(r => ({
+                    'ID': r.id,
+                    'Ítem': r.item_code,
+                    'Etapa': r.stage_to_count,
+                    'Estado': r.status,
+                    'Fecha': r.created_at || ''
+                }));
+                const ws = XLSX.utils.json_to_sheet(formatted);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, `Reconteo_Fase_${stageNum}`);
+                const dateStr = new Date().toISOString().slice(0, 10);
+                await exportExcelFileNative(wb, `Lista_Reconteo_Fase_${stageNum}_${dateStr}.xlsx`);
+            }
+        } catch (err) {
+            console.error("Error al exportar etapa:", err);
+            alert("Error al exportar: " + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const fetchReconciliation = useCallback(async () => {
         setReconLoading(true);
         try {
@@ -443,8 +546,9 @@ const AdminInventory = () => {
                 </div>
                 <div className="flex gap-2">
                     <button
-                        onClick={() => window.location.href = `/admin/inventory/report`}
-                        className="h-7 px-3 bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] text-[#1f1f1f] text-[12px] font-normal rounded transition-colors cursor-pointer shadow-sm"
+                        onClick={handleExportW2WReport}
+                        disabled={loading}
+                        className="h-7 px-3 bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] text-[#1f1f1f] text-[12px] font-normal rounded transition-colors cursor-pointer shadow-sm disabled:opacity-50"
                     >
                         Exportar Conciliación
                     </button>
@@ -569,7 +673,7 @@ const AdminInventory = () => {
                                         <button
                                             onClick={() => {
                                                 if (item.isDownload) {
-                                                    window.location.href = item.actionUrl;
+                                                    handleExportW2WReport();
                                                 } else {
                                                     openConfirmModal(item.actionUrl, item.title, item.message);
                                                 }
@@ -597,15 +701,10 @@ const AdminInventory = () => {
                                         </button>
                                         {stage >= item.s && !item.isDownload && (
                                             <button
-                                                onClick={() => {
-                                                    if (item.s === 1) {
-                                                        window.location.href = '/api/export_counts?stage=1';
-                                                    } else {
-                                                        window.location.href = `/api/export_recount_list/${item.s}`;
-                                                    }
-                                                }}
+                                                onClick={() => handleExportStageExcel(item.s)}
+                                                disabled={loading}
                                                 title={`Descargar Listado / Registro de Fase ${item.s}`}
-                                                className="h-7 px-2.5 border border-[#d1d5db] rounded bg-white hover:bg-[#f5f5f5] text-[#1f1f1f] font-normal text-[11.5px] shadow-xs cursor-pointer"
+                                                className="h-7 px-2.5 border border-[#d1d5db] rounded bg-white hover:bg-[#f5f5f5] text-[#1f1f1f] font-normal text-[11.5px] shadow-xs cursor-pointer disabled:opacity-50"
                                             >
                                                 Excel
                                             </button>
@@ -622,9 +721,9 @@ const AdminInventory = () => {
                                 <p className="text-[11.5px] text-[#5c5c5c] font-normal mb-3">Cierre definitivo de registros y reinicio para un nuevo ciclo</p>
                                 <div className="flex gap-3 w-full max-w-sm">
                                     <button
-                                        onClick={() => window.location.href = `/admin/inventory/report`}
+                                        onClick={handleExportW2WReport}
                                         disabled={stage !== 4 || loading}
-                                        className="flex-1 h-7 bg-white border border-[#d1d5db] text-[#1f1f1f] text-[12px] font-normal rounded hover:bg-[#f5f5f5] disabled:opacity-50 transition-colors shadow-xs cursor-pointer"
+                                        className="flex-1 h-7 bg-white border border-[#d1d5db] text-[#1f1f1f] text-[12px] font-normal rounded hover:bg-[#f5f5f5] disabled:opacity-50 transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
                                     >
                                         Reporte Excel
                                     </button>

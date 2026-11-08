@@ -257,6 +257,9 @@ function App() {
                                 <AdminInventory />
                             </ProtectedRoute>
                         } />
+                        <Route path="/admin/inventory/report" element={
+                            <Navigate to="/admin/inventory" replace />
+                        } />
                         <Route path="/admin/slotting" element={
                             <ProtectedRoute requiredPermission="inventory">
                                 <SlottingConfig />
