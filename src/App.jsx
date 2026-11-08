@@ -64,28 +64,37 @@ const ProtectedRoute = ({ children, requiredPermission }) => {
     if (requiredPermission) {
         try {
             const user = JSON.parse(userJson);
-            // If admin, allow everything
-            if (user.username === 'admin') return children;
-
             const rawPerms = user.permissions;
             let perms = [];
             if (Array.isArray(rawPerms)) {
-                perms = rawPerms;
+                perms = rawPerms.map(p => String(p).toLowerCase().trim()).filter(Boolean);
             } else if (typeof rawPerms === 'string') {
                 const trimmed = rawPerms.trim();
                 if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-                    try { perms = JSON.parse(trimmed); } catch(e) { perms = []; }
+                    try {
+                        const parsed = JSON.parse(trimmed);
+                        if (Array.isArray(parsed)) perms = parsed.map(p => String(p).toLowerCase().trim()).filter(Boolean);
+                    } catch(e) { perms = []; }
                 } else {
-                    perms = trimmed.split(',').map(p => p.trim()).filter(Boolean);
+                    perms = trimmed.split(',').map(p => p.toLowerCase().trim().replace(/^["']|["']$/g, '')).filter(Boolean);
                 }
             }
-            const hasPermission = Array.isArray(requiredPermission)
-                ? requiredPermission.some(p => perms.includes(p))
-                : perms.includes(requiredPermission);
+
+            // Administrador siempre tiene acceso total
+            const role = String(user.role || '').toLowerCase();
+            if (user.username === 'admin' || role === 'admin' || role === 'administrador' || perms.includes('admin')) {
+                return children;
+            }
+
+            const requiredList = Array.isArray(requiredPermission)
+                ? requiredPermission.map(p => String(p).toLowerCase().trim())
+                : [String(requiredPermission).toLowerCase().trim()];
+
+            const hasPermission = requiredList.some(p => perms.includes(p));
 
             if (!hasPermission) {
-                // Determine where to redirect if unauthorized
-                return <Navigate to="/dashboard" replace />; // Or an Unauthorized page
+                // Redirigir si no tiene permiso autorizado
+                return <Navigate to="/dashboard" replace />;
             }
         } catch (e) {
             console.error("Error parsing user data", e);

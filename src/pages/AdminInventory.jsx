@@ -499,9 +499,9 @@ const AdminInventory = () => {
                     event.data?.type === 'INVENTORY_FINALIZED'
                 ) {
                     fetchStats();
-                    fetchCounts();
-                    fetchReconciliation();
-                    fetchAuditorZones();
+                    if (activeTab === 'cycle' || activeTab === 'counts') fetchCounts();
+                    if (activeTab === 'reconciliation') fetchReconciliation();
+                    if (activeTab === 'zones') fetchAuditorZones();
                 }
             };
         }
