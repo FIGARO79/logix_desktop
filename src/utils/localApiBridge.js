@@ -2195,12 +2195,12 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
             if (isTauri()) {
                 try {
                     const rec = await callTauriCommand('get_reconciliation_data', { qtyTolerance: 0.05, valTolerance: 50.0 });
-                    if (rec) return createJsonResponse(rec);
+                    if (rec) return createJsonResponse({ stage: 0, items: rec, settings: { w2w_qty_tolerance: 0.05, w2w_val_tolerance: 50.0 } });
                 } catch (e) {
                     console.warn("Error getting reconciliation from SQLite:", e);
                 }
             }
-            return createJsonResponse([]);
+            return createJsonResponse({ stage: 0, items: [], settings: {} });
         }
 
         if (pathname === '/api/admin/inventory/summary') {
