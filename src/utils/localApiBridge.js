@@ -1596,6 +1596,90 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
             return createJsonResponse({ id: shipId, orders: [] });
         }
 
+        // 4.9 Configuración de Bodegas / CEDIs y Transportadoras (por país o personalizada)
+        if (pathname === '/api/config/' || pathname === '/api/config') {
+            const DEFAULT_CONFIGS_BY_COUNTRY = {
+                CO: {
+                    country: 'CO',
+                    country_name: 'Colombia',
+                    warehouse_name: 'Principal - Bogotá',
+                    warehouses: ['Principal - Bogotá', 'CEDI Medellín', 'CEDI Cali', 'CEDI Barranquilla'],
+                    carriers: ['Coordinadora', 'TCC', 'Servientrega', 'Deprisa', 'Interrapidísimo', 'Envía', 'Directo (Propio)']
+                },
+                CL: {
+                    country: 'CL',
+                    country_name: 'Chile',
+                    warehouse_name: 'CEDI Pudahuel - Santiago',
+                    warehouses: ['CEDI Pudahuel - Santiago', 'CEDI Quilicura', 'CEDI Antofagasta', 'CEDI Concepción'],
+                    carriers: ['Starken', 'Chilexpress', 'Blue Express', 'CorreosChile', 'Transportes Cruz del Sur', 'Directo (Propio)']
+                },
+                BR: {
+                    country: 'BR',
+                    country_name: 'Brasil',
+                    warehouse_name: 'CD São Paulo (Cajamar)',
+                    warehouses: ['CD São Paulo (Cajamar)', 'CD Rio de Janeiro', 'CD Curitiba', 'CD Belo Horizonte'],
+                    carriers: ['Correios (Sedex)', 'Jadlog', 'Total Express', 'Braspress', 'DirectLog', 'Directo (Propio)']
+                },
+                AR: {
+                    country: 'AR',
+                    country_name: 'Argentina',
+                    warehouse_name: 'CEDI Buenos Aires (Tortuguitas)',
+                    warehouses: ['CEDI Buenos Aires (Tortuguitas)', 'CEDI Córdoba', 'CEDI Rosario', 'CEDI Mendoza'],
+                    carriers: ['Andreani', 'OCA', 'Cruz del Sur', 'Expreso Brio', 'La Sevillanita', 'Directo (Propio)']
+                },
+                PE: {
+                    country: 'PE',
+                    country_name: 'Perú',
+                    warehouse_name: 'CEDI Lima (Lurín)',
+                    warehouses: ['CEDI Lima (Lurín)', 'CEDI Callao', 'CEDI Arequipa', 'CEDI Trujillo'],
+                    carriers: ['Olva Courier', 'Shalom', 'Marvisur', 'Servientrega Perú', 'Directo (Propio)']
+                }
+            };
+
+            if (method === 'POST') {
+                const updatedConfig = {
+                    country: body?.country || 'CO',
+                    warehouse_name: body?.warehouse_name || body?.warehouses?.[0] || 'Principal',
+                    warehouses: Array.isArray(body?.warehouses) && body.warehouses.length > 0
+                        ? body.warehouses.map(w => String(w).trim()).filter(Boolean)
+                        : ['Principal'],
+                    carriers: Array.isArray(body?.carriers) && body.carriers.length > 0
+                        ? body.carriers.map(c => String(c).trim()).filter(Boolean)
+                        : ['Directo (Propio)']
+                };
+
+                try {
+                    localStorage.setItem('logix_packing_config', JSON.stringify(updatedConfig));
+                } catch (e) {
+                    console.warn("Error saving packing config to localStorage:", e);
+                }
+
+                return createJsonResponse({
+                    message: "Configuración guardada exitosamente",
+                    config: updatedConfig
+                });
+            }
+
+            // GET
+            let saved = null;
+            try {
+                const raw = localStorage.getItem('logix_packing_config');
+                if (raw) saved = JSON.parse(raw);
+            } catch (e) {}
+
+            if (saved && Array.isArray(saved.warehouses) && saved.warehouses.length > 0) {
+                return createJsonResponse({
+                    ...saved,
+                    available_countries: DEFAULT_CONFIGS_BY_COUNTRY
+                });
+            }
+
+            return createJsonResponse({
+                ...DEFAULT_CONFIGS_BY_COUNTRY.CO,
+                available_countries: DEFAULT_CONFIGS_BY_COUNTRY
+            });
+        }
+
         // -------------------------------------------------------------
         // 5. CONTEOS CÍCLICOS & AUDITORÍAS DE INVENTARIO
         // -------------------------------------------------------------
