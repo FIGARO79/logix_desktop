@@ -98,8 +98,10 @@ const CycleCounts = () => {
         }
     };
 
-    const checkActiveSession = useCallback(async () => {
-        setCheckingSession(true);
+    const checkActiveSession = useCallback(async (isBackground = false) => {
+        if (!isBackground) {
+            setCheckingSession(true);
+        }
         try {
             if (isOnline) {
                 const res = await fetch('/api/sessions/active');
@@ -111,12 +113,36 @@ const CycleCounts = () => {
                         const db = await getDB();
                         await db.put('active_sessions', { type: 'cycle_count', ...session });
                     } else {
-                        setActiveSession(null);
+                        setActiveSession((prev) => {
+                            if (prev) {
+                                toast.info("El ciclo de inventario ha finalizado o la sesión fue cerrada.");
+                                clearForm();
+                                setCountedLocation('');
+                                setLocationCounts([]);
+                                setSessionLocations([]);
+                                setSelectedPhase(null);
+                                setRecountItemModal(null);
+                            }
+                            return null;
+                        });
                         const db = await getDB();
                         await db.delete('active_sessions', 'cycle_count');
                     }
                 } else {
-                    setActiveSession(null);
+                    setActiveSession((prev) => {
+                        if (prev) {
+                            toast.info("La sesión de inventario fue cerrada.");
+                            clearForm();
+                            setCountedLocation('');
+                            setLocationCounts([]);
+                            setSessionLocations([]);
+                            setSelectedPhase(null);
+                            setRecountItemModal(null);
+                        }
+                        return null;
+                    });
+                    const db = await getDB();
+                    await db.delete('active_sessions', 'cycle_count');
                 }
             } else {
                 // Modo Offline: buscar en caché
@@ -131,9 +157,13 @@ const CycleCounts = () => {
             }
         } catch (e) {
             console.error(e);
-            setActiveSession(null);
+            if (!isBackground) {
+                setActiveSession(null);
+            }
         } finally {
-            setCheckingSession(false);
+            if (!isBackground) {
+                setCheckingSession(false);
+            }
         }
     }, [isOnline]);
 
@@ -151,7 +181,12 @@ const CycleCounts = () => {
                 await db.put('active_sessions', { type: 'cycle_count', ...session });
                 toast.success("Sesión de inventario iniciada");
             } else {
-                toast.error("Error iniciando sesión");
+                let errorMsg = "Error iniciando sesión";
+                try {
+                    const errData = await res.json();
+                    errorMsg = errData.detail || errorMsg;
+                } catch {}
+                toast.error(errorMsg);
             }
         } catch (e) {
             toast.error("Error de conexión");
@@ -219,8 +254,27 @@ const CycleCounts = () => {
     }, [activeSession, isOnline, countedLocation, fetchRecountList]);
 
     useEffect(() => {
-        checkActiveSession();
-    }, [checkActiveSession]);
+        checkActiveSession(false);
+
+        let bc;
+        if (typeof BroadcastChannel !== 'undefined') {
+            bc = new BroadcastChannel('logix_events');
+            bc.onmessage = (event) => {
+                if (
+                    event.data?.type === 'CYCLE_COUNT_MUTATED' ||
+                    event.data?.type === 'INVENTORY_STAGE_CHANGED' ||
+                    event.data?.type === 'INVENTORY_FINALIZED'
+                ) {
+                    checkActiveSession(true);
+                    fetchRecountList();
+                }
+            };
+        }
+
+        return () => {
+            if (bc) bc.close();
+        };
+    }, [checkActiveSession, fetchRecountList]);
 
     useEffect(() => {
         if (activeSession) {
@@ -530,7 +584,7 @@ const CycleCounts = () => {
                             Seleccione la Fase de Conteo a Ejecutar
                         </h2>
                         <p className="text-[12px] text-[#5c5c5c] font-normal m-0">
-                            Fase Activa en Sistema: <span className="text-[#065f46] font-normal bg-[#ecfdf5] px-2 py-0.5 rounded border border-[#a7f3d0]">Fase 0{recountData?.stage || 1}</span>
+                            Fase Activa en Sistema: <span className="text-[#065f46] font-normal bg-[#ecfdf5] px-2 py-0.5 rounded border border-[#a7f3d0]">Fase 0{activeSession?.inventory_stage || recountData?.stage || 1}</span>
                         </p>
                     </div>
 
@@ -561,7 +615,7 @@ const CycleCounts = () => {
                                 btnText: 'Ver Lista Auditoría Final'
                             }
                         ].map(f => {
-                            const currentSystemStage = recountData?.stage || 1;
+                            const currentSystemStage = activeSession?.inventory_stage || recountData?.stage || 1;
                             const isSystemActive = currentSystemStage === f.s;
                             const isPassed = currentSystemStage > f.s;
 

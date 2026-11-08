@@ -74,52 +74,80 @@ pub struct CycleCountResult {
 }
 
 /// Obtiene la sesión activa de conteo
-pub fn get_active_session(conn: &Connection) -> Result<CountSession> {
+pub fn get_active_session(conn: &Connection) -> Result<Option<CountSession>> {
+    let settings = crate::general_inventory::get_inventory_settings_from_db(conn).unwrap_or_default();
+    let current_stage = settings.stage;
+    let now = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+
+    // Si el inventario global no está iniciado (etapa 0), cerrar cualquier sesión previa activa
+    if current_stage == 0 {
+        let _ = conn.execute(
+            "UPDATE count_sessions SET status = 'completed', end_time = ?1 WHERE status = 'in_progress'",
+            params![now],
+        );
+        return Ok(None);
+    }
+
+    // Cerrar sesiones que pertenezcan a etapas anteriores a la actual
+    let _ = conn.execute(
+        "UPDATE count_sessions SET status = 'completed', end_time = ?1 WHERE status = 'in_progress' AND inventory_stage < ?2",
+        params![now, current_stage],
+    );
+
     let mut stmt = conn.prepare(
         "SELECT id, name, user_username, start_time, end_time, status, inventory_stage
          FROM count_sessions
-         WHERE status = 'in_progress'
+         WHERE status = 'in_progress' AND inventory_stage = ?1
          ORDER BY id DESC
          LIMIT 1",
     )?;
 
-    let session = stmt
-        .query_row([], |row| {
-            let id: i64 = row.get(0)?;
-            Ok(CountSession {
-                id,
-                session_id: id,
-                name: row.get(1)?,
-                user_username: row.get(2)?,
-                start_time: row.get(3)?,
-                end_time: row.get(4)?,
-                status: row.get(5)?,
-                inventory_stage: row.get(6)?,
-                is_active: true,
-            })
-        })
-        .unwrap_or_else(|_| CountSession {
-            id: 1,
-            session_id: 1,
-            name: "Sesión Principal Local".to_string(),
-            user_username: "admin".to_string(),
-            start_time: Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
-            end_time: None,
-            status: "in_progress".to_string(),
-            inventory_stage: 1,
+    let session_opt = stmt.query_row(params![current_stage], |row| {
+        let id: i64 = row.get(0)?;
+        Ok(CountSession {
+            id,
+            session_id: id,
+            name: row.get(1)?,
+            user_username: row.get(2)?,
+            start_time: row.get(3)?,
+            end_time: row.get(4)?,
+            status: row.get(5)?,
+            inventory_stage: row.get(6)?,
             is_active: true,
-        });
+        })
+    }).ok();
 
-    Ok(session)
+    Ok(session_opt)
 }
 
 /// Inicia una nueva sesión de conteo
 pub fn start_session(conn: &Connection, name: &str, username: &str) -> Result<CountSession> {
+    let settings = crate::general_inventory::get_inventory_settings_from_db(conn).unwrap_or_default();
+    let current_stage = settings.stage;
+
+    if current_stage == 0 {
+        return Err(rusqlite::Error::FromSqlConversionFailure(
+            0,
+            rusqlite::types::Type::Text,
+            Box::new(std::io::Error::new(
+                std::io::ErrorKind::PermissionDenied,
+                "No se puede iniciar sesión: El administrador aún no ha iniciado la Etapa 1 del inventario.",
+            )),
+        ));
+    }
+
     let now = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+
+    // Finalizar sesiones anteriores del mismo usuario que estuvieran en progreso
+    let _ = conn.execute(
+        "UPDATE count_sessions SET status = 'completed', end_time = ?1 WHERE status = 'in_progress' AND user_username = ?2",
+        params![now, username],
+    );
+
     conn.execute(
         "INSERT INTO count_sessions (name, user_username, start_time, status, inventory_stage)
-         VALUES (?1, ?2, ?3, 'in_progress', 1)",
-        params![name, username, now],
+         VALUES (?1, ?2, ?3, 'in_progress', ?4)",
+        params![name, username, now, current_stage],
     )?;
 
     let id = conn.last_insert_rowid();
@@ -131,7 +159,7 @@ pub fn start_session(conn: &Connection, name: &str, username: &str) -> Result<Co
         start_time: now,
         end_time: None,
         status: "in_progress".to_string(),
-        inventory_stage: 1,
+        inventory_stage: current_stage,
         is_active: true,
     })
 }
@@ -140,7 +168,7 @@ pub fn start_session(conn: &Connection, name: &str, username: &str) -> Result<Co
 pub fn close_session(conn: &Connection, session_id: i64) -> Result<()> {
     let now = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
     conn.execute(
-        "UPDATE count_sessions SET status = 'closed', end_time = ?1 WHERE id = ?2",
+        "UPDATE count_sessions SET status = 'completed', end_time = ?1 WHERE id = ?2",
         params![now, session_id],
     )?;
     Ok(())

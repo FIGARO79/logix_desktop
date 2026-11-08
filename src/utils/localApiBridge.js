@@ -1603,18 +1603,21 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
             if (isTauri()) {
                 try {
                     const session = await callTauriCommand('get_active_count_session');
-                    if (session) return createJsonResponse(session);
+                    if (session && (session.id || session.session_id) && session.status === 'in_progress') {
+                        return createJsonResponse(session);
+                    }
+                    return createJsonResponse(null);
                 } catch (e) {
                     console.warn("Error getting active session:", e);
+                    return createJsonResponse(null);
                 }
             }
-            return createJsonResponse({
-                id: 1,
-                session_id: 1,
-                name: 'Sesión Principal Local',
-                is_active: true,
-                start_time: new Date().toISOString()
-            });
+            // Modo offline sin Tauri: si no hay sesión activa real, retornar null
+            const cached = db ? (await db.get('active_sessions', 'cycle_count')) : null;
+            if (cached && (cached.id || cached.session_id) && cached.status === 'in_progress') {
+                return createJsonResponse(cached);
+            }
+            return createJsonResponse(null);
         }
 
         if (pathname === '/api/sessions/start') {
@@ -1623,18 +1626,29 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
             if (isTauri()) {
                 try {
                     const newSession = await callTauriCommand('start_count_session', { name, username });
-                    return createJsonResponse(newSession);
+                    if (newSession && (newSession.id || newSession.session_id)) {
+                        return createJsonResponse(newSession);
+                    }
+                    throw new Error("No se pudo crear la sesión");
                 } catch (e) {
                     console.error("Error starting count session:", e);
+                    const errorMsg = String(e?.message || e || "Error iniciando sesión");
+                    const userMsg = errorMsg.includes("Etapa 1") || errorMsg.includes("iniciado")
+                        ? "No se puede iniciar sesión: El administrador aún no ha iniciado la Etapa 1 del inventario."
+                        : errorMsg;
+                    return createJsonResponse({ detail: userMsg }, 403);
                 }
             }
-            return createJsonResponse({ id: Date.now(), session_id: Date.now(), name, is_active: true, start_time: new Date().toISOString() });
+            return createJsonResponse({ detail: "No se puede iniciar sesión: El administrador aún no ha iniciado la Etapa 1 del inventario." }, 403);
         }
 
         if (pathname.includes('/api/sessions/') && pathname.endsWith('/close')) {
             const sessionId = parseInt(pathname.split('/sessions/')[1]?.split('/')[0]) || 1;
             if (isTauri()) {
                 await callTauriCommand('close_count_session', { sessionId });
+            }
+            if (db) {
+                await db.delete('active_sessions', 'cycle_count');
             }
             return createJsonResponse({ success: true, message: "Sesión cerrada" });
         }
@@ -1696,19 +1710,30 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
             });
         }
 
-        if (pathname === '/api/counts') {
+        if (pathname === '/api/counts' || pathname === '/api/w2w/save_count') {
             if (method === 'POST') {
+                const sessId = body?.session_id || body?.sessionId;
+                if (!sessId) {
+                    return createJsonResponse({ detail: "No se puede registrar conteos: No hay una sesión de conteo activa." }, 403);
+                }
                 if (isTauri()) {
+                    try {
+                        const active = await callTauriCommand('get_active_count_session');
+                        if (!active || (!active.id && !active.session_id)) {
+                            return createJsonResponse({ detail: "La sesión de conteo no está activa o ya fue cerrada." }, 403);
+                        }
+                    } catch (e) {}
+
                     try {
                         const saved = await callTauriCommand('add_count_record', {
                             record: {
                                 id: body?.id || null,
-                                session_id: body?.session_id || body?.sessionId || 1,
+                                session_id: Number(sessId),
                                 count_type: body?.count_type || body?.countType || 'cycle_count',
                                 item_code: body?.item_code || body?.itemCode || '',
                                 description: body?.description || null,
-                                location: body?.location || body?.bin_location || 'N/A',
-                                counted_qty: Number(body?.counted_qty || body?.quantity || 0),
+                                location: body?.counted_location || body?.location || body?.bin_location || 'N/A',
+                                counted_qty: Number(body?.counted_qty !== undefined ? body.counted_qty : (body?.quantity || 0)),
                                 stage: Number(body?.stage || 1),
                                 user_id: body?.user_id || body?.userId || 'admin',
                                 status: body?.status || 'completed',
@@ -1719,6 +1744,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
                         return createJsonResponse({ success: true, count: saved });
                     } catch (e) {
                         console.error("Error adding count record in Rust:", e);
+                        return createJsonResponse({ detail: "Error guardando conteo en base de datos" }, 500);
                     }
                 }
                 const countRecord = { id: body?.id || Date.now(), ...body, timestamp: new Date().toISOString() };
@@ -1879,15 +1905,46 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
         }
 
         if (pathname === '/api/recount_list/active') {
+            let currentStage = 0;
+            if (isTauri()) {
+                try {
+                    const cfg = await callTauriCommand('get_inventory_settings');
+                    if (cfg && cfg.stage !== undefined) {
+                        currentStage = Number(cfg.stage);
+                    }
+                } catch (e) {}
+            }
+            if (currentStage < 2) {
+                return createJsonResponse({
+                    stage: currentStage,
+                    total: 0,
+                    recounted_count: 0,
+                    pending_count: 0,
+                    items: []
+                });
+            }
             if (isTauri()) {
                 try {
                     const list = await callTauriCommand('get_active_recount_list');
-                    return createJsonResponse(list || []);
+                    const items = Array.isArray(list) ? list : [];
+                    return createJsonResponse({
+                        stage: currentStage,
+                        total: items.length,
+                        recounted_count: 0,
+                        pending_count: items.length,
+                        items
+                    });
                 } catch (e) {
                     console.warn("Error getting recount list:", e);
                 }
             }
-            return createJsonResponse([]);
+            return createJsonResponse({
+                stage: currentStage,
+                total: 0,
+                recounted_count: 0,
+                pending_count: 0,
+                items: []
+            });
         }
 
         // -------------------------------------------------------------
@@ -2147,20 +2204,38 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
         }
 
         if (pathname === '/api/admin/inventory/summary') {
+            let summary = null;
+            let settings = { w2w_qty_tolerance: 0.02, w2w_val_tolerance: 10.00 };
             if (isTauri()) {
                 try {
-                    const summary = await callTauriCommand('get_inventory_summary');
-                    if (summary) return createJsonResponse(summary);
+                    summary = await callTauriCommand('get_inventory_summary');
+                    const cfg = await callTauriCommand('get_inventory_settings').catch(() => null);
+                    if (cfg) {
+                        settings.w2w_qty_tolerance = cfg.qty_tolerance ?? 0.02;
+                        settings.w2w_val_tolerance = cfg.val_tolerance ?? 10.00;
+                    }
                 } catch (e) {
                     console.warn("Error in get_inventory_summary:", e);
                 }
             }
+            const currentStage = summary?.current_stage !== undefined ? Number(summary.current_stage) : 0;
+            const itemsCount = summary?.total_skus || 0;
+            const totalCounts = summary?.total_counted || 0;
+
             return createJsonResponse({
-                total_skus: 0,
-                total_counted: 0,
-                total_variance_cost: 0,
-                current_stage: 1,
-                is_active: true
+                stage: currentStage,
+                stats: {
+                    items_count: itemsCount,
+                    total_counts: totalCounts,
+                    current_stage: currentStage,
+                    stages: {
+                        1: { accuracy: "100.00%" },
+                        2: { accuracy: "100.00%" },
+                        3: { accuracy: "100.00%" },
+                        4: { accuracy: "100.00%" }
+                    }
+                },
+                settings
             });
         }
 
@@ -2169,10 +2244,10 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
                 if (isTauri()) {
                     await callTauriCommand('save_inventory_settings', {
                         settings: {
-                            stage: Number(body?.stage || 1),
+                            stage: Number(body?.stage || 0),
                             auto_advance: Boolean(body?.auto_advance),
-                            qty_tolerance: Number(body?.qty_tolerance || 0.05),
-                            val_tolerance: Number(body?.val_tolerance || 50.0)
+                            qty_tolerance: Number(body?.qty_tolerance || body?.w2w_qty_tolerance || 0.02),
+                            val_tolerance: Number(body?.val_tolerance || body?.w2w_val_tolerance || 10.0)
                         }
                     });
                 }
@@ -2187,30 +2262,35 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
                     console.warn("Error getting inventory settings:", e);
                 }
             }
-            return createJsonResponse({ stage: 1, auto_advance: false, qty_tolerance: 0.05, val_tolerance: 50.0 });
+            return createJsonResponse({ stage: 0, auto_advance: false, qty_tolerance: 0.02, val_tolerance: 10.0 });
         }
 
         if (pathname === '/api/admin/inventory/start_stage_1' || pathname === '/admin/inventory/start_stage_1') {
             if (isTauri()) {
                 const msg = await callTauriCommand('start_w2w_stage_1');
-                return createJsonResponse({ message: msg });
+                return createJsonResponse({ success: true, stage: 1, message: msg || "Fase 1 (Conteo General) iniciada." });
             }
-            return createJsonResponse({ message: "Etapa 1 iniciada" });
+            return createJsonResponse({ success: true, stage: 1, message: "Fase 1 (Conteo General) iniciada." });
         }
 
-        if (pathname.startsWith('/api/admin/inventory/advance') || pathname.startsWith('/admin/inventory/advance')) {
-            const stage = parseInt(pathname.split('/').pop() || '2') || 2;
+        if (pathname.includes('/api/admin/inventory/advance') || pathname.includes('/admin/inventory/advance')) {
+            const nextStage = parseInt(pathname.split('/').pop() || '2') || 2;
             const qtyTolerance = body?.qty_tolerance ? Number(body.qty_tolerance) : null;
             const valTolerance = body?.val_tolerance ? Number(body.val_tolerance) : null;
             if (isTauri()) {
                 const recountCount = await callTauriCommand('advance_inventory_stage', {
-                    stage,
+                    stage: nextStage,
                     qtyTolerance,
                     valTolerance
                 });
-                return createJsonResponse({ success: true, stage, recount_count: recountCount, message: `Etapa ${stage} iniciada. ${recountCount} ítems enviados a reconteo.` });
+                return createJsonResponse({
+                    success: true,
+                    stage: nextStage,
+                    recount_count: recountCount,
+                    message: `Etapa ${nextStage} iniciada. ${recountCount} ítems enviados a reconteo.`
+                });
             }
-            return createJsonResponse({ success: true, stage });
+            return createJsonResponse({ success: true, stage: nextStage, message: `Etapa ${nextStage} iniciada.` });
         }
 
         if (pathname === '/api/admin/inventory/approve_item') {
@@ -2235,7 +2315,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
             if (isTauri()) {
                 await callTauriCommand('finalize_inventory');
             }
-            return createJsonResponse({ success: true, message: "Inventario finalizado exitosamente" });
+            return createJsonResponse({ success: true, stage: 0, message: "Inventario finalizado y ciclo reiniciado a Fase 0." });
         }
 
         // -------------------------------------------------------------

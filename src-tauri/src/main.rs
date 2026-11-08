@@ -1179,7 +1179,7 @@ fn lookup_inbound_reference(
 // -------------------------------------------------------------
 
 #[tauri::command]
-fn get_active_count_session(state: State<'_, AppState>) -> Result<counts::CountSession, String> {
+fn get_active_count_session(state: State<'_, AppState>) -> Result<Option<counts::CountSession>, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     counts::get_active_session(&conn).map_err(|e| e.to_string())
 }

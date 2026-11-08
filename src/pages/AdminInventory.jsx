@@ -95,19 +95,30 @@ const AdminInventory = () => {
             const res = await fetch('/api/admin/inventory/summary');
             if (!res.ok) throw new Error("Error al cargar estadísticas");
             const data = await res.json();
-            setStats(data.stats);
-            setStage(data.stage);
+            const currentStage = typeof data.stage === 'number'
+                ? data.stage
+                : (typeof data.current_stage === 'number' ? data.current_stage : 0);
+            setStage(currentStage);
+
+            const resolvedStats = data.stats || {
+                items_count: data.total_skus || data.items_count || 0,
+                total_counts: data.total_counted || data.total_counts || 0,
+                current_stage: currentStage,
+                stages: data.stages || {}
+            };
+            setStats(resolvedStats);
+
             if (data.settings) {
                 setSettings(data.settings);
             }
         } catch (err) {
             setStats({
-                total_items: 0,
-                counted_items_count: 0,
-                progress_percentage: 0,
-                accuracy_percentage: 100
+                items_count: 0,
+                total_counts: 0,
+                current_stage: 0,
+                stages: {}
             });
-            setStage(1);
+            setStage(0);
         }
     }, []);
 
@@ -140,6 +151,9 @@ const AdminInventory = () => {
             if (typeof BroadcastChannel !== 'undefined') {
                 const bc = new BroadcastChannel('logix_events');
                 bc.postMessage({ type: 'CYCLE_COUNT_MUTATED' });
+                if (data.stage !== undefined) {
+                    bc.postMessage({ type: 'INVENTORY_STAGE_CHANGED', stage: data.stage });
+                }
                 bc.close();
             }
         } catch (err) {
@@ -251,7 +265,11 @@ const AdminInventory = () => {
         if (typeof BroadcastChannel !== 'undefined') {
             bc = new BroadcastChannel('logix_events');
             bc.onmessage = (event) => {
-                if (event.data?.type === 'CYCLE_COUNT_MUTATED') {
+                if (
+                    event.data?.type === 'CYCLE_COUNT_MUTATED' ||
+                    event.data?.type === 'INVENTORY_STAGE_CHANGED' ||
+                    event.data?.type === 'INVENTORY_FINALIZED'
+                ) {
                     fetchStats();
                     fetchCounts();
                     fetchReconciliation();
@@ -353,7 +371,7 @@ const AdminInventory = () => {
                                     t: 'FASE 1: CONTEO GENERAL',
                                     d: 'Apertura del ciclo. Reseteo de bases de datos y captura inicial física wall-to-wall.',
                                     actionUrl: stage === 0 ? '/api/admin/inventory/start_stage_1' : '/api/admin/inventory/advance_stage/2',
-                                    title: '¿Iniciar Fase 1 (Conteo General)?',
+                                    title: stage === 0 ? '¿Iniciar Fase 1 (Conteo General)?' : '¿Concluir Fase 1 y Avanzar a Reconteo R1?',
                                     message: stage === 0
                                         ? 'Al iniciar el ciclo se resetearán las capturas previas para comenzar el nuevo conteo general.'
                                         : 'Al concluir la Fase 1 se consolidarán las capturas actuales y se generará automáticamente la lista de reconteo (R1) para los ítems con diferencias o faltantes.',

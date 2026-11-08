@@ -55,10 +55,10 @@ pub struct InventorySettings {
 impl Default for InventorySettings {
     fn default() -> Self {
         Self {
-            stage: 1,
+            stage: 0,
             auto_advance: false,
-            qty_tolerance: 0.05,
-            val_tolerance: 50.0,
+            qty_tolerance: 0.02,
+            val_tolerance: 10.0,
         }
     }
 }
@@ -232,11 +232,19 @@ pub fn advance_inventory_stage_db(
     Ok(recount_count)
 }
 
-/// Finaliza el inventario Wall-to-Wall
+/// Finaliza el inventario Wall-to-Wall y reinicia el ciclo a Fase 0
 pub fn finalize_w2w_db(conn: &Connection) -> Result<String> {
-    conn.execute("UPDATE count_sessions SET status = 'closed'", [])?;
+    let mut settings = get_inventory_settings_from_db(conn).unwrap_or_default();
+    settings.stage = 0;
+    save_inventory_settings_to_db(conn, &settings)?;
+
+    let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    conn.execute(
+        "UPDATE count_sessions SET status = 'completed', end_time = ?1 WHERE status = 'in_progress'",
+        params![now],
+    )?;
     conn.execute("UPDATE session_locations SET is_open = 0", [])?;
-    Ok("Inventario Wall-to-Wall finalizado exitosamente.".to_string())
+    Ok("Inventario Wall-to-Wall finalizado exitosamente. El ciclo ha sido reiniciado a Fase 0.".to_string())
 }
 
 /// Aprueba manualmente una discrepancia de un SKU
