@@ -233,7 +233,8 @@ const AdminInventory = () => {
         }
     };
 
-    const fetchReconciliation = useCallback(async () => {
+    const fetchReconciliation = useCallback(async (force = false) => {
+        if (!force && reconItems.length > 0) return;
         setReconLoading(true);
         try {
             const res = await fetch('/api/admin/inventory/reconciliation');
@@ -249,7 +250,7 @@ const AdminInventory = () => {
         } finally {
             setReconLoading(false);
         }
-    }, []);
+    }, [reconItems.length]);
 
     const handleSaveSettings = async (e) => {
         e.preventDefault();
@@ -395,6 +396,7 @@ const AdminInventory = () => {
     }, []);
 
     const fetchAuditorZones = useCallback(async (forceReset = false) => {
+        if (!forceReset && auditorZones.length > 0) return;
         fetchAvailableAisles();
         try {
             const res = await fetch('/api/admin/inventory/auditor_zones');
@@ -414,7 +416,7 @@ const AdminInventory = () => {
                 });
             }
         } catch (e) { console.error(e); }
-    }, [fetchAvailableAisles]);
+    }, [fetchAvailableAisles, auditorZones.length]);
 
     const handleSaveZones = async (userId) => {
         const zonesString = editedZones[userId] || '';
@@ -439,13 +441,18 @@ const AdminInventory = () => {
         if (setTitle) setTitle("Adm. Inventario");
     }, [setTitle]);
 
+    // Carga perezosa por pestaña solo cuando no hay datos en memoria
     useEffect(() => {
-        fetchStats();
-        if (activeTab === 'reconciliation') {
+        if (activeTab === 'reconciliation' && reconItems.length === 0) {
             fetchReconciliation();
-        } else if (activeTab === 'zones') {
+        } else if (activeTab === 'zones' && auditorZones.length === 0) {
             fetchAuditorZones();
         }
+    }, [activeTab, fetchReconciliation, fetchAuditorZones, reconItems.length, auditorZones.length]);
+
+    // Ciclo de vida y sincronización de fondo (sin bloquear la navegación entre tabs)
+    useEffect(() => {
+        fetchStats();
 
         let interval = setInterval(() => {
             // Desktop: no onLine check, always available - only skip if tab is hidden
@@ -464,8 +471,8 @@ const AdminInventory = () => {
                     event.data?.type === 'INVENTORY_FINALIZED'
                 ) {
                     fetchStats();
-                    if (activeTab === 'reconciliation') fetchReconciliation();
-                    if (activeTab === 'zones') fetchAuditorZones();
+                    if (reconItems.length > 0) fetchReconciliation(true);
+                    if (auditorZones.length > 0) fetchAuditorZones(true);
                 }
             };
         }
@@ -474,7 +481,7 @@ const AdminInventory = () => {
             clearInterval(interval);
             if (bc) bc.close();
         };
-    }, [activeTab, fetchStats, fetchReconciliation, fetchAuditorZones]);
+    }, [fetchStats, fetchReconciliation, fetchAuditorZones, reconItems.length, auditorZones.length]);
 
     useEffect(() => {
         if (message) {
@@ -559,10 +566,10 @@ const AdminInventory = () => {
                 </button>
             </div>
 
-            {activeTab === 'cycle' && (
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                    <div className="lg:col-span-3 space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Tab Fases del Inventario */}
+            <div className={activeTab === 'cycle' ? 'grid grid-cols-1 lg:grid-cols-4 gap-4' : 'hidden'}>
+                <div className="lg:col-span-3 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {[
                                 {
                                     s: 1,
@@ -743,15 +750,12 @@ const AdminInventory = () => {
                         </div>
                     </div>
                 </div>
-            )}
 
-
-
-            {activeTab === 'reconciliation' && (
-                <div className="space-y-4">
-                    <div>
-                        {/* Panel de Conciliación Principal */}
-                        <div className="w-full">
+            {/* Tab Estado de Inventario y Conciliación */}
+            <div className={activeTab === 'reconciliation' ? 'space-y-4' : 'hidden'}>
+                <div>
+                    {/* Panel de Conciliación Principal */}
+                    <div className="w-full">
                             <div className="bg-white shadow-sm rounded border border-[#d1d5db] overflow-hidden">
                                 <div className="bg-[#f8f9fa] px-3 py-2 border-b border-[#d1d5db] flex flex-col md:flex-row md:justify-between md:items-center gap-2">
                                     <div className="flex gap-2 flex-1 items-center flex-wrap">
@@ -807,7 +811,7 @@ const AdminInventory = () => {
                                     </div>
                                     <div className="flex gap-2 items-center shrink-0">
                                         <button
-                                            onClick={fetchReconciliation}
+                                            onClick={() => fetchReconciliation(true)}
                                             disabled={reconLoading}
                                             className="h-7 px-3 border border-[#d1d5db] bg-white text-[#1f1f1f] hover:bg-[#f5f5f5] text-[12px] font-normal rounded transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
                                         >
@@ -1001,12 +1005,10 @@ const AdminInventory = () => {
                         </div>
                     </div>
                 </div>
-            )}
 
             {/* Tab Asignación de Zonas */}
-            {activeTab === 'zones' && (
-                <div className="bg-white rounded border border-[#d1d5db] p-4 shadow-sm text-[#1f1f1f]">
-                    <div className="flex justify-between items-center mb-3 pb-2 border-b border-[#e5e7eb]">
+            <div className={activeTab === 'zones' ? 'bg-white rounded border border-[#d1d5db] p-4 shadow-sm text-[#1f1f1f]' : 'hidden'}>
+                <div className="flex justify-between items-center mb-3 pb-2 border-b border-[#e5e7eb]">
                         <div>
                             <h2 className="text-[13px] font-normal text-[#1f1f1f] m-0">
                                 Asignación de Zonas y Pasillos a Auditores
@@ -1096,7 +1098,6 @@ const AdminInventory = () => {
                         </table>
                     </div>
                 </div>
-            )}
 
             {/* Confirmation Modal */}
             {confirmModal.open && (
