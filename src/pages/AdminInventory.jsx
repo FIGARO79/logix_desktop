@@ -123,14 +123,17 @@ const AdminInventory = () => {
     }, []);
 
     const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', actionUrl: null });
+    const [processingAction, setProcessingAction] = useState(null);
 
     const openConfirmModal = (actionUrl, title, message) => {
         setConfirmModal({ open: true, title, message, actionUrl });
     };
 
     const executeAction = async (actionUrl) => {
-        setConfirmModal({ open: false, title: '', message: '', actionUrl: null });
-        setLoading(true); setMessage(null); setError(null);
+        setLoading(true);
+        setProcessingAction(actionUrl);
+        setMessage(null);
+        setError(null);
         try {
             const res = await fetch(actionUrl, { method: 'POST' });
             if (!res.ok) {
@@ -145,9 +148,14 @@ const AdminInventory = () => {
                 throw new Error(errorMsg);
             }
             const data = await res.json();
+            
+            // Reactividad inmediata en memoria
+            if (typeof data.stage === 'number') {
+                setStage(data.stage);
+            }
             setMessage(data.message);
-            fetchStats();
-            fetchReconciliation();
+            setConfirmModal({ open: false, title: '', message: '', actionUrl: null });
+
             if (typeof BroadcastChannel !== 'undefined') {
                 const bc = new BroadcastChannel('logix_events');
                 bc.postMessage({ type: 'CYCLE_COUNT_MUTATED' });
@@ -156,10 +164,17 @@ const AdminInventory = () => {
                 }
                 bc.close();
             }
+
+            // Sincronizar estadísticas en segundo plano sin congelar la interfaz
+            fetchStats();
+            if (activeTab === 'reconciliation') {
+                fetchReconciliation();
+            }
         } catch (err) {
             setError(err.message);
         } finally {
             setLoading(false);
+            setProcessingAction(null);
         }
     };
 
@@ -326,6 +341,20 @@ const AdminInventory = () => {
                 </div>
             </div>
 
+            {/* Barra de progreso de operación */}
+            {loading && (
+                <div className="mb-3 bg-[#eff6fc] border border-[#c7e0f4] text-[#0067c0] px-3.5 py-2 rounded text-[12px] font-normal flex items-center justify-between shadow-2xs">
+                    <div className="flex items-center gap-2">
+                        <svg className="animate-spin h-4 w-4 text-[#0067c0] shrink-0" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Procesando operación de ciclo de inventario en base de datos...</span>
+                    </div>
+                    <span className="text-[11px] text-[#5c5c5c]">Por favor espere un momento</span>
+                </div>
+            )}
+
             {message && (
                 <div className="bg-[#ecfdf5] border border-[#a7f3d0] text-[#065f46] px-3 py-2 mb-3 rounded shadow-xs text-[12px] font-normal flex justify-between items-center">
                     <span>{message}</span>
@@ -409,7 +438,9 @@ const AdminInventory = () => {
                                     label: stage < 4 ? 'En Espera' : stage === 4 ? 'Informe de Cierre' : 'Fase Completada',
                                     enabled: stage === 4
                                 }
-                            ].map((item) => (
+                            ].map((item) => {
+                                const isItemProcessing = loading && processingAction === item.actionUrl;
+                                return (
                                 <div key={item.s} className={`p-4 rounded border bg-white shadow-sm transition-all ${stage === item.s ? 'border-[#0067c0] ring-1 ring-[#0067c0]' : 'border-[#d1d5db] opacity-80'}`}>
                                     <div className="flex justify-between items-start mb-2">
                                         <h3 className="text-[12px] font-normal text-[#1f1f1f] m-0">{item.t}</h3>
@@ -434,13 +465,25 @@ const AdminInventory = () => {
                                                 }
                                             }}
                                             disabled={loading || !item.enabled}
-                                            className={`flex-1 h-7 text-[12px] font-normal rounded transition-colors cursor-pointer ${
-                                                stage === item.s
+                                            className={`flex-1 h-7 text-[12px] font-normal rounded transition-colors cursor-pointer flex items-center justify-center gap-1.5 ${
+                                                isItemProcessing
+                                                    ? 'bg-[#005a9e] text-white shadow-xs cursor-wait'
+                                                    : stage === item.s
                                                     ? 'bg-[#0067c0] text-white hover:bg-[#005a9e] shadow-xs'
                                                     : 'bg-[#f3f4f6] text-[#8c8c8c] border border-[#d1d5db] disabled:opacity-50 cursor-not-allowed'
                                             }`}
                                         >
-                                            {item.label}
+                                            {isItemProcessing ? (
+                                                <>
+                                                    <svg className="animate-spin h-3.5 w-3.5 text-white shrink-0" viewBox="0 0 24 24" fill="none">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    <span>Procesando...</span>
+                                                </>
+                                            ) : (
+                                                item.label
+                                            )}
                                         </button>
                                         {stage >= item.s && !item.isDownload && (
                                             <button
@@ -459,7 +502,8 @@ const AdminInventory = () => {
                                         )}
                                     </div>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
 
                         <div className={`p-4 rounded border border-dashed transition-all ${stage === 4 ? 'border-[#0067c0] bg-white' : 'border-[#d1d5db] bg-white opacity-60'}`}>
@@ -469,7 +513,7 @@ const AdminInventory = () => {
                                 <div className="flex gap-3 w-full max-w-sm">
                                     <button
                                         onClick={() => window.location.href = `/admin/inventory/report`}
-                                        disabled={stage !== 4}
+                                        disabled={stage !== 4 || loading}
                                         className="flex-1 h-7 bg-white border border-[#d1d5db] text-[#1f1f1f] text-[12px] font-normal rounded hover:bg-[#f5f5f5] disabled:opacity-50 transition-colors shadow-xs cursor-pointer"
                                     >
                                         Reporte Excel
@@ -481,9 +525,19 @@ const AdminInventory = () => {
                                             'ATENCIÓN: Esta acción finalizará el ejercicio activo, congelará la base de datos actual y reiniciará el sistema a estado inicial (Fase 0) para un nuevo inventario. ¿Desea proceder?'
                                         )}
                                         disabled={loading || stage !== 4}
-                                        className="flex-1 h-7 bg-[#0067c0] text-white text-[12px] font-normal rounded hover:bg-[#005a9e] disabled:opacity-50 transition-colors shadow-xs cursor-pointer"
+                                        className="flex-1 h-7 bg-[#0067c0] text-white text-[12px] font-normal rounded hover:bg-[#005a9e] disabled:opacity-50 transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
                                     >
-                                        Cerrar Ciclo
+                                        {loading && processingAction === '/api/admin/inventory/finalize' ? (
+                                            <>
+                                                <svg className="animate-spin h-3.5 w-3.5 text-white shrink-0" viewBox="0 0 24 24" fill="none">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                <span>Cerrando Ciclo...</span>
+                                            </>
+                                        ) : (
+                                            'Cerrar Ciclo'
+                                        )}
                                     </button>
                                 </div>
                              </div>
@@ -800,8 +854,9 @@ const AdminInventory = () => {
                                 {confirmModal.title}
                             </h3>
                             <button
-                                onClick={() => setConfirmModal({ open: false, title: '', message: '', actionUrl: null })}
-                                className="text-white hover:text-[#d1d5db] cursor-pointer"
+                                onClick={() => !loading && setConfirmModal({ open: false, title: '', message: '', actionUrl: null })}
+                                disabled={loading}
+                                className="text-white hover:text-[#d1d5db] cursor-pointer disabled:opacity-40"
                             >
                                 ✕
                             </button>
@@ -813,15 +868,27 @@ const AdminInventory = () => {
                             <div className="flex justify-end gap-2">
                                 <button
                                     onClick={() => setConfirmModal({ open: false, title: '', message: '', actionUrl: null })}
-                                    className="h-7 px-3 border border-[#d1d5db] bg-white hover:bg-[#f5f5f5] text-[#1f1f1f] text-[12px] font-normal rounded transition-colors cursor-pointer"
+                                    disabled={loading}
+                                    className="h-7 px-3 border border-[#d1d5db] bg-white hover:bg-[#f5f5f5] text-[#1f1f1f] text-[12px] font-normal rounded transition-colors cursor-pointer disabled:opacity-50"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     onClick={() => executeAction(confirmModal.actionUrl)}
-                                    className="h-7 px-3 bg-[#0067c0] hover:bg-[#005a9e] text-white text-[12px] font-normal rounded shadow-xs transition-colors cursor-pointer"
+                                    disabled={loading}
+                                    className="h-7 px-3 bg-[#0067c0] hover:bg-[#005a9e] text-white text-[12px] font-normal rounded shadow-xs transition-colors cursor-pointer disabled:opacity-75 flex items-center justify-center gap-1.5 min-w-[120px]"
                                 >
-                                    Confirmar y Concluir
+                                    {loading ? (
+                                        <>
+                                            <svg className="animate-spin h-3.5 w-3.5 text-white shrink-0" viewBox="0 0 24 24" fill="none">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            <span>Procesando...</span>
+                                        </>
+                                    ) : (
+                                        <span>Confirmar y Concluir</span>
+                                    )}
                                 </button>
                             </div>
                         </div>
