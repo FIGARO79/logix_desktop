@@ -257,30 +257,41 @@ pub struct AuditorZoneInfo {
     pub is_approved: bool,
 }
 
-/// Obtiene todos los pasillos configurados o inferidos de las ubicaciones
+/// Obtiene todos los pasillos oficiales configurados en el maestro de almacenamiento (storage_locations)
 pub fn get_available_aisles_db(conn: &Connection) -> Result<Vec<String>> {
-    let bins = get_valid_bins(conn)?;
     let mut aisles = HashSet::new();
 
-    for b in bins {
-        let parts: Vec<&str> = b.split('-').collect();
-        if !parts.is_empty() {
-            let aisle = parts[0].trim().to_uppercase();
-            if !aisle.is_empty() {
-                aisles.insert(aisle);
+    // 1. Obtener pasillos oficiales registrados en storage_locations
+    if let Ok(mut stmt) = conn.prepare(
+        "SELECT DISTINCT UPPER(TRIM(aisle)) FROM storage_locations WHERE aisle IS NOT NULL AND TRIM(aisle) != ''"
+    ) {
+        if let Ok(iter) = stmt.query_map([], |row| row.get::<_, String>(0)) {
+            for a in iter.flatten() {
+                let clean = a.trim().to_uppercase();
+                if !clean.is_empty() {
+                    aisles.insert(clean);
+                }
             }
         }
     }
 
     let mut result: Vec<String> = aisles.into_iter().collect();
     result.sort();
+
+    // 2. Si la tabla no tiene pasillos configurados aún, usar el estándar oficial de bodega
     if result.is_empty() {
         result = vec![
-            "A".to_string(),
-            "B".to_string(),
-            "C".to_string(),
-            "D".to_string(),
-            "E".to_string(),
+            "CA".to_string(),
+            "EB".to_string(),
+            "EC".to_string(),
+            "ED".to_string(),
+            "EE".to_string(),
+            "PISO".to_string(),
+            "RA".to_string(),
+            "RB".to_string(),
+            "RC".to_string(),
+            "RD".to_string(),
+            "RE".to_string(),
         ];
     }
     Ok(result)

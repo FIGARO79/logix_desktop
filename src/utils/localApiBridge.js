@@ -168,7 +168,7 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
                 const aisles = await callTauriCommand('get_available_aisles');
                 return createJsonResponse({ aisles: aisles || [] });
             }
-            return createJsonResponse({ aisles: ['A', 'B', 'C', 'D', 'E'] });
+            return createJsonResponse({ aisles: ['CA', 'EB', 'EC', 'ED', 'EE', 'PISO', 'RA', 'RB', 'RC', 'RD', 'RE'] });
         }
 
         if (pathname === '/api/admin/inventory/auditor_zones') {
