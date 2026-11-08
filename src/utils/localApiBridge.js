@@ -2313,7 +2313,13 @@ export async function handleLocalApiRequest(urlStr, options = {}) {
 
         if (pathname === '/api/admin/inventory/finalize' || pathname === '/admin/inventory/finalize') {
             if (isTauri()) {
-                await callTauriCommand('finalize_inventory');
+                try {
+                    const msg = await callTauriCommand('finalize_inventory');
+                    return createJsonResponse({ success: true, stage: 0, message: msg || "Inventario finalizado y ciclo reiniciado a Fase 0." });
+                } catch (e) {
+                    console.error("Error al finalizar inventario en Tauri:", e);
+                    return createErrorResponse(e?.message || String(e), 500);
+                }
             }
             return createJsonResponse({ success: true, stage: 0, message: "Inventario finalizado y ciclo reiniciado a Fase 0." });
         }

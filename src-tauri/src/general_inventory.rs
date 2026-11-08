@@ -252,16 +252,26 @@ pub fn advance_inventory_stage_db(
 
 /// Finaliza el inventario Wall-to-Wall y reinicia el ciclo a Fase 0
 pub fn finalize_w2w_db(conn: &Connection) -> Result<String> {
+    // 1. Archivar conciliación final para auditoría histórica
+    let _ = archive_w2w_reconciliation_db(conn, None);
+
+    // 2. Resetear configuración de W2W a Fase 0
     let mut settings = get_inventory_settings_from_db(conn).unwrap_or_default();
     settings.stage = 0;
     save_inventory_settings_to_db(conn, &settings)?;
 
+    // 3. Cerrar sesiones activas y ubicaciones abiertas
     let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
-    conn.execute(
+    let _ = conn.execute(
         "UPDATE count_sessions SET status = 'completed', end_time = ?1 WHERE status = 'in_progress'",
         params![now],
-    )?;
-    conn.execute("UPDATE session_locations SET is_open = 0", [])?;
+    );
+    let _ = conn.execute(
+        "UPDATE session_locations SET status = 'closed', closed_at = ?1 WHERE status = 'open'",
+        params![now],
+    );
+    let _ = conn.execute("DELETE FROM recount_list", []);
+
     Ok("Inventario Wall-to-Wall finalizado exitosamente. El ciclo ha sido reiniciado a Fase 0.".to_string())
 }
 
@@ -641,5 +651,30 @@ mod tests {
         // Probar aprobación de ítem
         let approve_msg = approve_w2w_item_db(&conn, "ITEM_A").unwrap();
         assert!(approve_msg.contains("aprobado"));
+
+        // Probar finalización y reseteo a Fase 0
+        conn.execute_batch("
+            CREATE TABLE count_sessions (id INTEGER PRIMARY KEY, status TEXT, end_time TEXT);
+            CREATE TABLE session_locations (id INTEGER PRIMARY KEY, status TEXT, closed_at TEXT);
+            INSERT INTO count_sessions (status) VALUES ('in_progress');
+            INSERT INTO session_locations (status) VALUES ('open');
+        ").unwrap();
+
+        let finalize_msg = finalize_w2w_db(&conn).unwrap();
+        assert!(finalize_msg.contains("Fase 0"));
+
+        let stage_after: i32 = conn.query_row(
+            "SELECT value FROM app_settings WHERE key = 'current_inventory_stage'",
+            [],
+            |r| r.get::<_, String>(0).map(|s| s.parse::<i32>().unwrap())
+        ).unwrap();
+        assert_eq!(stage_after, 0);
+
+        let sessions_open: i64 = conn.query_row(
+            "SELECT count(*) FROM count_sessions WHERE status = 'in_progress'",
+            [],
+            |r| r.get(0)
+        ).unwrap();
+        assert_eq!(sessions_open, 0);
     }
 }
