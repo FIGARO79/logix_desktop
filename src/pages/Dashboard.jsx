@@ -88,8 +88,7 @@ const Dashboard = () => {
         startX: 0,
         startY: 0,
         item: null,
-        catId: null,
-        index: 0
+        catId: null
     });
     const dropTargetRef = useRef(null);
 
@@ -99,6 +98,16 @@ const Dashboard = () => {
             return raw ? JSON.parse(raw) : null;
         } catch (_) { return null; }
     }, []);
+
+    // Opciones y categorías visibles: solo aquellas que el usuario tiene autorizadas
+    const visibleCategories = useMemo(() => {
+        return categories
+            .map(category => ({
+                ...category,
+                items: category.items.filter(item => canUserAccessPath(currentUser, item.href))
+            }))
+            .filter(category => category.items.length > 0);
+    }, [categories, currentUser]);
 
     const handleCardClick = (item) => {
         if (!item?.href) return;
@@ -112,6 +121,16 @@ const Dashboard = () => {
     useEffect(() => {
         dropTargetRef.current = dropTarget;
     }, [dropTarget]);
+
+    useEffect(() => {
+        const handleExternalPin = (e) => {
+            if (e?.detail) {
+                pinItem(e.detail);
+            }
+        };
+        window.addEventListener('logix_dashboard_pin_item', handleExternalPin);
+        return () => window.removeEventListener('logix_dashboard_pin_item', handleExternalPin);
+    }, [categories]);
 
     useEffect(() => {
         setTitle(t('dashboard.title', 'Dashboard'));
@@ -199,7 +218,7 @@ const Dashboard = () => {
     };
 
     // Pointer Events para Drag & Drop 100% nativo sin OLE
-    const handlePointerDown = (e, item, catId, index) => {
+    const handlePointerDown = (e, item, catId) => {
         if (e.button !== 0) return; // Solo click principal
         if (e.target.closest('button')) return; // Evitar si se hace clic en botones
         if (!canUserAccessPath(currentUser, item?.href)) return; // No permitir arrastrar módulos bloqueados
@@ -210,8 +229,7 @@ const Dashboard = () => {
             startX: e.clientX,
             startY: e.clientY,
             item,
-            catId,
-            index
+            catId
         };
 
         const handlePointerMove = (moveEvent) => {
@@ -226,7 +244,6 @@ const Dashboard = () => {
                 setDragging({
                     item: p.item,
                     fromCatId: p.catId,
-                    fromIndex: p.index,
                     x: moveEvent.clientX,
                     y: moveEvent.clientY
                 });
@@ -247,19 +264,19 @@ const Dashboard = () => {
 
                 if (cardEl) {
                     const targetCatId = cardEl.getAttribute('data-cat-id');
-                    const targetIdx = parseInt(cardEl.getAttribute('data-card-idx'), 10);
+                    const targetHref = cardEl.getAttribute('data-card-href');
                     const rect = cardEl.getBoundingClientRect();
                     const isTopHalf = (moveEvent.clientY - rect.top) < (rect.height / 2);
                     const position = isTopHalf ? 'before' : 'after';
 
-                    if (p.catId === targetCatId && p.index === targetIdx) {
+                    if (p.catId === targetCatId && p.item?.href === targetHref) {
                         setDropTarget(null);
                     } else {
-                        setDropTarget({ catId: targetCatId, targetIndex: targetIdx, position });
+                        setDropTarget({ catId: targetCatId, targetHref, position });
                     }
                 } else if (catEl) {
                     const targetCatId = catEl.getAttribute('data-cat-id');
-                    setDropTarget({ catId: targetCatId, targetIndex: -1, position: 'end' });
+                    setDropTarget({ catId: targetCatId, targetHref: null, position: 'end' });
                 } else {
                     setDropTarget(null);
                 }
@@ -276,7 +293,7 @@ const Dashboard = () => {
             const wasDragging = p.hasMoved;
             const clickedItem = p.item;
 
-            pointerStateRef.current = { isDown: false, hasMoved: false, item: null, catId: null, index: 0 };
+            pointerStateRef.current = { isDown: false, hasMoved: false, item: null, catId: null };
             setDragging(null);
             setDropTarget(null);
 
@@ -291,8 +308,8 @@ const Dashboard = () => {
             // Fue un arrastre -> Reordenar
             if (!target || !p.item) return;
 
-            const { catId: fromCatId, index: fromIndex, item } = p;
-            const { catId: targetCatId, targetIndex, position } = target;
+            const { catId: fromCatId, item } = p;
+            const { catId: targetCatId, targetHref, position } = target;
 
             setCategories(prev => {
                 const newCats = prev.map(c => ({ ...c, items: [...c.items] }));
@@ -301,29 +318,24 @@ const Dashboard = () => {
 
                 if (!sourceCat || !destCat) return prev;
 
+                const fromIndex = sourceCat.items.findIndex(i => i.href === item.href);
+                if (fromIndex === -1) return prev;
+
                 const [moved] = sourceCat.items.splice(fromIndex, 1);
                 if (!moved) return prev;
 
                 const itemToInsert = { ...moved, categoryId: targetCatId };
 
-                if (position === 'end' || targetIndex === -1) {
+                if (position === 'end' || !targetHref) {
                     destCat.items.push(itemToInsert);
                 } else {
-                    let insertIdx = targetIndex;
-                    if (fromCatId === targetCatId) {
-                        if (position === 'after') {
-                            insertIdx = fromIndex < targetIndex ? targetIndex : targetIndex + 1;
-                        } else {
-                            insertIdx = fromIndex < targetIndex ? targetIndex - 1 : targetIndex;
-                        }
+                    const targetIndex = destCat.items.findIndex(i => i.href === targetHref);
+                    if (targetIndex === -1) {
+                        destCat.items.push(itemToInsert);
                     } else {
-                        if (position === 'after') {
-                            insertIdx = targetIndex + 1;
-                        }
+                        const insertIdx = position === 'after' ? targetIndex + 1 : targetIndex;
+                        destCat.items.splice(insertIdx, 0, itemToInsert);
                     }
-
-                    insertIdx = Math.max(0, Math.min(insertIdx, destCat.items.length));
-                    destCat.items.splice(insertIdx, 0, itemToInsert);
                 }
 
                 saveCategories(newCats);
@@ -355,103 +367,109 @@ const Dashboard = () => {
                     </div>
                 )}
 
-                {/* Grid de Categorías */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {categories.map((category) => {
-                        const isCatTarget = dropTarget?.catId === category.id;
-                        const config = CATEGORIES_CONFIG.find(c => c.id === category.id) || CATEGORIES_CONFIG[0];
+                {/* Grid de Categorías con opciones autorizadas */}
+                {visibleCategories.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center p-12 bg-white border border-[#d2d0ce] rounded text-center max-w-lg mx-auto my-8 shadow-xs">
+                        <div className="w-10 h-10 rounded-full bg-[#f3f3f3] flex items-center justify-center text-[#605e5c] mb-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                            </svg>
+                        </div>
+                        <h3 className="text-[14px] font-normal text-[#1f1f1f] mb-1">Sin módulos autorizados</h3>
+                        <p className="text-[12px] font-normal text-[#605e5c]">
+                            Tu usuario no tiene módulos asignados en este momento. Solicita a un administrador que habilite tus permisos para ver las opciones disponibles en el Dashboard.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {visibleCategories.map((category) => {
+                            const isCatTarget = dropTarget?.catId === category.id;
+                            const config = CATEGORIES_CONFIG.find(c => c.id === category.id) || CATEGORIES_CONFIG[0];
 
-                        return (
-                            <div
-                                key={category.id}
-                                data-dashboard-category="true"
-                                data-cat-id={category.id}
-                                className={`flex flex-col p-2.5 rounded-lg transition-all duration-150 border ${
-                                    isCatTarget && dropTarget?.position === 'end'
-                                        ? `border-dashed border-[#0067c0] ${config.dropBg} shadow-sm`
-                                        : 'border-transparent bg-transparent'
-                                }`}
-                            >
-                                <div className="flex items-center gap-2.5 mb-3 px-0.5 select-none pointer-events-none">
-                                    <div className={`h-3.5 w-1 ${category.accent || config.accent} rounded-full`}></div>
-                                    <h2 className="text-[12px] font-normal text-[#1f1f1f] uppercase tracking-normal">{t(category.title)}</h2>
-                                </div>
+                            return (
+                                <div
+                                    key={category.id}
+                                    data-dashboard-category="true"
+                                    data-cat-id={category.id}
+                                    className={`flex flex-col p-2.5 rounded-lg transition-all duration-150 border ${
+                                        isCatTarget && dropTarget?.position === 'end'
+                                            ? `border-dashed border-[#0067c0] ${config.dropBg} shadow-sm`
+                                            : 'border-transparent bg-transparent'
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-2.5 mb-3 px-0.5 select-none pointer-events-none">
+                                        <div className={`h-3.5 w-1 ${category.accent || config.accent} rounded-full`}></div>
+                                        <h2 className="text-[12px] font-normal text-[#1f1f1f] uppercase tracking-normal">{t(category.title)}</h2>
+                                    </div>
 
-                                <div className="space-y-2 min-h-[140px] flex flex-col">
-                                    {category.items.length === 0 ? (
-                                        <div className="flex-1 flex flex-col items-center justify-center p-6 border border-dashed border-[#d1d5db] rounded text-center bg-white/60 pointer-events-none">
-                                            <p className="text-[11px] text-[#7f7f7f] font-normal">{t('dashboard.drag_hint', 'Arrastra opciones aquí para fijarlas')}</p>
-                                        </div>
-                                    ) : (
-                                        category.items.map((item, idx) => {
-                                            const hasAccess = canUserAccessPath(currentUser, item.href);
-                                            const isBeingDragged = dragging?.fromCatId === category.id && dragging?.fromIndex === idx;
-                                            const isTarget = dropTarget?.catId === category.id && dropTarget?.targetIndex === idx;
-                                            const isDropBefore = isTarget && dropTarget?.position === 'before';
-                                            const isDropAfter = isTarget && dropTarget?.position === 'after';
+                                    <div className="space-y-2 min-h-[140px] flex flex-col">
+                                        {category.items.length === 0 ? (
+                                            <div className="flex-1 flex flex-col items-center justify-center p-6 border border-dashed border-[#d1d5db] rounded text-center bg-white/60 pointer-events-none">
+                                                <p className="text-[11px] text-[#7f7f7f] font-normal">{t('dashboard.drag_hint', 'Arrastra opciones aquí para fijarlas')}</p>
+                                            </div>
+                                        ) : (
+                                            category.items.map((item) => {
+                                                const isBeingDragged = dragging?.fromCatId === category.id && dragging?.item?.href === item.href;
+                                                const isTarget = dropTarget?.catId === category.id && dropTarget?.targetHref === item.href;
+                                                const isDropBefore = isTarget && dropTarget?.position === 'before';
+                                                const isDropAfter = isTarget && dropTarget?.position === 'after';
 
-                                            return (
-                                                <React.Fragment key={item.href || idx}>
-                                                    {isDropBefore && (
-                                                        <div className="h-1 bg-[#0067c0] rounded-full my-0.5 shadow-xs pointer-events-none transition-all" />
-                                                    )}
+                                                return (
+                                                    <React.Fragment key={item.href}>
+                                                        {isDropBefore && (
+                                                            <div className="h-1 bg-[#0067c0] rounded-full my-0.5 shadow-xs pointer-events-none transition-all" />
+                                                        )}
 
-                                                    <div
-                                                        data-dashboard-card="true"
-                                                        data-cat-id={category.id}
-                                                        data-card-idx={idx}
-                                                        onPointerDown={(e) => handlePointerDown(e, item, category.id, idx)}
-                                                        onClick={() => handleCardClick(item)}
-                                                        className={`group relative flex items-center justify-between gap-2.5 rounded p-2.5 transition-all duration-150 select-none ${
-                                                            !hasAccess
-                                                                ? 'opacity-40 bg-[#f9f9f9] border border-[#e5e5e5] cursor-not-allowed'
-                                                                : isBeingDragged
-                                                                ? 'opacity-25 scale-[0.98] border-dashed border-[#0067c0] bg-white cursor-grabbing'
-                                                                : 'bg-white border border-[#e5e5e5] hover:border-[#0067c0] hover:shadow-xs cursor-pointer'
-                                                        }`}
-                                                    >
-                                                        {/* Text content */}
-                                                        <div className="flex-1 min-w-0 pointer-events-none">
-                                                            <div className="flex items-center gap-1.5">
-                                                                <span className={`text-[12px] font-normal tracking-normal leading-snug truncate ${!hasAccess ? 'text-[#8a8886]' : 'text-[#1f1f1f] group-hover:text-[#0067c0]'}`}>
-                                                                    {t(item.text)}
-                                                                </span>
-                                                                {!hasAccess && (
-                                                                    <span className="text-[10px] text-[#a4262c] font-normal px-1 py-0.2 bg-[#fde7e9] rounded border border-[#f8b8bc]/50 shrink-0">
-                                                                        Bloqueado
+                                                        <div
+                                                            data-dashboard-card="true"
+                                                            data-cat-id={category.id}
+                                                            data-card-href={item.href}
+                                                            onPointerDown={(e) => handlePointerDown(e, item, category.id)}
+                                                            onClick={() => handleCardClick(item)}
+                                                            className={`group relative flex items-center justify-between gap-2.5 rounded p-2.5 transition-all duration-150 select-none ${
+                                                                isBeingDragged
+                                                                    ? 'opacity-25 scale-[0.98] border-dashed border-[#0067c0] bg-white cursor-grabbing'
+                                                                    : 'bg-white border border-[#e5e5e5] hover:border-[#0067c0] hover:shadow-xs cursor-pointer'
+                                                            }`}
+                                                        >
+                                                            {/* Text content */}
+                                                            <div className="flex-1 min-w-0 pointer-events-none">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <span className="text-[12px] font-normal tracking-normal leading-snug truncate text-[#1f1f1f] group-hover:text-[#0067c0]">
+                                                                        {t(item.text)}
                                                                     </span>
-                                                                )}
+                                                                </div>
+                                                                <div className="text-[11px] text-[#7f7f7f] font-normal mt-0.5 tracking-normal leading-normal truncate">
+                                                                    {t(item.desc)}
+                                                                </div>
                                                             </div>
-                                                            <div className="text-[11px] text-[#7f7f7f] font-normal mt-0.5 tracking-normal leading-normal truncate">
-                                                                {t(item.desc)}
+
+                                                            {/* Acción de retirar del Dashboard */}
+                                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-1">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => unpinItem(e, item.href)}
+                                                                    className="w-5 h-5 flex items-center justify-center text-[#999] hover:text-[#d13438] hover:bg-[#fde7e9] rounded text-[10px] font-normal transition-colors cursor-pointer"
+                                                                    title="Retirar del Dashboard"
+                                                                >
+                                                                    ✕
+                                                                </button>
                                                             </div>
                                                         </div>
 
-                                                        {/* Acción de retirar del Dashboard */}
-                                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-1">
-                                                            <button
-                                                                type="button"
-                                                                onClick={(e) => unpinItem(e, item.href)}
-                                                                className="w-5 h-5 flex items-center justify-center text-[#999] hover:text-[#d13438] hover:bg-[#fde7e9] rounded text-[10px] font-normal transition-colors cursor-pointer"
-                                                                title="Retirar del Dashboard"
-                                                            >
-                                                                ✕
-                                                            </button>
-                                                        </div>
-                                                    </div>
-
-                                                    {isDropAfter && (
-                                                        <div className="h-1 bg-[#0067c0] rounded-full my-0.5 shadow-xs pointer-events-none transition-all" />
-                                                    )}
-                                                </React.Fragment>
-                                            );
-                                        })
-                                    )}
+                                                        {isDropAfter && (
+                                                            <div className="h-1 bg-[#0067c0] rounded-full my-0.5 shadow-xs pointer-events-none transition-all" />
+                                                        )}
+                                                    </React.Fragment>
+                                                );
+                                            })
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                            );
+                        })}
+                    </div>
+                )}
 
                 {/* Footer Action Bar */}
                 <div className="mt-10 pt-4 border-t border-[#e5e7eb] flex flex-col sm:flex-row justify-between items-center gap-3">
