@@ -99,9 +99,9 @@ impl Database {
                 username TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
                 role TEXT NOT NULL DEFAULT 'operator',
-                permissions TEXT DEFAULT 'stock,inbound,picking,inventory,planner,counts,admin',
+                permissions TEXT DEFAULT '',
                 assigned_zones TEXT DEFAULT '',
-                is_approved INTEGER DEFAULT 1,
+                is_approved INTEGER DEFAULT 0,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );",
             [],
@@ -112,10 +112,10 @@ impl Database {
             &conn,
             "users",
             "permissions",
-            "TEXT DEFAULT 'stock,inbound,picking,inventory,planner,counts,admin'",
+            "TEXT DEFAULT ''",
         )?;
         Self::add_column_if_not_exists(&conn, "users", "assigned_zones", "TEXT DEFAULT ''")?;
-        Self::add_column_if_not_exists(&conn, "users", "is_approved", "INTEGER DEFAULT 1")?;
+        Self::add_column_if_not_exists(&conn, "users", "is_approved", "INTEGER DEFAULT 0")?;
         Self::add_column_if_not_exists(
             &conn,
             "users",

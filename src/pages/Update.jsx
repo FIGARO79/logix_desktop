@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { useLanguage } from '../context/LanguageContext';
 import { isTauri, callTauriCommand, processLocalCSVUpload, previewLocalGRNFile } from '../utils/tauriBridge';
 import { getDB } from '../utils/offlineDb';
+import { isUserAdmin, canUserUploadFiles } from '../utils/permissions';
 
 const Update = () => {
     const { setTitle } = useOutletContext();
@@ -430,6 +431,32 @@ const Update = () => {
             setIsLoading(false);
         }
     };
+
+    const currentUser = useMemo(() => {
+        try {
+            const raw = localStorage.getItem('user');
+            return raw ? JSON.parse(raw) : null;
+        } catch (_) { return null; }
+    }, []);
+    const canUpload = useMemo(() => canUserUploadFiles(currentUser), [currentUser]);
+
+    if (!canUpload) {
+        return (
+            <div className="max-w-[1920px] mx-auto px-4 py-8 font-['Segoe_UI',Tahoma,sans-serif] bg-[#f3f3f3] min-h-screen text-[#1f1f1f] text-[12px] flex items-center justify-center">
+                <div className="bg-white border border-[#d1d5db] rounded p-8 max-w-md w-full text-center shadow-xs">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-[#fde7e9] border border-[#f8b8bc] flex items-center justify-center text-[#a4262c]">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                    </div>
+                    <h2 className="text-[15px] font-normal text-[#1f1f1f] mb-1.5">Módulo de Carga No Autorizado</h2>
+                    <p className="text-[12px] font-normal text-[#605e5c] mb-2 leading-relaxed">
+                        Tu usuario no tiene asignado el permiso individual para el módulo de Carga de Datos. Solicita autorización al administrador.
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-[1440px] mx-auto px-6 py-4 font-['Segoe_UI',Tahoma,sans-serif] bg-[#f9f9fb] min-h-screen text-[#1f1f1f] text-[12px] font-normal tracking-normal">

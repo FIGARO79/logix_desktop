@@ -36,7 +36,8 @@ import ManageCycleCountDifferences from './pages/ManageCycleCountDifferences';
 import Shipments from './pages/Shipments';
 import ConsolidatedPackingList from './pages/ConsolidatedPackingList';
 import ErrorPage from './pages/Error';
-import IRReconciliation from './pages/IRReconciliation';
+
+import { hasUserPermission, isUserAdmin } from './utils/permissions';
 
 // Componente de carga (para procesos internos)
 const LoadingFallback = () => (
@@ -54,52 +55,26 @@ const LoadingFallback = () => (
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requiredPermission }) => {
-    // Basic auth check
     const userJson = localStorage.getItem('user');
-    const isAuthenticated = !!userJson;
+    if (!userJson) return <Navigate to="/login" replace />;
 
-    if (!isAuthenticated) return <Navigate to="/login" replace />;
+    try {
+        const user = JSON.parse(userJson);
+        const isAdmin = isUserAdmin(user);
 
-    // Permission check
-    if (requiredPermission) {
-        try {
-            const user = JSON.parse(userJson);
-            const rawPerms = user.permissions;
-            let perms = [];
-            if (Array.isArray(rawPerms)) {
-                perms = rawPerms.map(p => String(p).toLowerCase().trim()).filter(Boolean);
-            } else if (typeof rawPerms === 'string') {
-                const trimmed = rawPerms.trim();
-                if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-                    try {
-                        const parsed = JSON.parse(trimmed);
-                        if (Array.isArray(parsed)) perms = parsed.map(p => String(p).toLowerCase().trim()).filter(Boolean);
-                    } catch(e) { perms = []; }
-                } else {
-                    perms = trimmed.split(',').map(p => p.toLowerCase().trim().replace(/^["']|["']$/g, '')).filter(Boolean);
-                }
-            }
-
-            // Administrador siempre tiene acceso total
-            const role = String(user.role || '').toLowerCase();
-            if (user.username === 'admin' || role === 'admin' || role === 'administrador' || perms.includes('admin')) {
-                return children;
-            }
-
-            const requiredList = Array.isArray(requiredPermission)
-                ? requiredPermission.map(p => String(p).toLowerCase().trim())
-                : [String(requiredPermission).toLowerCase().trim()];
-
-            const hasPermission = requiredList.some(p => perms.includes(p));
-
-            if (!hasPermission) {
-                // Redirigir si no tiene permiso autorizado
-                return <Navigate to="/dashboard" replace />;
-            }
-        } catch (e) {
-            console.error("Error parsing user data", e);
+        // Si la cuenta no está aprobada, forzar regreso al login
+        if (!isAdmin && user.is_approved === false) {
+            localStorage.removeItem('user');
             return <Navigate to="/login" replace />;
         }
+
+        // Verificación de permisos de módulos
+        if (requiredPermission && !hasUserPermission(user, requiredPermission)) {
+            return <Navigate to="/dashboard" replace />;
+        }
+    } catch (e) {
+        console.error("Error parsing user data", e);
+        return <Navigate to="/login" replace />;
     }
 
     return children;
@@ -107,19 +82,18 @@ const ProtectedRoute = ({ children, requiredPermission }) => {
 
 // Admin Protected Route Component
 const AdminProtectedRoute = ({ children }) => {
-    const [isVerified, setIsVerified] = React.useState(null);
+    const userJson = localStorage.getItem('user');
+    if (!userJson) return <Navigate to="/admin/login" replace />;
 
-    React.useEffect(() => {
-        fetch('/api/admin/verify', { credentials: 'include' })
-            .then(res => {
-                if (res.ok) setIsVerified(true);
-                else setIsVerified(false);
-            })
-            .catch(() => setIsVerified(false));
-    }, []);
+    try {
+        const user = JSON.parse(userJson);
+        if (!isUserAdmin(user)) {
+            return <Navigate to="/admin/login" replace />;
+        }
+    } catch (e) {
+        return <Navigate to="/admin/login" replace />;
+    }
 
-    if (isVerified === null) return <LoadingFallback />;
-    if (isVerified === false) return <Navigate to="/admin/login" replace />;
     return children;
 };
 
@@ -150,75 +124,79 @@ function App() {
                                 <Inbound />
                             </ProtectedRoute>
                         } />
-                        <Route path="/label" element={<LabelPrinting />} />
+                        <Route path="/label" element={
+                            <ProtectedRoute requiredPermission="label">
+                                <LabelPrinting />
+                            </ProtectedRoute>
+                        } />
                         <Route path="/stock" element={
-                            <ProtectedRoute requiredPermission={['stock', 'inbound']}>
+                            <ProtectedRoute requiredPermission="stock">
                                 <StockSearch />
                             </ProtectedRoute>
                         } />
                         <Route path="/view_picking_audits" element={
-                            <ProtectedRoute requiredPermission="picking">
+                            <ProtectedRoute requiredPermission="view_picking_audits">
                                 <PickingAuditHistory />
                             </ProtectedRoute>
                         } />
 
                         <Route path="/reconciliation" element={
-                            <ProtectedRoute requiredPermission="inbound">
+                            <ProtectedRoute requiredPermission="reconciliation">
                                 <Reconciliation />
                             </ProtectedRoute>
                         } />
                         <Route path="/update" element={
-                            <ProtectedRoute>
+                            <ProtectedRoute requiredPermission="update">
                                 <Update />
                             </ProtectedRoute>
                         } />
                         <Route path="/counts" element={
-                            <ProtectedRoute requiredPermission="inventory">
+                            <ProtectedRoute requiredPermission="counts">
                                 <CycleCounts />
                             </ProtectedRoute>
                         } />
                         <Route path="/express-audit" element={
-                            <ProtectedRoute requiredPermission="inventory">
+                            <ProtectedRoute requiredPermission="express_audit">
                                 <ExpressAudit />
                             </ProtectedRoute>
                         } />
                         <Route path="/spot-check" element={
-                            <ProtectedRoute requiredPermission={['inventory', 'stock']}>
+                            <ProtectedRoute requiredPermission="spot_check">
                                 <SpotCheck />
                             </ProtectedRoute>
                         } />
                         <Route path="/counts/manage" element={
-                            <ProtectedRoute requiredPermission="inventory">
+                            <ProtectedRoute requiredPermission="counts_manage">
                                 <ManageCounts />
                             </ProtectedRoute>
                         } />
                         <Route path="/view_counts" element={
-                            <ProtectedRoute requiredPermission="inventory">
+                            <ProtectedRoute requiredPermission="view_counts">
                                 <ViewCounts />
                             </ProtectedRoute>
                         } />
                         <Route path="/counts/manage_differences" element={
-                            <ProtectedRoute requiredPermission="inventory">
+                            <ProtectedRoute requiredPermission="counts_manage">
                                 <ManageCountDifferences />
                             </ProtectedRoute>
                         } />
                         <Route path="/counts/edit/:id" element={
-                            <ProtectedRoute requiredPermission="inventory">
+                            <ProtectedRoute requiredPermission="counts_manage">
                                 <EditCount />
                             </ProtectedRoute>
                         } />
                         <Route path="/view_counts/recordings" element={
-                            <ProtectedRoute requiredPermission="inventory">
+                            <ProtectedRoute requiredPermission="view_counts_recordings">
                                 <CycleCountHistory />
                             </ProtectedRoute>
                         } />
                         <Route path="/inventory-dashboard" element={
-                            <ProtectedRoute requiredPermission="inventory">
+                            <ProtectedRoute requiredPermission="inventory_dashboard">
                                 <DashboardInventario />
                             </ProtectedRoute>
                         } />
                         <Route path="/occupancy" element={
-                            <ProtectedRoute requiredPermission="inventory">
+                            <ProtectedRoute requiredPermission="occupancy">
                                 <OccupancyDashboard />
                             </ProtectedRoute>
                         } />
@@ -233,7 +211,7 @@ function App() {
                             </ProtectedRoute>
                         } />
                         <Route path="/planner/manage_differences" element={
-                            <ProtectedRoute requiredPermission="planner">
+                            <ProtectedRoute requiredPermission="planner_differences">
                                 <ManageCycleCountDifferences />
                             </ProtectedRoute>
                         } />
@@ -243,13 +221,8 @@ function App() {
                             </ProtectedRoute>
                         } />
                         <Route path="/view_logs" element={
-                            <ProtectedRoute requiredPermission="inbound">
+                            <ProtectedRoute requiredPermission="view_logs">
                                 <InboundHistory />
-                            </ProtectedRoute>
-                        } />
-                        <Route path="/ir-reconciliation" element={
-                            <ProtectedRoute requiredPermission="inbound">
-                                <IRReconciliation />
                             </ProtectedRoute>
                         } />
 
@@ -262,7 +235,7 @@ function App() {
                             </AdminProtectedRoute>
                         } />
                         <Route path="/admin/inventory" element={
-                            <ProtectedRoute requiredPermission="inventory">
+                            <ProtectedRoute requiredPermission="admin_inventory">
                                 <AdminInventory />
                             </ProtectedRoute>
                         } />
@@ -270,27 +243,27 @@ function App() {
                             <Navigate to="/admin/inventory" replace />
                         } />
                         <Route path="/admin/slotting" element={
-                            <ProtectedRoute requiredPermission="inventory">
+                            <ProtectedRoute requiredPermission="admin_slotting">
                                 <SlottingConfig />
                             </ProtectedRoute>
                         } />
                         <Route path="/shipments" element={
-                            <ProtectedRoute requiredPermission="picking">
+                            <ProtectedRoute requiredPermission="shipments">
                                 <Shipments />
                             </ProtectedRoute>
                         } />
                         <Route path="/shipments/print/:id" element={
-                            <ProtectedRoute requiredPermission="picking">
+                            <ProtectedRoute requiredPermission="shipments">
                                 <ConsolidatedPackingList />
                             </ProtectedRoute>
                         } />
                         <Route path="/packing_list/print/:id" element={
-                            <ProtectedRoute requiredPermission="picking">
+                            <ProtectedRoute requiredPermission="view_picking_audits">
                                 <PackingListPrint />
                             </ProtectedRoute>
                         } />
                         <Route path="/packing_list/:id" element={
-                            <ProtectedRoute requiredPermission="picking">
+                            <ProtectedRoute requiredPermission="view_picking_audits">
                                 <PackingListPrint />
                             </ProtectedRoute>
                         } />

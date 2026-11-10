@@ -43,7 +43,7 @@ const Login = () => {
                 try {
                     userData = await tauriLogin(username, password);
                 } catch (err) {
-                    setError(err || "Usuario o contraseña incorrectos");
+                    setError(typeof err === 'string' ? err : "Usuario o contraseña incorrectos");
                     setLoading(false);
                     return;
                 }
@@ -62,18 +62,27 @@ const Login = () => {
                     if (res.ok) {
                         const data = await res.json();
                         userData = data.user || data;
+                    } else {
+                        const errData = await res.json().catch(() => ({}));
+                        setError(errData.error || errData.detail || "Usuario o contraseña incorrectos");
+                        setLoading(false);
+                        return;
                     }
                 } catch (fetchErr) {
-                    console.warn("Servidor HTTP no disponible, iniciando en modo local offline");
-                }
-
-                if (!userData) {
-                    // Autenticación local predeterminada
-                    userData = { id: 1, username: username || 'admin', role: 'admin' };
+                    console.warn("Servidor HTTP no disponible");
+                    setError("Error de conexión al autenticar");
+                    setLoading(false);
+                    return;
                 }
             }
 
             if (userData) {
+                const isAdmin = userData.username === 'admin' || userData.role === 'admin';
+                if (!isAdmin && userData.is_approved === false) {
+                    setError("Tu cuenta está pendiente de aprobación por el administrador.");
+                    setLoading(false);
+                    return;
+                }
                 console.log("Login exitoso", userData);
                 if (rememberMe) {
                     localStorage.setItem('logix_remember_login', 'true');

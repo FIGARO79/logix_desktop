@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
+import { isUserAdmin, hasUserPermission } from '../utils/permissions';
 
 const SlottingConfig = () => {
     const { setTitle } = useOutletContext();
@@ -42,6 +43,17 @@ const SlottingConfig = () => {
     const [showUpload, setShowUpload] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
     const fileInputRef = useRef(null);
+
+    const currentUser = useMemo(() => {
+        try {
+            const raw = localStorage.getItem('user');
+            return raw ? JSON.parse(raw) : null;
+        } catch (_) { return null; }
+    }, []);
+    const isAdmin = useMemo(() => isUserAdmin(currentUser), [currentUser]);
+    const canUpload = useMemo(() => {
+        return isUserAdmin(currentUser) || hasUserPermission(currentUser, 'admin_slotting') || hasUserPermission(currentUser, 'update');
+    }, [currentUser]);
 
     const fetchSummary = useCallback(async () => {
         try {
@@ -196,12 +208,14 @@ const SlottingConfig = () => {
             <div className="flex justify-between items-center mb-3 border-b border-[#e5e7eb] pb-2 text-[#1f1f1f]">
                 <h1 className="text-[14px] font-normal text-gray-800 tracking-normal">Configuración de Slotting y Reglas de Almacén</h1>
                 <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => setShowUpload(!showUpload)}
-                        className="h-7 px-3 bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] text-[#1f1f1f] rounded text-[12px] font-normal transition-colors cursor-pointer"
-                    >
-                        Cargar Layout
-                    </button>
+                    {canUpload && (
+                        <button
+                            onClick={() => setShowUpload(!showUpload)}
+                            className="h-7 px-3 bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] text-[#1f1f1f] rounded text-[12px] font-normal transition-colors cursor-pointer"
+                        >
+                            Cargar Layout
+                        </button>
+                    )}
                     <button
                         onClick={fetchConfig}
                         className="h-7 px-3 bg-white hover:bg-[#f5f5f5] border border-[#d1d5db] text-[#1f1f1f] rounded text-[12px] font-normal transition-colors cursor-pointer"
@@ -238,7 +252,7 @@ const SlottingConfig = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
                 <div className="lg:col-span-3 space-y-4">
-                    {showUpload && (
+                    {canUpload && showUpload && (
                         <div className="bg-white border border-[#d1d5db] rounded p-4 shadow-xs mb-4 text-[#1f1f1f]">
                             <div className="flex justify-between items-center mb-3">
                                 <h2 className="text-[13px] text-gray-800 font-normal">Carga Masiva de Layout</h2>

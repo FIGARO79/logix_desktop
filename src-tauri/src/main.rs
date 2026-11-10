@@ -92,13 +92,17 @@ fn login(
                 id: row.get(0)?,
                 username: row.get(1)?,
                 role: row.get(2)?,
-                permissions: row.get::<_, Option<String>>(3)?.unwrap_or_else(|| {
-                    "stock,inbound,picking,inventory,planner,counts,admin".to_string()
-                }),
+                permissions: row.get::<_, Option<String>>(3)?.unwrap_or_default(),
                 is_approved: is_appr != 0,
             })
         })
         .map_err(|_| "Usuario o contraseña incorrectos".to_string())?;
+
+    // Bloquear acceso a cuentas no aprobadas por el administrador (excepto admin global)
+    let is_admin_account = user.username.eq_ignore_ascii_case("admin") || user.role.eq_ignore_ascii_case("admin");
+    if !is_admin_account && !user.is_approved {
+        return Err("Tu cuenta está pendiente de aprobación por el administrador.".to_string());
+    }
 
     Ok(user)
 }
@@ -109,14 +113,33 @@ fn register_user(
     username: String,
     password_hash: String,
 ) -> Result<String, String> {
+    let clean_user = username.trim();
+    let clean_pass = password_hash.trim();
+    if clean_user.is_empty() || clean_pass.is_empty() {
+        return Err("Usuario y contraseña no pueden estar vacíos".to_string());
+    }
+
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
     conn.execute(
-        "INSERT INTO users (username, password_hash, role, permissions, is_approved) VALUES (?1, ?2, 'operator', 'stock,inbound,picking,counts', 1);",
-        params![username.trim(), password_hash.trim()],
+        "INSERT INTO users (username, password_hash, role, permissions, is_approved) VALUES (?1, ?2, 'operator', '', 0);",
+        params![clean_user, clean_pass],
     )
     .map_err(|_| "El nombre de usuario ya existe".to_string())?;
 
-    Ok("Usuario registrado exitosamente".to_string())
+    // Replicar en red para que la terminal del administrador reciba el nuevo usuario inmediatamente
+    let _ = network_sync::publish_event(
+        &conn,
+        "USER_REGISTER",
+        serde_json::json!({
+            "username": clean_user,
+            "password_hash": clean_pass,
+            "role": "operator",
+            "permissions": "",
+            "is_approved": 0
+        }),
+    );
+
+    Ok("Registro exitoso. Espera la aprobación del administrador.".to_string())
 }
 
 #[tauri::command]
@@ -133,9 +156,7 @@ fn get_all_users_admin(state: State<'_, AppState>) -> Result<Vec<UserAdminView>,
                 id: row.get(0)?,
                 username: row.get(1)?,
                 role: row.get(2)?,
-                permissions: row.get::<_, Option<String>>(3)?.unwrap_or_else(|| {
-                    "stock,inbound,picking,inventory,planner,counts,admin".to_string()
-                }),
+                permissions: row.get::<_, Option<String>>(3)?.unwrap_or_default(),
                 is_approved: is_appr != 0,
                 assigned_zones: row.get::<_, Option<String>>(5)?.unwrap_or_default(),
                 created_at: row.get::<_, Option<String>>(6)?.unwrap_or_default(),
@@ -153,8 +174,21 @@ fn get_all_users_admin(state: State<'_, AppState>) -> Result<Vec<UserAdminView>,
 #[tauri::command]
 fn delete_user_admin(state: State<'_, AppState>, user_id: i64) -> Result<String, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    let username: String = conn
+        .query_row("SELECT username FROM users WHERE id = ?1", params![user_id], |r| r.get(0))
+        .unwrap_or_default();
+
     conn.execute("DELETE FROM users WHERE id = ?1", params![user_id])
         .map_err(|e| e.to_string())?;
+
+    if !username.is_empty() {
+        let _ = network_sync::publish_event(
+            &conn,
+            "USER_DELETE",
+            serde_json::json!({ "username": username }),
+        );
+    }
+
     Ok("Usuario eliminado".to_string())
 }
 
@@ -165,11 +199,28 @@ fn reset_user_password_admin(
     new_password: String,
 ) -> Result<String, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    let clean_new_pass = new_password.trim();
+    let username: String = conn
+        .query_row("SELECT username FROM users WHERE id = ?1", params![user_id], |r| r.get(0))
+        .unwrap_or_default();
+
     conn.execute(
         "UPDATE users SET password_hash = ?1 WHERE id = ?2",
-        params![new_password.trim(), user_id],
+        params![clean_new_pass, user_id],
     )
     .map_err(|e| e.to_string())?;
+
+    if !username.is_empty() {
+        let _ = network_sync::publish_event(
+            &conn,
+            "USER_PASSWORD_RESET",
+            serde_json::json!({
+                "username": username,
+                "password_hash": clean_new_pass
+            }),
+        );
+    }
+
     Ok("Contraseña actualizada".to_string())
 }
 
@@ -180,22 +231,104 @@ fn update_user_permissions_admin(
     permissions: String,
 ) -> Result<String, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    let clean_perms = permissions.trim();
+    let username: String = conn
+        .query_row("SELECT username FROM users WHERE id = ?1", params![user_id], |r| r.get(0))
+        .unwrap_or_default();
+
     conn.execute(
         "UPDATE users SET permissions = ?1 WHERE id = ?2",
-        params![permissions.trim(), user_id],
+        params![clean_perms, user_id],
     )
     .map_err(|e| e.to_string())?;
+
+    if !username.is_empty() {
+        let _ = network_sync::publish_event(
+            &conn,
+            "USER_PERMISSIONS_UPDATE",
+            serde_json::json!({
+                "username": username,
+                "permissions": clean_perms
+            }),
+        );
+    }
+
     Ok("Permisos actualizados".to_string())
+}
+
+#[tauri::command]
+fn update_user_role_admin(
+    state: State<'_, AppState>,
+    user_id: i64,
+    role: String,
+) -> Result<String, String> {
+    let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    let clean_role = role.trim();
+    let username: String = conn
+        .query_row("SELECT username FROM users WHERE id = ?1", params![user_id], |r| r.get(0))
+        .unwrap_or_default();
+
+    conn.execute(
+        "UPDATE users SET role = ?1 WHERE id = ?2",
+        params![clean_role, user_id],
+    )
+    .map_err(|e| e.to_string())?;
+
+    if clean_role != "admin" {
+        let perms: String = conn
+            .query_row("SELECT permissions FROM users WHERE id = ?1", params![user_id], |r| r.get(0))
+            .unwrap_or_default();
+        let new_perms: Vec<&str> = perms
+            .split(',')
+            .map(|p| p.trim())
+            .filter(|p| !p.is_empty() && *p != "admin" && *p != "admin_users")
+            .collect();
+        let _ = conn.execute(
+            "UPDATE users SET permissions = ?1 WHERE id = ?2",
+            params![new_perms.join(","), user_id],
+        );
+    }
+
+    if !username.is_empty() {
+        let _ = network_sync::publish_event(
+            &conn,
+            "USER_ROLE_UPDATE",
+            serde_json::json!({
+                "username": username,
+                "role": clean_role
+            }),
+        );
+    }
+
+    Ok("Rol de usuario actualizado exitosamente".to_string())
 }
 
 #[tauri::command]
 fn approve_user_admin(state: State<'_, AppState>, user_id: i64) -> Result<String, String> {
     let conn = state.db.get_connection().map_err(|e| e.to_string())?;
+    let username: String = conn
+        .query_row("SELECT username FROM users WHERE id = ?1", params![user_id], |r| r.get(0))
+        .unwrap_or_default();
+
     conn.execute(
         "UPDATE users SET is_approved = 1 WHERE id = ?1",
         params![user_id],
     )
     .map_err(|e| e.to_string())?;
+
+    // Replicar en red para que la terminal del usuario quede aprobada automáticamente
+    if !username.is_empty() {
+        let _ = network_sync::publish_event(
+            &conn,
+            "USER_APPROVE",
+            serde_json::json!({
+                "username": username,
+                "user_id": user_id,
+                "is_approved": 1
+            }),
+        );
+    }
+
     Ok("Usuario aprobado exitosamente".to_string())
 }
 
@@ -2507,6 +2640,7 @@ fn main() {
             delete_user_admin,
             reset_user_password_admin,
             update_user_permissions_admin,
+            update_user_role_admin,
             approve_user_admin,
             get_available_aisles,
             get_auditor_zones,

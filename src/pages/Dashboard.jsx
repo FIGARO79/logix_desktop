@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTabContext as useOutletContext } from '../hooks/useTabContext';
 import { useLanguage } from '../context/LanguageContext';
+import { canUserAccessPath } from '../utils/permissions';
 
 export const CATEGORIES_CONFIG = [
     { id: 'recepcion', title: 'Gestión de Recepción', accent: 'bg-[#0067c0]', dropBg: 'bg-[#f0f6fc]' },
@@ -92,10 +93,20 @@ const Dashboard = () => {
     });
     const dropTargetRef = useRef(null);
 
+    const currentUser = useMemo(() => {
+        try {
+            const raw = localStorage.getItem('user');
+            return raw ? JSON.parse(raw) : null;
+        } catch (_) { return null; }
+    }, []);
+
     const handleCardClick = (item) => {
-        if (item?.href) {
-            navigate(item.href);
+        if (!item?.href) return;
+        if (!canUserAccessPath(currentUser, item.href)) {
+            showFeedback("Módulo bloqueado: tu usuario no tiene asignado este permiso.");
+            return;
         }
+        navigate(item.href);
     };
 
     useEffect(() => {
@@ -191,6 +202,7 @@ const Dashboard = () => {
     const handlePointerDown = (e, item, catId, index) => {
         if (e.button !== 0) return; // Solo click principal
         if (e.target.closest('button')) return; // Evitar si se hace clic en botones
+        if (!canUserAccessPath(currentUser, item?.href)) return; // No permitir arrastrar módulos bloqueados
 
         pointerStateRef.current = {
             isDown: true,
@@ -372,6 +384,7 @@ const Dashboard = () => {
                                         </div>
                                     ) : (
                                         category.items.map((item, idx) => {
+                                            const hasAccess = canUserAccessPath(currentUser, item.href);
                                             const isBeingDragged = dragging?.fromCatId === category.id && dragging?.fromIndex === idx;
                                             const isTarget = dropTarget?.catId === category.id && dropTarget?.targetIndex === idx;
                                             const isDropBefore = isTarget && dropTarget?.position === 'before';
@@ -389,16 +402,25 @@ const Dashboard = () => {
                                                         data-card-idx={idx}
                                                         onPointerDown={(e) => handlePointerDown(e, item, category.id, idx)}
                                                         onClick={() => handleCardClick(item)}
-                                                        className={`group relative flex items-center justify-between gap-2.5 bg-white border rounded p-2.5 transition-all duration-150 cursor-pointer select-none ${
-                                                            isBeingDragged
-                                                                ? 'opacity-25 scale-[0.98] border-dashed border-[#0067c0]'
-                                                                : 'border-[#e5e5e5] hover:border-[#0067c0] hover:shadow-xs'
+                                                        className={`group relative flex items-center justify-between gap-2.5 rounded p-2.5 transition-all duration-150 select-none ${
+                                                            !hasAccess
+                                                                ? 'opacity-40 bg-[#f9f9f9] border border-[#e5e5e5] cursor-not-allowed'
+                                                                : isBeingDragged
+                                                                ? 'opacity-25 scale-[0.98] border-dashed border-[#0067c0] bg-white cursor-grabbing'
+                                                                : 'bg-white border border-[#e5e5e5] hover:border-[#0067c0] hover:shadow-xs cursor-pointer'
                                                         }`}
                                                     >
                                                         {/* Text content */}
                                                         <div className="flex-1 min-w-0 pointer-events-none">
-                                                            <div className="text-[12px] font-normal text-[#1f1f1f] group-hover:text-[#0067c0] transition-colors tracking-normal leading-snug truncate">
-                                                                {t(item.text)}
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className={`text-[12px] font-normal tracking-normal leading-snug truncate ${!hasAccess ? 'text-[#8a8886]' : 'text-[#1f1f1f] group-hover:text-[#0067c0]'}`}>
+                                                                    {t(item.text)}
+                                                                </span>
+                                                                {!hasAccess && (
+                                                                    <span className="text-[10px] text-[#a4262c] font-normal px-1 py-0.2 bg-[#fde7e9] rounded border border-[#f8b8bc]/50 shrink-0">
+                                                                        Bloqueado
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                             <div className="text-[11px] text-[#7f7f7f] font-normal mt-0.5 tracking-normal leading-normal truncate">
                                                                 {t(item.desc)}

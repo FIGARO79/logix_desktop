@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 const DesktopMenuBar = ({
     onNewTab,
     onCloseCurrentTab,
+    onGoBack,
     onOpenNetworkModal,
     onOpenPrinterModal,
     onNavigate,
@@ -91,6 +92,13 @@ const DesktopMenuBar = ({
                         >
                             <span>Cerrar pestaña</span>
                             <span className="text-[11px] text-[#888] font-mono">Ctrl+W</span>
+                        </button>
+                        <button
+                            onClick={() => handleItemClick(onGoBack)}
+                            className={itemClass}
+                        >
+                            <span>Volver a página anterior</span>
+                            <span className="text-[11px] text-[#888] font-mono">F1</span>
                         </button>
                         <div className={separatorClass}></div>
                         <button

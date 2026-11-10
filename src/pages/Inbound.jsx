@@ -12,6 +12,7 @@ import { useReactToPrint } from 'react-to-print';
 import '../styles/Label.css';
 import { parseGS1Barcode } from '../utils/gs1Parser';
 import { isTauri, callTauriCommand, tauriGetInboundMasterMaps, tauriLookupInboundReference, tauriGetInboundIrStatsData, tauriGetItemDetails, confirmNative, getPrinterConfig, printSandvikLabelSilent } from '../utils/tauriBridge';
+import { isUserAdmin } from '../utils/permissions';
 
 
 const EMPTY_ARRAY = [];
@@ -80,6 +81,14 @@ const Inbound = () => {
     const queryClient = useQueryClient();
 
     useEffect(() => { setTitle(t('nav.inbound', 'Recepción')); }, [setTitle, t, language]);
+
+    const currentUser = useMemo(() => {
+        try {
+            const raw = localStorage.getItem('user');
+            return raw ? JSON.parse(raw) : null;
+        } catch (_) { return null; }
+    }, []);
+    const isAdmin = useMemo(() => isUserAdmin(currentUser), [currentUser]);
 
 
 
@@ -1293,9 +1302,11 @@ const Inbound = () => {
                                         </svg>
                                         <span>Sincronizar Red</span>
                                     </button>
-                                    <button type="button" onClick={async () => { setIsSyncing(true); const ok = await downloadMasterData(); alert(ok ? 'Maestro sincronizado.' : 'Error al sincronizar.'); setIsSyncing(false); }} className={`p-1.5 rounded hover:bg-gray-200 ${isSyncing ? 'animate-spin' : ''}`} title="Sincronizar Maestro">
-                                        <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                    </button>
+                                    {isAdmin && (
+                                        <button type="button" onClick={async () => { setIsSyncing(true); const ok = await downloadMasterData(); alert(ok ? 'Maestro sincronizado.' : 'Error al sincronizar.'); setIsSyncing(false); }} className={`p-1.5 rounded hover:bg-gray-200 ${isSyncing ? 'animate-spin' : ''}`} title="Sincronizar Maestro">
+                                            <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 

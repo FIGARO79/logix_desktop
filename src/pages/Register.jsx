@@ -25,8 +25,8 @@ const Register = () => {
         try {
             if (isTauri()) {
                 const resMsg = await tauriRegisterUser(formData.username, formData.password);
-                setMessage(resMsg || "Usuario registrado exitosamente");
-                setTimeout(() => navigate('/login'), 2000);
+                setMessage(resMsg || "Registro exitoso. Espera la aprobación del administrador.");
+                setTimeout(() => navigate('/login'), 2500);
             } else {
                 try {
                     const body = new FormData();
@@ -40,14 +40,14 @@ const Register = () => {
                     const data = await res.json();
 
                     if (res.ok) {
-                        setMessage(data.message || "Usuario registrado exitosamente");
-                        setTimeout(() => navigate('/login'), 2000);
+                        setMessage(data.message || "Registro exitoso. Espera la aprobación del administrador.");
+                        setTimeout(() => navigate('/login'), 2500);
                     } else {
                         setError(data.error || "Error en el registro.");
                     }
                 } catch (fetchErr) {
-                    setMessage("Usuario registrado localmente");
-                    setTimeout(() => navigate('/login'), 2000);
+                    setMessage("Registro exitoso. Espera la aprobación del administrador.");
+                    setTimeout(() => navigate('/login'), 2500);
                 }
             }
         } catch (err) {

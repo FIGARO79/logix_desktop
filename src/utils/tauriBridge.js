@@ -114,6 +114,36 @@ export const tauriResetPasswordAdmin = async (userId, newPassword) => {
 };
 
 /**
+ * Aprueba un usuario registrado para permitir su acceso al sistema
+ */
+export const tauriApproveUserAdmin = async (userId) => {
+    if (isTauri()) {
+        return await invoke('approve_user_admin', { userId });
+    }
+    return "Usuario aprobado exitosamente";
+};
+
+/**
+ * Actualiza los permisos de módulos asignados a un usuario en SQLite
+ */
+export const tauriUpdateUserPermissionsAdmin = async (userId, permissions) => {
+    if (isTauri()) {
+        return await invoke('update_user_permissions_admin', { userId, permissions });
+    }
+    return "Permisos actualizados";
+};
+
+/**
+ * Actualiza el rol o perfil de un usuario (admin u operator) en SQLite y red
+ */
+export const tauriUpdateUserRoleAdmin = async (userId, role) => {
+    if (isTauri()) {
+        return await invoke('update_user_role_admin', { userId, role });
+    }
+    return "Rol actualizado";
+};
+
+/**
  * Lee y extrae cualquier archivo (.xlsx, .xls, .csv, .tsv, .txt) utilizando SheetJS
  * respetando el estándar RFC 4180 (comillas dobles, comas internas, caracteres de escape).
  * Devuelve un array de filas: Array<Array<string>> buscando la primera hoja que contenga datos reales.

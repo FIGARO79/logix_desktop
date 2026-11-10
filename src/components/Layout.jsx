@@ -34,19 +34,18 @@ import OccupancyDashboard from '../pages/OccupancyDashboard';
 import ManageCountDifferences from '../pages/ManageCountDifferences';
 import ManageCycleCountDifferences from '../pages/ManageCycleCountDifferences';
 import Shipments from '../pages/Shipments';
-import IRReconciliation from '../pages/IRReconciliation';
 import PackingListPrint from '../pages/PackingListPrint';
 import ConsolidatedPackingList from '../pages/ConsolidatedPackingList';
 import NetworkSettingsModal from './NetworkSettingsModal';
 import PrinterSettingsModal from './PrinterSettingsModal';
 import DesktopMenuBar from './DesktopMenuBar';
+import { canUserAccessPath, isUserAdmin, getUserPermissions } from '../utils/permissions';
 
 // Mapeo de rutas a componentes
 const ROUTE_MAP = [
     { path: '/dashboard', component: Dashboard },
     { path: '/inbound', component: Inbound },
     { path: '/reconciliation', component: Reconciliation },
-    { path: '/ir-reconciliation', component: IRReconciliation },
     { path: '/stock', component: StockSearch },
     { path: '/spot-check', component: SpotCheck },
     { path: '/view_picking_audits', component: PickingAuditHistory },
@@ -77,9 +76,10 @@ const ROUTE_MAP = [
     { path: '/counts/edit/:id', component: EditCount },
 ];
 
-const MenuItem = React.memo(({ to, label, desc, categoryId, onClick }) => {
+const MenuItem = React.memo(({ to, label, desc, categoryId, onClick, currentUser }) => {
     const location = useLocation();
     const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to));
+    const hasAccess = canUserAccessPath(currentUser, to);
 
     const itemData = useMemo(() => ({
         href: to,
@@ -89,15 +89,36 @@ const MenuItem = React.memo(({ to, label, desc, categoryId, onClick }) => {
     }), [to, label, desc, categoryId]);
 
     const handleDragStart = useCallback((e) => {
+        if (!hasAccess) {
+            e.preventDefault();
+            return;
+        }
         e.dataTransfer.setData('application/json', JSON.stringify(itemData));
         e.dataTransfer.effectAllowed = 'copyMove';
-    }, [itemData]);
+    }, [itemData, hasAccess]);
 
     const handleQuickPin = useCallback((e) => {
         e.preventDefault();
         e.stopPropagation();
+        if (!hasAccess) return;
         window.dispatchEvent(new CustomEvent('logix_dashboard_pin_item', { detail: itemData }));
-    }, [itemData]);
+    }, [itemData, hasAccess]);
+
+    if (!hasAccess) {
+        return (
+            <div
+                className="group/item flex items-center justify-between pr-2 py-0.5 opacity-40 cursor-not-allowed select-none border-l-[4px] border-transparent px-4"
+                title="Módulo restringido por permisos de administrador"
+            >
+                <div className="flex-grow flex items-center leading-tight text-[#8a8886]">
+                    <span className="text-[12px] uppercase select-none font-normal">{label}</span>
+                </div>
+                <span className="text-[10px] text-[#a4262c] font-normal px-1 py-0.2 bg-[#fde7e9] rounded border border-[#f8b8bc]/60">
+                    Bloqueado
+                </span>
+            </div>
+        );
+    }
 
     return (
         <div className="group/item flex items-center justify-between pr-2 transition-all hover:bg-[#f0f0f0]">
@@ -141,10 +162,21 @@ const resolveComponent = (path) => {
     return null;
 };
 
-const TabContentWrapper = React.memo(({ tab, isActive, onTitleChange }) => {
+const TabContentWrapper = React.memo(({ tab, isActive, onTitleChange, onReturnHome }) => {
     const [initialized, setInitialized] = useState(isActive);
     const lastRefreshKey = useRef(tab.refreshKey || 0);
     const resolved = useMemo(() => resolveComponent(tab.path), [tab.path]);
+
+    const currentUser = useMemo(() => {
+        try {
+            const raw = localStorage.getItem('user');
+            return raw ? JSON.parse(raw) : null;
+        } catch (_) { return null; }
+    }, []);
+
+    const hasAccess = useMemo(() => {
+        return canUserAccessPath(currentUser, tab.path);
+    }, [currentUser, tab.path]);
 
     // Inicializar inmediatamente si la pestaña se vuelve activa para evitar parpadeo
     if (isActive && !initialized) {
@@ -164,6 +196,34 @@ const TabContentWrapper = React.memo(({ tab, isActive, onTitleChange }) => {
     }, [tab.id, onTitleChange]);
 
     const contextValue = useMemo(() => ({ setTitle: tabSetTitle }), [tabSetTitle]);
+
+    if (!hasAccess) {
+        return (
+            <div
+                className={`tab-content-container ${isActive ? 'block' : 'hidden'} font-['Segoe_UI',Tahoma,sans-serif] bg-[#f9f9f9]`}
+                style={{ height: '100%', width: '100%' }}
+            >
+                <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+                    <div className="w-14 h-14 mb-4 rounded-full bg-[#fde7e9] border border-[#f8b8bc] flex items-center justify-center text-[#a4262c]">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                    </div>
+                    <h2 className="text-[17px] font-normal text-[#1f1f1f] mb-1.5">Módulo No Autorizado</h2>
+                    <p className="text-[13px] font-normal text-[#605e5c] max-w-md mb-6 leading-relaxed">
+                        Tu usuario no tiene asignado el permiso de acceso para este módulo. Solicita a un administrador del sistema que active los permisos correspondientes.
+                    </p>
+                    <button
+                        type="button"
+                        onClick={onReturnHome}
+                        className="px-4 py-1.5 bg-[#0067c0] hover:bg-[#005a9e] text-white text-[12px] font-normal rounded transition-colors cursor-pointer"
+                    >
+                        Volver al Inicio
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     if (!resolved) {
         return <div className="p-4 text-white">Módulo no encontrado: {tab.path}</div>;
@@ -188,6 +248,24 @@ const TabContentWrapper = React.memo(({ tab, isActive, onTitleChange }) => {
         </div>
     );
 });
+
+const getUserInitials = (name) => {
+    if (!name) return '';
+    const parts = String(name).trim().split(/[\s._-]+/).filter(Boolean);
+    if (parts.length === 0) return '';
+    if (parts.length === 1) {
+        return parts[0].slice(0, 2).toUpperCase();
+    }
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+};
+
+const formatUserDisplayName = (name) => {
+    if (!name) return '';
+    return String(name)
+        .split(/(\s+)/)
+        .map(part => part.trim() ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase() : part)
+        .join('');
+};
 
 const Layout = () => {
     const navigate = useNavigate();
@@ -256,13 +334,16 @@ const Layout = () => {
             try {
                 const parsed = JSON.parse(saved);
                 if (Array.isArray(parsed) && parsed.length > 0) {
-                    return parsed;
+                    return parsed.map(t => ({
+                        ...t,
+                        history: Array.isArray(t.history) && t.history.length > 0 ? t.history : [t.path || '/dashboard']
+                    }));
                 }
             } catch (e) {
                 console.error("Error parsing tabs from localStorage", e);
             }
         }
-        return [{ id: 'dashboard-' + Date.now(), path: '/dashboard', label: 'Inicio' }];
+        return [{ id: 'dashboard-' + Date.now(), path: '/dashboard', label: 'Inicio', history: ['/dashboard'] }];
     });
 
     const [draggedTabIndex, setDraggedTabIndex] = useState(null);
@@ -345,13 +426,85 @@ const Layout = () => {
 
         const activeTab = tabs.find(t => t.id === activeTabId);
         if (activeTab && activeTab.path !== location.pathname) {
-            setTabs(prev => prev.map(tab =>
-                tab.id === activeTabId ? { ...tab, path: location.pathname } : tab
-            ));
+            setTabs(prev => prev.map(tab => {
+                if (tab.id === activeTabId) {
+                    const prevHist = Array.isArray(tab.history) ? tab.history : [tab.path];
+                    const newHist = prevHist[prevHist.length - 1] !== location.pathname
+                        ? [...prevHist, location.pathname]
+                        : prevHist;
+                    return { ...tab, path: location.pathname, history: newHist };
+                }
+                return tab;
+            }));
         }
     }, [location.pathname, activeTabId, tabs]);
 
     const toggleMenu = useCallback(() => setIsMenuOpen(prev => !prev), []);
+
+    const handleReturnHome = useCallback((tabId) => {
+        setTabs(prev => prev.map(t =>
+            t.id === tabId ? { ...t, path: '/dashboard', label: 'Inicio', history: ['/dashboard'] } : t
+        ));
+        navigate('/dashboard');
+    }, [navigate]);
+
+    const handleGoBack = useCallback(() => {
+        if (isNetworkModalOpen) {
+            setIsNetworkModalOpen(false);
+            return;
+        }
+        if (isPrinterModalOpen) {
+            setIsPrinterModalOpen(false);
+            return;
+        }
+
+        const currentActiveId = activeTabIdRef.current;
+        const currentTabs = tabsRef.current;
+        const activeTab = currentTabs.find(t => t.id === currentActiveId);
+
+        if (!activeTab) {
+            navigate('/dashboard');
+            return;
+        }
+
+        const history = Array.isArray(activeTab.history) ? [...activeTab.history] : [];
+
+        if (history.length > 1) {
+            history.pop(); // Quitar la ruta actual
+            const prevPath = history[history.length - 1];
+            setTabs(prev => prev.map(t =>
+                t.id === currentActiveId
+                    ? { ...t, path: prevPath, history }
+                    : t
+            ));
+            navigate(prevPath);
+        } else if (activeTab.path !== '/dashboard') {
+            setTabs(prev => prev.map(t =>
+                t.id === currentActiveId
+                    ? { ...t, path: '/dashboard', label: 'Inicio', history: ['/dashboard'] }
+                    : t
+            ));
+            navigate('/dashboard');
+        } else if (window.history.state && window.history.state.idx > 0) {
+            navigate(-1);
+        }
+    }, [isNetworkModalOpen, isPrinterModalOpen, navigate]);
+
+    // Atajo global de teclado F1 para volver a la página anterior
+    useEffect(() => {
+        const handleF1KeyDown = (e) => {
+            if (e.key === 'F1') {
+                e.preventDefault();
+                e.stopPropagation();
+                handleGoBack();
+            }
+        };
+
+        window.addEventListener('keydown', handleF1KeyDown, true);
+        return () => {
+            window.removeEventListener('keydown', handleF1KeyDown, true);
+        };
+    }, [handleGoBack]);
 
     const addTab = useCallback(() => {
         if (tabs.length >= MAX_TABS) {
@@ -498,27 +651,15 @@ const Layout = () => {
     }, [navigate]);
 
     const userJson = localStorage.getItem('user');
-    let hasAdminPerm = false;
-    if (userJson) {
+    const currentUser = useMemo(() => {
         try {
-            const u = JSON.parse(userJson);
-            const rawPerms = u.permissions;
-            let perms = [];
-            if (Array.isArray(rawPerms)) {
-                perms = rawPerms;
-            } else if (typeof rawPerms === 'string') {
-                const trimmed = rawPerms.trim();
-                if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-                    try { perms = JSON.parse(trimmed); } catch(e) { perms = []; }
-                } else {
-                    perms = trimmed.split(',').map(p => p.trim()).filter(Boolean);
-                }
-            }
-            if (u.username === 'admin' || perms.includes('admin')) {
-                hasAdminPerm = true;
-            }
-        } catch (e) {}
-    }
+            return userJson ? JSON.parse(userJson) : null;
+        } catch (e) {
+            return null;
+        }
+    }, [userJson]);
+
+    const hasAdminPerm = isUserAdmin(currentUser);
 
     return (
         <div className="flex flex-col min-h-screen bg-[#f3f3f3] text-[#201f1e] font-sans print:block print:h-auto print:overflow-visible">
@@ -527,6 +668,7 @@ const Layout = () => {
                 <DesktopMenuBar
                     onNewTab={addTab}
                     onCloseCurrentTab={handleCloseActiveTab}
+                    onGoBack={handleGoBack}
                     onOpenNetworkModal={handleOpenNetworkModal}
                     onOpenPrinterModal={handleOpenPrinterModal}
                     onNavigate={handleDesktopNavigate}
@@ -535,15 +677,28 @@ const Layout = () => {
                     onLogout={handleLogout}
                 />
 
-                <header className="top-header flex h-[48px] items-center gap-4 border-b border-[#d2d0ce] bg-white px-4 text-[#201f1e] shadow-none">
+                <header className="top-header flex h-[48px] items-center gap-2 border-b border-[#d2d0ce] bg-white px-4 text-[#201f1e] shadow-none">
                     <button
                         type="button"
                         className="z-[1001] cursor-pointer rounded p-2 text-[#605e5c] transition-all hover:bg-[#f3f3f3] hover:text-[#201f1e]"
                         onClick={toggleMenu}
                         aria-label="Menú"
+                        title="Abrir menú de navegación"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                        </svg>
+                    </button>
+
+                    <button
+                        type="button"
+                        className="z-[1001] cursor-pointer rounded p-2 text-[#605e5c] transition-all hover:bg-[#f3f3f3] hover:text-[#201f1e]"
+                        onClick={handleGoBack}
+                        title="Volver a página anterior (F1)"
+                        aria-label="Volver a página anterior (F1)"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
                         </svg>
                     </button>
 
@@ -551,6 +706,13 @@ const Layout = () => {
                         <div className="tabs-scroll-container overflow-x-auto no-scrollbar scroll-smooth">
                             {tabs.map((tab, index) => {
                                 const isDragging = draggedTabIndex === index;
+                                const isTabReloadDisabled = !hasAdminPerm && (
+                                    tab.path === '/inbound' ||
+                                    tab.path.startsWith('/inbound') ||
+                                    tab.path === '/picking' ||
+                                    tab.path.startsWith('/picking') ||
+                                    tab.path.startsWith('/view_picking_audits')
+                                );
 
                                 return (
                                     <div
@@ -565,16 +727,18 @@ const Layout = () => {
                                     >
                                         <span className="tab-label font-normal tracking-normal">{t(tab.label)}</span>
                                         <div className="tab-actions flex items-center gap-1 ml-2">
-                                            <button
-                                                onClick={(e) => refreshTab(e, tab.id)}
-                                                className={`tab-refresh-btn ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-                                                title={t('header.refresh_data', 'Refrescar datos')}
-                                                aria-label={t('header.refresh_data', 'Refrescar datos')}
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                                                </svg>
-                                            </button>
+                                            {!isTabReloadDisabled && (
+                                                <button
+                                                    onClick={(e) => refreshTab(e, tab.id)}
+                                                    className={`tab-refresh-btn ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                                                    title={t('header.refresh_data', 'Refrescar datos')}
+                                                    aria-label={t('header.refresh_data', 'Refrescar datos')}
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                                    </svg>
+                                                </button>
+                                            )}
                                             {tabs.length > 1 && (
                                                 <button onClick={(e) => closeTab(e, tab.id)} className="tab-close-btn" title={t('tabs.close', 'Cerrar pestaña')} aria-label={t('tabs.close', 'Cerrar pestaña')}>
                                                     <span>&#215;</span>
@@ -588,10 +752,29 @@ const Layout = () => {
                         <button onClick={addTab} className="add-tab-btn" title={t('tabs.new', 'Nueva pestaña')} aria-label={t('tabs.new', 'Nueva pestaña')}>+</button>
                     </div>
 
-                    <div className="header-actions flex items-center gap-3">
+                    <div className="header-actions flex items-center gap-2 ml-auto flex-shrink-0">
                         {pendingCount > 0 && (
                             <div className="hidden cursor-pointer items-center gap-1.5 rounded border border-[#f7c948] bg-[#fff4ce] px-2 py-1 text-[10px] font-medium text-[#323130] sm:flex" onClick={handleManualSync}>
                                 {pendingCount} {t('header.pending', 'PENDIENTES')}
+                            </div>
+                        )}
+
+                        {currentUser && (
+                            <div
+                                className="flex items-center gap-2 px-2.5 py-1 bg-[#f8f9fa] border border-[#d2d0ce] rounded text-[12px] text-[#1f1f1f] font-normal select-none shadow-2xs"
+                                title={`Usuario activo: ${currentUser.username}${hasAdminPerm ? ' (Administrador)' : ''}`}
+                            >
+                                <span className="w-5 h-5 rounded-full bg-[#0067c0]/15 text-[#0067c0] text-[10px] font-semibold flex items-center justify-center uppercase leading-none border border-[#0067c0]/30 tracking-tight">
+                                    {getUserInitials(currentUser.username)}
+                                </span>
+                                <span className="font-normal text-[#1f1f1f]">
+                                    {formatUserDisplayName(currentUser.username)}
+                                </span>
+                                {hasAdminPerm && (
+                                    <span className="text-[10px] bg-[#0067c0] text-white px-1.5 py-0.2 rounded font-normal leading-none">
+                                        Admin
+                                    </span>
+                                )}
                             </div>
                         )}
                     </div>
@@ -608,41 +791,40 @@ const Layout = () => {
                 <nav className="py-2">
                     <div className="px-4 mb-2">
                         <div className="mb-1 px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#605e5c]">{t('menu.main', 'Principal')}</div>
-                        <MenuItem to="/dashboard" label={t('nav.home', 'Inicio')} desc={t('nav.home_desc', 'Panel principal y accesos rápidos')} categoryId="recepcion" onClick={toggleMenu} />
-                        <MenuItem to="/stock" label={t('nav.stock', 'Consultar Stock')} desc={t('nav.stock_desc', 'Búsqueda global de inventario y saldos')} categoryId="recepcion" onClick={toggleMenu} />
+                        <MenuItem to="/dashboard" label={t('nav.home', 'Inicio')} desc={t('nav.home_desc', 'Panel principal y accesos rápidos')} categoryId="recepcion" onClick={toggleMenu} currentUser={currentUser} />
+                        <MenuItem to="/stock" label={t('nav.stock', 'Consultar Stock')} desc={t('nav.stock_desc', 'Búsqueda global de inventario y saldos')} categoryId="recepcion" onClick={toggleMenu} currentUser={currentUser} />
                     </div>
                     <div className="px-4 mb-2">
                         <div className="mb-1 border-t border-[#e1dfdd] px-2 pt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#605e5c]">{t('menu.inbound', 'Operaciones Inbound')}</div>
-                        <MenuItem to="/inbound" label={t('nav.inbound', 'Recepción')} desc={t('nav.inbound_desc', 'Entrada de mercancía y referencias')} categoryId="recepcion" onClick={toggleMenu} />
-                        <MenuItem to="/reconciliation" label={t('nav.reconciliation', 'Conciliación')} desc={t('nav.reconciliation_desc', 'Cruce de documentos y discrepancias')} categoryId="recepcion" onClick={toggleMenu} />
-                        <MenuItem to="/view_logs" label={t('nav.view_logs', 'Registros')} desc={t('nav.view_logs_desc', 'Consulta de registros históricos')} categoryId="recepcion" onClick={toggleMenu} />
-                        <MenuItem to="/ir-reconciliation" label={t('nav.ir_dashboard', 'Dashboard IR')} desc={t('nav.ir_dashboard_desc', 'Estado general de Import References')} categoryId="recepcion" onClick={toggleMenu} />
+                        <MenuItem to="/inbound" label={t('nav.inbound', 'Recepción')} desc={t('nav.inbound_desc', 'Entrada de mercancía y referencias')} categoryId="recepcion" onClick={toggleMenu} currentUser={currentUser} />
+                        <MenuItem to="/reconciliation" label={t('nav.reconciliation', 'Conciliación')} desc={t('nav.reconciliation_desc', 'Cruce de documentos y discrepancias')} categoryId="recepcion" onClick={toggleMenu} currentUser={currentUser} />
+                        <MenuItem to="/view_logs" label={t('nav.view_logs', 'Registros')} desc={t('nav.view_logs_desc', 'Consulta de registros históricos')} categoryId="recepcion" onClick={toggleMenu} currentUser={currentUser} />
                     </div>
                     <div className="px-4 mb-2">
                         <div className="mb-1 border-t border-[#e1dfdd] px-2 pt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#605e5c]">{t('menu.outbound', 'Operaciones Outbound')}</div>
-                        <MenuItem to="/picking" label={t('nav.picking', 'Picking')} desc={t('nav.picking_desc', 'Verificación de pedidos y empaque')} categoryId="despacho" onClick={toggleMenu} />
-                        <MenuItem to="/view_picking_audits" label={t('nav.packing', 'Empaque')} desc={t('nav.packing_desc', 'Listas de empaque y auditorías')} categoryId="despacho" onClick={toggleMenu} />
-                        <MenuItem to="/shipments" label={t('nav.shipments', 'Despacho')} desc={t('nav.shipments_desc', 'Gestión de despachos y embarques')} categoryId="despacho" onClick={toggleMenu} />
-                        <MenuItem to="/label" label={t('nav.label', 'Etiquetado')} desc={t('nav.label_desc', 'Impresión de etiquetas operativas')} categoryId="despacho" onClick={toggleMenu} />
+                        <MenuItem to="/picking" label={t('nav.picking', 'Picking')} desc={t('nav.picking_desc', 'Verificación de pedidos y empaque')} categoryId="despacho" onClick={toggleMenu} currentUser={currentUser} />
+                        <MenuItem to="/view_picking_audits" label={t('nav.packing', 'Empaque')} desc={t('nav.packing_desc', 'Listas de empaque y auditorías')} categoryId="despacho" onClick={toggleMenu} currentUser={currentUser} />
+                        <MenuItem to="/shipments" label={t('nav.shipments', 'Despacho')} desc={t('nav.shipments_desc', 'Gestión de despachos y embarques')} categoryId="despacho" onClick={toggleMenu} currentUser={currentUser} />
+                        <MenuItem to="/label" label={t('nav.label', 'Etiquetado')} desc={t('nav.label_desc', 'Impresión de etiquetas operativas')} categoryId="despacho" onClick={toggleMenu} currentUser={currentUser} />
                     </div>
                     <div className="px-4 mb-2">
                         <div className="mb-1 border-t border-[#e1dfdd] px-2 pt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#605e5c]">{t('menu.inventory', 'Control Inventario')}</div>
-                        <MenuItem to="/planner" label={t('nav.planner', 'Plan Cíclico')} desc={t('nav.planner_desc', 'Programación de conteos cíclicos')} categoryId="inventario" onClick={toggleMenu} />
-                        <MenuItem to="/inventory-dashboard" label={t('nav.metrics', 'Métricas')} desc={t('nav.metrics_desc', 'Indicadores de exactitud')} categoryId="inventario" onClick={toggleMenu} />
-                        <MenuItem to="/view_counts/recordings" label={t('nav.recordings', 'Históricos')} desc={t('nav.recordings_desc', 'Grabaciones y trazabilidad')} categoryId="inventario" onClick={toggleMenu} />
-                        <MenuItem to="/planner/manage_differences" label={t('nav.differences', 'Diferencias')} desc={t('nav.differences_desc', 'Gestión de ajustes y discrepancias')} categoryId="inventario" onClick={toggleMenu} />
-                        <MenuItem to="/counts" label={t('nav.w2w', 'Inventario W2W')} desc={t('nav.w2w_desc', 'Conteo masivo wall-to-wall')} categoryId="inventario" onClick={toggleMenu} />
-                        {hasAdminPerm && <MenuItem to="/counts/manage" label={t('nav.manage_counts', 'Edición Conteos')} desc={t('nav.manage_counts_desc', 'Gestión de registros de conteo')} categoryId="inventario" onClick={toggleMenu} />}
-                        {hasAdminPerm && <MenuItem to="/view_counts" label={t('nav.general_count', 'Conteo General')} desc={t('nav.general_count_desc', 'Consolidado de conteos')} categoryId="inventario" onClick={toggleMenu} />}
-                        <MenuItem to="/express-audit" label={t('nav.manual_cycle', 'Ciclo Manual')} desc={t('nav.manual_cycle_desc', 'Conteo ciego y auditoría rápida')} categoryId="inventario" onClick={toggleMenu} />
-                        <MenuItem to="/spot-check" label={t('nav.spot_check', 'Spot Check')} desc={t('nav.spot_check_desc', 'Auditorías rápidas en piso')} categoryId="inventario" onClick={toggleMenu} />
+                        <MenuItem to="/planner" label={t('nav.planner', 'Plan Cíclico')} desc={t('nav.planner_desc', 'Programación de conteos cíclicos')} categoryId="inventario" onClick={toggleMenu} currentUser={currentUser} />
+                        <MenuItem to="/inventory-dashboard" label={t('nav.metrics', 'Métricas')} desc={t('nav.metrics_desc', 'Indicadores de exactitud')} categoryId="inventario" onClick={toggleMenu} currentUser={currentUser} />
+                        <MenuItem to="/view_counts/recordings" label={t('nav.recordings', 'Históricos')} desc={t('nav.recordings_desc', 'Grabaciones y trazabilidad')} categoryId="inventario" onClick={toggleMenu} currentUser={currentUser} />
+                        <MenuItem to="/planner/manage_differences" label={t('nav.differences', 'Diferencias')} desc={t('nav.differences_desc', 'Gestión de ajustes y discrepancias')} categoryId="inventario" onClick={toggleMenu} currentUser={currentUser} />
+                        <MenuItem to="/counts" label={t('nav.w2w', 'Inventario W2W')} desc={t('nav.w2w_desc', 'Conteo masivo wall-to-wall')} categoryId="inventario" onClick={toggleMenu} currentUser={currentUser} />
+                        {hasAdminPerm && <MenuItem to="/counts/manage" label={t('nav.manage_counts', 'Edición Conteos')} desc={t('nav.manage_counts_desc', 'Gestión de registros de conteo')} categoryId="inventario" onClick={toggleMenu} currentUser={currentUser} />}
+                        {hasAdminPerm && <MenuItem to="/view_counts" label={t('nav.general_count', 'Conteo General')} desc={t('nav.general_count_desc', 'Consolidado de conteos')} categoryId="inventario" onClick={toggleMenu} currentUser={currentUser} />}
+                        <MenuItem to="/express-audit" label={t('nav.manual_cycle', 'Ciclo Manual')} desc={t('nav.manual_cycle_desc', 'Conteo ciego y auditoría rápida')} categoryId="inventario" onClick={toggleMenu} currentUser={currentUser} />
+                        <MenuItem to="/spot-check" label={t('nav.spot_check', 'Spot Check')} desc={t('nav.spot_check_desc', 'Auditorías rápidas en piso')} categoryId="inventario" onClick={toggleMenu} currentUser={currentUser} />
                     </div>
                     <div className="px-4 mb-2">
                         <div className="mb-1 border-t border-[#e1dfdd] px-2 pt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#605e5c]">{t('menu.system', 'Sistema')}</div>
-                        <MenuItem to="/admin/inventory" label={t('nav.admin_inventory', 'Adm. Inventario')} desc={t('nav.admin_inventory_desc', 'Control de ciclos de conteo')} categoryId="admin" onClick={toggleMenu} />
-                        <MenuItem to="/admin/slotting" label={t('nav.slotting_config', 'Config. Slotting')} desc={t('nav.slotting_config_desc', 'Parámetros de ubicaciones')} categoryId="admin" onClick={toggleMenu} />
-                        <MenuItem to="/occupancy" label={t('nav.occupancy', 'Ocupación Bodega')} desc={t('nav.occupancy_desc', 'Análisis de espacio y ubicaciones')} categoryId="admin" onClick={toggleMenu} />
-                        <MenuItem to="/update" label={t('nav.update_data', 'Carga de Datos')} desc={t('nav.update_data_desc', 'Actualización masiva vía ficheros')} categoryId="admin" onClick={toggleMenu} />
+                        <MenuItem to="/admin/inventory" label={t('nav.admin_inventory', 'Adm. Inventario')} desc={t('nav.admin_inventory_desc', 'Control de ciclos de conteo')} categoryId="admin" onClick={toggleMenu} currentUser={currentUser} />
+                        <MenuItem to="/admin/slotting" label={t('nav.slotting_config', 'Config. Slotting')} desc={t('nav.slotting_config_desc', 'Parámetros de ubicaciones')} categoryId="admin" onClick={toggleMenu} currentUser={currentUser} />
+                        <MenuItem to="/occupancy" label={t('nav.occupancy', 'Ocupación Bodega')} desc={t('nav.occupancy_desc', 'Análisis de espacio y ubicaciones')} categoryId="admin" onClick={toggleMenu} currentUser={currentUser} />
+                        <MenuItem to="/update" label={t('nav.update_data', 'Carga de Datos')} desc={t('nav.update_data_desc', 'Actualización masiva vía ficheros')} categoryId="admin" onClick={toggleMenu} currentUser={currentUser} />
                         <button
                             className="mt-2 flex w-full cursor-pointer items-center justify-start !justify-start border-l-[4px] border-transparent px-4 py-1 text-left text-[12px] font-semibold uppercase text-[#a4262c] transition-all hover:bg-[#fde7e9]"
                             style={{ justifyContent: 'flex-start' }}
@@ -671,6 +853,7 @@ const Layout = () => {
                             tab={tab}
                             isActive={activeTabId === tab.id}
                             onTitleChange={updateTabLabel}
+                            onReturnHome={() => handleReturnHome(tab.id)}
                         />
                     ))}
                 </div>

@@ -826,6 +826,83 @@ fn process_incoming_event(
             crate::inbound::invalidate_inbound_reconciliation_cache();
         }
 
+        // 11. Replicación en Red de Registro de Usuario
+        "USER_REGISTER" => {
+            let username = event.payload.get("username").and_then(|v| v.as_str()).unwrap_or("").trim();
+            let password_hash = event.payload.get("password_hash").and_then(|v| v.as_str()).unwrap_or("").trim();
+            let role = event.payload.get("role").and_then(|v| v.as_str()).unwrap_or("operator").trim();
+            let permissions = event.payload.get("permissions").and_then(|v| v.as_str()).unwrap_or("").trim();
+            let is_approved = event.payload.get("is_approved").and_then(|v| v.as_i64()).unwrap_or(0);
+
+            if !username.is_empty() && !password_hash.is_empty() {
+                let _ = conn.execute(
+                    "INSERT INTO users (username, password_hash, role, permissions, is_approved)
+                     VALUES (?1, ?2, ?3, ?4, ?5)
+                     ON CONFLICT(username) DO UPDATE SET
+                        password_hash = excluded.password_hash;",
+                    params![username, password_hash, role, permissions, is_approved],
+                );
+            }
+        }
+
+        // 12. Replicación en Red de Aprobación de Usuario
+        "USER_APPROVE" => {
+            let username = event.payload.get("username").and_then(|v| v.as_str()).unwrap_or("").trim();
+            if !username.is_empty() {
+                let _ = conn.execute(
+                    "UPDATE users SET is_approved = 1 WHERE username = ?1",
+                    params![username],
+                );
+            }
+        }
+
+        // 13. Replicación en Red de Permisos de Usuario
+        "USER_PERMISSIONS_UPDATE" => {
+            let username = event.payload.get("username").and_then(|v| v.as_str()).unwrap_or("").trim();
+            let permissions = event.payload.get("permissions").and_then(|v| v.as_str()).unwrap_or("").trim();
+            if !username.is_empty() {
+                let _ = conn.execute(
+                    "UPDATE users SET permissions = ?1 WHERE username = ?2",
+                    params![permissions, username],
+                );
+            }
+        }
+
+        // 13b. Replicación en Red de Rol de Usuario (Administrador / Operador)
+        "USER_ROLE_UPDATE" => {
+            let username = event.payload.get("username").and_then(|v| v.as_str()).unwrap_or("").trim();
+            let role = event.payload.get("role").and_then(|v| v.as_str()).unwrap_or("operator").trim();
+            if !username.is_empty() {
+                let _ = conn.execute(
+                    "UPDATE users SET role = ?1 WHERE username = ?2",
+                    params![role, username],
+                );
+            }
+        }
+
+        // 14. Replicación en Red de Eliminación de Usuario
+        "USER_DELETE" => {
+            let username = event.payload.get("username").and_then(|v| v.as_str()).unwrap_or("").trim();
+            if !username.is_empty() {
+                let _ = conn.execute(
+                    "DELETE FROM users WHERE username = ?1",
+                    params![username],
+                );
+            }
+        }
+
+        // 15. Replicación en Red de Restablecimiento de Contraseña
+        "USER_PASSWORD_RESET" => {
+            let username = event.payload.get("username").and_then(|v| v.as_str()).unwrap_or("").trim();
+            let password_hash = event.payload.get("password_hash").and_then(|v| v.as_str()).unwrap_or("").trim();
+            if !username.is_empty() && !password_hash.is_empty() {
+                let _ = conn.execute(
+                    "UPDATE users SET password_hash = ?1 WHERE username = ?2",
+                    params![password_hash, username],
+                );
+            }
+        }
+
         _ => {
             eprintln!(
                 "[network_sync] Tipo de evento desconocido o no manejado: {}",
