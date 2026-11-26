@@ -2185,173 +2185,6 @@ pub fn get_inbound_reconciliation_view(
         }
     }
 
-    // 5b. Fallback a PO Extractor: Si una IR existe en po_lookup.json pero NO tiene líneas en el Reporte 280,
-    // agregar sus líneas esperadas desde po_lookup.json para permitir la conciliación contra la orden de compra.
-    let mut irs_with_280: HashSet<String> = HashSet::new();
-    let mut irs_with_280_clean: HashSet<String> = HashSet::new();
-    for line in &df_280 {
-        if line.ir_map != "SIN I.R. MAESTRA" && !line.ir_map.is_empty() {
-            irs_with_280.insert(line.ir_map.clone());
-            let stripped: String = strip_ir_prefix(&line.ir_map)
-                .chars()
-                .filter(|c| c.is_alphanumeric())
-                .collect();
-            if !stripped.is_empty() {
-                irs_with_280_clean.insert(stripped);
-            }
-        }
-    }
-
-    if let Some(ref po) = po_json {
-        let mut added_po_keys: HashSet<(String, String, String, String, String)> = HashSet::new();
-        let mut add_po_items = |ir_val: &str, wb_val: &str, items: &Vec<Value>| {
-            let ir_clean = ir_val.trim().to_uppercase();
-            if ir_clean.is_empty() {
-                return;
-            }
-            // Si ya existen registros del 280 para esta IR, prevalece el 280 (Prioridad 1)
-            let ir_stripped: String = strip_ir_prefix(&ir_clean)
-                .chars()
-                .filter(|c| c.is_alphanumeric())
-                .collect();
-            let has_280 = irs_with_280.contains(&ir_clean)
-                || (!ir_stripped.is_empty() && irs_with_280_clean.contains(&ir_stripped));
-            if has_280 {
-                return;
-            }
-
-            for item in items {
-                let code = item
-                    .get("item_code")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("")
-                    .trim()
-                    .to_uppercase();
-                if code.is_empty() {
-                    continue;
-                }
-
-                let order_line_val = item
-                    .get("order_line")
-                    .or_else(|| item.get("line"))
-                    .or_else(|| item.get("Order_Line"))
-                    .and_then(|v| {
-                        if let Some(s) = v.as_str() {
-                            let st = s.trim();
-                            if !st.is_empty() {
-                                Some(st.to_string())
-                            } else {
-                                None
-                            }
-                        } else if let Some(n) = v.as_i64() {
-                            Some(n.to_string())
-                        } else {
-                            v.as_f64().map(|f| (f as i64).to_string())
-                        }
-                    })
-                    .unwrap_or_default();
-                let grn_raw = item
-                    .get("grn")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("")
-                    .trim()
-                    .to_uppercase();
-                let cust_ref = item
-                    .get("customer_ref")
-                    .or_else(|| item.get("order_number"))
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("")
-                    .trim()
-                    .to_uppercase();
-
-                let key = (
-                    ir_clean.clone(),
-                    code.clone(),
-                    order_line_val.clone(),
-                    grn_raw.clone(),
-                    cust_ref.clone(),
-                );
-                if added_po_keys.contains(&key) {
-                    continue;
-                }
-                added_po_keys.insert(key);
-
-                let qty = item
-                    .get("qty")
-                    .and_then(|v| v.as_f64())
-                    .or_else(|| {
-                        item.get("qty")
-                            .and_then(|v| v.as_str())
-                            .and_then(|s| s.parse().ok())
-                    })
-                    .unwrap_or(0.0);
-
-                let grn_parts: Vec<String> = if grn_raw.contains(',') || grn_raw.contains('/') {
-                    grn_raw
-                        .split(&[',', '/'][..])
-                        .map(|s| s.trim().to_uppercase())
-                        .filter(|s| !s.is_empty() && s != "N/A" && s != "SIN GRN")
-                        .collect()
-                } else if !grn_raw.is_empty() && grn_raw != "N/A" && grn_raw != "SIN GRN" {
-                    vec![grn_raw]
-                } else {
-                    vec!["PO EXTRACTOR".to_string()]
-                };
-
-                let order_line_final = if !order_line_val.is_empty() && order_line_val != "-" {
-                    order_line_val
-                } else if let Some(ol) =
-                    ir_item_to_order_line.get(&(ir_clean.clone(), code.clone()))
-                {
-                    ol.clone()
-                } else if let Some(ol) =
-                    wb_item_to_order_line.get(&(wb_val.trim().to_uppercase(), code.clone()))
-                {
-                    ol.clone()
-                } else {
-                    "-".to_string()
-                };
-
-                for grn in grn_parts {
-                    df_280.push(Expected280Line {
-                        grn,
-                        item_code: code.clone(),
-                        description: String::new(),
-                        quantity: qty,
-                        order_number: cust_ref.clone(),
-                        order_line: order_line_final.clone(),
-                        ir_map: ir_clean.clone(),
-                        wb_map: wb_val.trim().to_uppercase(),
-                    });
-                }
-            }
-        };
-
-        if let Some(ir_map) = po.get("ir_to_data").and_then(|v| v.as_object()) {
-            for (ir_raw, data_obj) in ir_map {
-                let wb = data_obj
-                    .get("waybill")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("");
-                if let Some(items) = data_obj.get("items").and_then(|v| v.as_array()) {
-                    add_po_items(ir_raw, wb, items);
-                }
-            }
-        }
-
-        if let Some(wb_map) = po.get("wb_to_data").and_then(|v| v.as_object()) {
-            for (wb_raw, data_obj) in wb_map {
-                let ir = data_obj
-                    .get("import_ref")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("");
-                if let Some(items) = data_obj.get("items").and_then(|v| v.as_array()) {
-                    add_po_items(ir, wb_raw, items);
-                }
-            }
-        }
-    }
-
     // 5.1 PROTECCIÓN Y RECUPERACIÓN DE GRNs COMPLETAS O RECIBIDAS (replicando logix_react):
     // Si alguna GRN no tiene I.R. maestra asignada, pero sus ítems ya están registrados
     // físicamente en los logs de bodega, autodescubrir su I.R. activa para NUNCA
@@ -2362,7 +2195,6 @@ pub fn get_inbound_reconciliation_view(
         if (line.ir_map == "SIN I.R. MAESTRA" || line.ir_map.is_empty())
             && !line.grn.is_empty()
             && line.grn != "SIN GRN"
-            && line.grn != "PO EXTRACTOR"
         {
             unmapped_grns.insert(line.grn.clone());
             if !line.item_code.is_empty() {
@@ -3464,7 +3296,29 @@ mod tests {
             }
         }"#;
         std::fs::write(&po_path, po_content).unwrap();
+        // Sin datos en el 280, NO debe hacer fallback al PO Extractor
         std::fs::write(&grn_path, "[]").unwrap();
+
+        let res_empty = get_inbound_reconciliation_view(
+            &conn,
+            po_path.to_str().unwrap(),
+            grn_path.to_str().unwrap(),
+            None,
+            None,
+            Some("22854".to_string()),
+            None,
+            Some("26-0599".to_string()),
+            false,
+        )
+        .unwrap();
+        assert_eq!(res_empty.data.len(), 0);
+
+        // Con datos en el 280 (sin Order_Line), debe tomar la fila del 280 y resolver order_line desde po_lookup
+        std::fs::write(
+            &grn_path,
+            r#"[{"Item_Code":"D724783.04","Item_Description":"TEST ITEM","Quantity":1.0,"GRN_Number":"22854","Order_Number":"R028603"}]"#,
+        )
+        .unwrap();
 
         let res = get_inbound_reconciliation_view(
             &conn,

@@ -126,7 +126,7 @@ const Reconciliation = () => {
         const result = [];
         raw.forEach(row => {
             const grnStr = String(row.GRN || '').trim();
-            if (grnStr && grnStr !== 'SIN GRN' && grnStr !== 'PO EXTRACTOR' && (grnStr.includes(',') || grnStr.includes('/'))) {
+            if (grnStr && grnStr !== 'SIN GRN' && (grnStr.includes(',') || grnStr.includes('/'))) {
                 const parts = grnStr.split(/[,\/]/).map(g => g.trim().toUpperCase()).filter(Boolean);
                 if (parts.length > 0) {
                     parts.forEach(individualGrn => {
